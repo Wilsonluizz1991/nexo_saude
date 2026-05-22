@@ -1,0 +1,23 @@
+<x-configuracoes.layout titulo="Meu Perfil">
+    <h2>Meu Perfil</h2>
+    <form method="post" enctype="multipart/form-data" action="{{ route('configuracoes.perfil.update') }}" class="row g-3">
+        @csrf
+        <div class="col-md-4">
+            <img class="nexo-avatar-preview" src="{{ $user->avatar_path ? asset('storage/'.$user->avatar_path) : 'https://i.pravatar.cc/160?img=12' }}" alt="Preview da foto">
+            <input name="foto" type="file" class="form-control mt-3" accept="image/*">
+            <label class="form-check mt-2"><input name="remover_foto" value="1" type="checkbox" class="form-check-input"> Remover foto</label>
+        </div>
+        <div class="col-md-8 row g-3">
+            <div class="col-md-6"><label class="form-label">Nome</label><input name="name" class="form-control" value="{{ $user->name }}" required></div>
+            <div class="col-md-6"><label class="form-label">E-mail</label><input name="email" type="email" class="form-control" value="{{ $user->email }}" required></div>
+            <div class="col-md-6"><label class="form-label">Telefone</label><input name="telefone" class="form-control" value="{{ $user->telefone }}"></div>
+            <div class="col-md-6"><label class="form-label">Slug público</label><input name="slug" class="form-control" value="{{ $user->corretorPerfil->slug }}" required></div>
+            <div class="col-12"><label class="form-label">Biografia</label><textarea name="bio" class="form-control">{{ $user->corretorPerfil->bio }}</textarea></div>
+            <div class="col-md-6"><label class="form-label">Especialidades</label><input name="especialidades" class="form-control" value="{{ implode(', ', $user->corretorPerfil->especialidades ?? []) }}"></div>
+            <div class="col-md-3"><label class="form-label">Cidade</label><input name="cidade" class="form-control" value="{{ $user->corretorPerfil->cidade }}"></div>
+            <div class="col-md-3"><label class="form-label">Estado</label><input name="estado" maxlength="2" class="form-control" value="{{ $user->corretorPerfil->estado }}"></div>
+            <div class="col-md-4"><label class="form-label">Anos de experiência</label><input name="anos_experiencia" type="number" class="form-control" value="{{ $user->corretorPerfil->anos_experiencia }}"></div>
+            <div class="col-12 d-flex gap-2"><button class="btn btn-primary">Salvar perfil</button><a class="btn btn-outline-primary" href="{{ route('publico.corretor', $user->corretorPerfil->slug) }}">Visualizar perfil público</a></div>
+        </div>
+    </form>
+</x-configuracoes.layout>

@@ -1,0 +1,927 @@
+:root {
+    --nexo-azul-profundo: #0B1B30;
+    --nexo-azul: #0F3A68;
+    --nexo-azul-acao: #2F80ED;
+    --nexo-azul-claro: #EAF3FF;
+    --nexo-fundo: #F7F9FC;
+    --nexo-card: #FFFFFF;
+    --nexo-borda: #E5EAF0;
+    --nexo-texto: #162033;
+    --nexo-texto-secundario: #64748B;
+    --nexo-sucesso: #16A34A;
+    --nexo-atencao: #F59E0B;
+    --nexo-erro: #DC2626;
+    --nexo-info: #2563EB;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background: var(--nexo-fundo);
+    color: var(--nexo-texto);
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.nexo-header {
+    background: var(--nexo-fundo);
+}
+
+.nexo-header-top {
+    min-height: 220px;
+    background: var(--nexo-azul-profundo);
+    color: #fff;
+    display: flex;
+    align-items: center;
+}
+
+.nexo-header-container {
+    width: 100%;
+    max-width: 1814px;
+    margin: 0 auto;
+    padding: 0 52px;
+}
+
+.nexo-header-row {
+    display: grid;
+    grid-template-columns: 360px minmax(360px, 640px) minmax(520px, 1fr);
+    align-items: center;
+    gap: 44px;
+}
+
+.nexo-logo {
+    display: inline-flex;
+    align-items: center;
+    width: 300px;
+    height: 118px;
+    text-decoration: none;
+}
+
+.nexo-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+}
+
+.nexo-logo-light {
+    width: 312px;
+    height: 124px;
+}
+
+.nexo-search {
+    width: 100%;
+    max-width: 640px;
+    height: 72px;
+    border: 1px solid rgba(255, 255, 255, .18);
+    background: rgba(255, 255, 255, .075);
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    padding: 0 24px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .04);
+}
+
+.nexo-search-icon {
+    color: #fff;
+    font-size: 28px;
+    line-height: 1;
+}
+
+.nexo-search input {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #fff;
+    font-size: 18px;
+    font-weight: 400;
+}
+
+.nexo-search input::placeholder {
+    color: rgba(255, 255, 255, .72);
+}
+
+.nexo-header-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 22px;
+    min-width: 0;
+}
+
+.nexo-action-icon {
+    position: relative;
+    width: 40px;
+    height: 40px;
+    color: #fff;
+    display: inline-grid;
+    place-items: center;
+    font-size: 29px;
+    line-height: 1;
+}
+
+.nexo-action-dropdown .dropdown-toggle::after {
+    display: none;
+}
+
+.nexo-badge {
+    position: absolute;
+    top: -13px;
+    right: -9px;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: #1473FF;
+    color: #fff;
+    font-size: 16px;
+    font-weight: 800;
+}
+
+.nexo-header-panel {
+    width: 336px;
+    padding: 0;
+    border: 1px solid var(--nexo-borda);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 18px 44px rgba(15, 58, 104, .18);
+}
+
+.nexo-panel-title {
+    padding: 16px 18px;
+    color: var(--nexo-texto);
+    font-size: 15px;
+    font-weight: 800;
+    border-bottom: 1px solid var(--nexo-borda);
+}
+
+.nexo-panel-list {
+    max-height: 320px;
+    overflow-y: auto;
+}
+
+.nexo-panel-item {
+    display: block;
+    padding: 14px 18px;
+    color: var(--nexo-texto);
+    text-decoration: none;
+    border-bottom: 1px solid var(--nexo-borda);
+}
+
+.nexo-panel-item:hover {
+    background: var(--nexo-azul-claro);
+    color: var(--nexo-texto);
+}
+
+.nexo-panel-item strong {
+    display: block;
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.nexo-panel-item span,
+.nexo-panel-empty {
+    display: block;
+    margin-top: 4px;
+    color: var(--nexo-texto-secundario);
+    font-size: 13px;
+    line-height: 1.35;
+}
+
+.nexo-panel-empty {
+    padding: 22px 18px;
+    margin-top: 0;
+}
+
+.nexo-panel-footer {
+    display: block;
+    padding: 14px 18px;
+    color: var(--nexo-azul-acao);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 800;
+    background: #fff;
+}
+
+.nexo-panel-footer:hover {
+    background: var(--nexo-azul-claro);
+    color: var(--nexo-azul);
+}
+
+.nexo-user-menu {
+    min-width: 260px;
+    border-left: 1px solid rgba(255, 255, 255, .22);
+    padding-left: 32px;
+    display: flex;
+    align-items: center;
+    gap: 20px;
+}
+
+.nexo-avatar {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    border: 5px solid #fff;
+    object-fit: cover;
+    flex: 0 0 auto;
+}
+
+.nexo-user-text {
+    min-width: 0;
+}
+
+.nexo-user-name {
+    display: block;
+    color: #fff;
+    font-size: 21px;
+    font-weight: 800;
+    line-height: 1.15;
+}
+
+.nexo-user-role {
+    display: block;
+    margin-top: 8px;
+    color: rgba(255, 255, 255, .68);
+    font-size: 18px;
+    line-height: 1;
+}
+
+.nexo-user-chevron {
+    margin-left: auto;
+    color: #fff;
+    font-size: 25px;
+}
+
+.nexo-header-nav {
+    height: 86px;
+    background: #fff;
+    border-bottom: 1px solid var(--nexo-borda);
+    box-shadow: 0 8px 22px rgba(15, 58, 104, .06);
+}
+
+.nexo-header-nav .nexo-header-container {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 36px;
+}
+
+.nexo-nav-links {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: clamp(34px, 3.2vw, 68px);
+    min-width: 0;
+}
+
+.nexo-nav-item {
+    position: relative;
+    height: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 12px;
+    color: #273449;
+    text-decoration: none;
+    font-size: 17px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.nexo-nav-item i {
+    color: inherit;
+    font-size: 24px;
+    line-height: 1;
+}
+
+.nexo-nav-active {
+    color: #0866E8;
+    font-weight: 700;
+}
+
+.nexo-nav-active::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 5px;
+    background: #1775FF;
+}
+
+.nexo-nav-badge {
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--nexo-azul-acao);
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.nexo-btn-primary {
+    margin-left: 0;
+    min-height: 48px;
+    padding: 0 20px;
+    border: 0;
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    background: #1268E8;
+    color: #fff;
+    text-decoration: none;
+    font-size: 17px;
+    font-weight: 800;
+    box-shadow: 0 8px 18px rgba(47, 128, 237, .24);
+}
+
+.nexo-btn-primary:hover {
+    background: var(--nexo-azul-acao);
+    color: #fff;
+}
+
+.nexo-main {
+    max-width: 1380px;
+    margin: 0 auto;
+    padding: 34px 28px 70px;
+}
+
+.nexo-card {
+    background: var(--nexo-card);
+    border: 1px solid var(--nexo-borda);
+    border-radius: 8px;
+    box-shadow: 0 8px 26px rgba(15, 58, 104, .05);
+}
+
+.metric {
+    padding: 24px;
+}
+
+.metric span,
+.muted {
+    color: var(--nexo-texto-secundario);
+}
+
+.status-pill {
+    border-radius: 999px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    background: var(--nexo-azul-claro);
+    color: var(--nexo-info);
+}
+
+.nexo-page-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    border-radius: 999px;
+    background: var(--nexo-azul-claro);
+    color: var(--nexo-azul-acao);
+    font-size: 0.78rem;
+    font-weight: 900;
+    padding: 6px 11px;
+    margin-bottom: 10px;
+}
+
+.nexo-funnel-tabs {
+    display: flex;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 2px;
+}
+
+.nexo-funnel-tab {
+    min-height: 42px;
+    padding: 0 14px;
+    border: 1px solid var(--nexo-borda);
+    border-radius: 7px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    background: #fff;
+    color: var(--nexo-texto);
+    text-decoration: none;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.nexo-funnel-tab span {
+    min-width: 24px;
+    height: 24px;
+    padding: 0 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--nexo-azul-claro);
+    color: var(--nexo-azul);
+    font-size: 12px;
+}
+
+.nexo-funnel-tab.active {
+    border-color: var(--nexo-azul-acao);
+    background: var(--nexo-azul-claro);
+    color: var(--nexo-azul-acao);
+}
+
+.auth-shell,
+.public-shell {
+    min-height: 100vh;
+    display: grid;
+    place-items: center;
+    padding: 36px 16px;
+    background: var(--nexo-fundo);
+}
+
+.auth-box,
+.public-box {
+    width: min(100%, 1120px);
+}
+
+.auth-box-narrow {
+    max-width: 560px;
+}
+
+.nexo-public-header {
+    min-height: 132px;
+    background: var(--nexo-azul-profundo);
+    display: flex;
+    align-items: center;
+}
+
+.nexo-public-container {
+    width: min(100% - 40px, 1320px);
+    margin: 0 auto;
+}
+
+.nexo-public-page {
+    min-height: calc(100vh - 132px);
+    padding: 48px 0 72px;
+    background: var(--nexo-fundo);
+}
+
+.nexo-public-card {
+    display: grid;
+    grid-template-columns: 390px 1fr;
+    gap: 42px;
+    padding: 38px;
+    background: var(--nexo-card);
+    border: 1px solid var(--nexo-borda);
+    border-radius: 8px;
+    box-shadow: 0 16px 44px rgba(15, 58, 104, .08);
+}
+
+.nexo-broker-profile {
+    padding-right: 34px;
+    border-right: 1px solid var(--nexo-borda);
+}
+
+.nexo-broker-photo {
+    width: 132px;
+    height: 132px;
+    border-radius: 50%;
+    border: 5px solid #fff;
+    object-fit: cover;
+    box-shadow: 0 12px 28px rgba(15, 58, 104, .16);
+}
+
+.nexo-broker-profile h1,
+.nexo-public-form-panel h2 {
+    margin: 20px 0 12px;
+    color: var(--nexo-texto);
+    font-weight: 800;
+}
+
+.nexo-broker-region {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 18px 0;
+    color: var(--nexo-azul);
+    font-weight: 700;
+}
+
+.nexo-specialties {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.nexo-public-form-panel h2 {
+    margin-top: 0;
+}
+
+.nexo-preferences-panel {
+    padding: 18px;
+    background: var(--nexo-azul-claro);
+    border: 1px solid #d6e8ff;
+    border-radius: 8px;
+}
+
+.nexo-form-hint {
+    margin-top: 8px;
+    color: var(--nexo-erro);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.nexo-settings {
+    display: grid;
+    grid-template-columns: 290px 1fr;
+    gap: 24px;
+    align-items: start;
+}
+
+.nexo-settings-sidebar {
+    padding: 18px;
+    position: sticky;
+    top: 20px;
+}
+
+.nexo-settings-sidebar h1 {
+    margin: 0 0 16px;
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.nexo-settings-link {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    border-radius: 7px;
+    color: var(--nexo-texto);
+    text-decoration: none;
+    font-weight: 700;
+}
+
+.nexo-settings-link.active,
+.nexo-settings-link:hover {
+    background: var(--nexo-azul-claro);
+    color: var(--nexo-azul-acao);
+}
+
+.nexo-settings-content {
+    padding: 28px;
+}
+
+.nexo-settings-content h2 {
+    margin: 0 0 18px;
+    font-weight: 800;
+}
+
+.nexo-avatar-preview {
+    width: 132px;
+    height: 132px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 5px solid #fff;
+    box-shadow: 0 12px 28px rgba(15, 58, 104, .16);
+}
+
+.form-control,
+.form-select {
+    border-color: var(--nexo-borda);
+    border-radius: 7px;
+    padding: 12px 14px;
+}
+
+.btn-primary {
+    background: var(--nexo-azul-acao);
+    border-color: var(--nexo-azul-acao);
+}
+
+@media (max-width: 1360px) {
+    .nexo-header-row {
+        grid-template-columns: 280px minmax(300px, 520px) minmax(430px, 1fr);
+        gap: 28px;
+    }
+
+    .nexo-header-actions {
+        justify-content: flex-end;
+        gap: 18px;
+    }
+
+    .nexo-header-top {
+        padding: 22px 0;
+    }
+
+    .nexo-logo {
+        width: 260px;
+        height: 104px;
+    }
+
+    .nexo-search {
+        max-width: 520px;
+    }
+
+    .nexo-user-menu {
+        min-width: 230px;
+        padding-left: 24px;
+    }
+
+    .nexo-nav-links {
+        gap: clamp(24px, 2.5vw, 44px);
+    }
+}
+
+@media (max-width: 1100px) {
+    .nexo-header-top {
+        min-height: auto;
+    }
+
+    .nexo-header-container {
+        padding: 0 20px;
+    }
+
+    .nexo-header-row {
+        grid-template-columns: 1fr;
+    }
+
+    .nexo-logo {
+        width: 260px;
+        height: 108px;
+    }
+
+    .nexo-search {
+        height: 72px;
+    }
+
+    .nexo-header-actions {
+        justify-content: flex-start;
+        flex-wrap: wrap;
+    }
+
+    .nexo-user-menu {
+        min-width: 0;
+    }
+
+    .nexo-header-nav {
+        height: auto;
+    }
+
+    .nexo-header-nav .nexo-header-container {
+        min-height: 90px;
+        overflow-x: auto;
+    }
+
+    .nexo-btn-primary {
+        margin-left: 0;
+        flex: 0 0 auto;
+    }
+
+    .nexo-header-panel {
+        width: min(336px, calc(100vw - 32px));
+    }
+
+    .nexo-public-card {
+        grid-template-columns: 1fr;
+        padding: 24px;
+    }
+
+    .nexo-settings {
+        grid-template-columns: 1fr;
+    }
+
+.nexo-broker-profile {
+        padding-right: 0;
+        padding-bottom: 24px;
+        border-right: 0;
+        border-bottom: 1px solid var(--nexo-borda);
+    }
+}
+
+.nexo-public-success {
+    align-items: center;
+    grid-template-columns: 1fr auto;
+}
+
+.nexo-beneficiary-card {
+    background: var(--nexo-card);
+    border: 1px solid var(--nexo-borda);
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 12px 32px rgba(15, 58, 104, 0.06);
+}
+
+.nexo-multiselect {
+    position: relative;
+}
+
+.nexo-multi-control {
+    width: 100%;
+    min-height: 48px;
+    border: 1px solid var(--nexo-borda);
+    border-radius: 8px;
+    background: var(--nexo-card);
+    color: var(--nexo-texto);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 12px;
+    text-align: left;
+    transition: border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.nexo-multi-control:focus,
+.nexo-multiselect.is-open .nexo-multi-control {
+    border-color: var(--nexo-azul-acao);
+    box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.14);
+    outline: 0;
+}
+
+.nexo-multi-tags {
+    display: flex;
+    flex: 1;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.nexo-multi-placeholder {
+    color: var(--nexo-texto-secundario);
+}
+
+.nexo-multi-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    max-width: 100%;
+    border-radius: 999px;
+    background: var(--nexo-azul-claro);
+    color: var(--nexo-azul);
+    font-size: 0.88rem;
+    font-weight: 600;
+    line-height: 1;
+    padding: 7px 9px;
+}
+
+.nexo-multi-chip [data-remove-doc] {
+    color: var(--nexo-azul-acao);
+    cursor: pointer;
+    font-size: 1rem;
+    font-weight: 800;
+    line-height: 1;
+}
+
+.nexo-multi-menu {
+    position: absolute;
+    z-index: 40;
+    top: calc(100% + 8px);
+    left: 0;
+    width: min(100%, 440px);
+    max-height: 320px;
+    overflow-y: auto;
+    border: 1px solid var(--nexo-borda);
+    border-radius: 8px;
+    background: var(--nexo-card);
+    box-shadow: 0 18px 42px rgba(15, 58, 104, 0.16);
+    padding: 8px;
+    display: none;
+}
+
+.nexo-multiselect.is-open .nexo-multi-menu {
+    display: block;
+}
+
+.nexo-multi-option {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 6px;
+    color: var(--nexo-texto);
+    cursor: pointer;
+    font-weight: 500;
+    margin: 0;
+    padding: 9px 10px;
+}
+
+.nexo-multi-option:hover {
+    background: var(--nexo-azul-claro);
+}
+
+.nexo-multi-option input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--nexo-azul-acao);
+}
+
+.nexo-pre-cadastro-publico {
+    background:
+        linear-gradient(180deg, rgba(11, 27, 48, 0.08), rgba(247, 249, 252, 0) 260px),
+        var(--nexo-fundo);
+}
+
+.nexo-document-card {
+    border: 1px solid var(--nexo-borda);
+    border-radius: 8px;
+    background: var(--nexo-card);
+    padding: 22px;
+    margin-bottom: 20px;
+    box-shadow: 0 12px 30px rgba(15, 58, 104, 0.05);
+}
+
+.nexo-correction-box {
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-left: 4px solid var(--nexo-atencao);
+    border-radius: 8px;
+    background: #fff8eb;
+    color: var(--nexo-texto);
+    padding: 20px;
+}
+
+.nexo-access-panel {
+    max-width: 560px;
+}
+
+.nexo-upload-box {
+    min-height: 100%;
+    border: 1px solid var(--nexo-borda);
+    border-radius: 8px;
+    background: #fff;
+    padding: 16px;
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+}
+
+.nexo-upload-box:focus-within {
+    border-color: var(--nexo-azul-acao);
+    box-shadow: 0 0 0 4px rgba(47, 128, 237, .12);
+}
+
+.nexo-upload-box.is-locked {
+    background: #f8fafc;
+}
+
+.nexo-upload-box.is-locked .form-control:disabled {
+    background: #eef3f8;
+    color: var(--nexo-texto-secundario);
+}
+
+.nexo-review-btn {
+    border: 1px solid var(--nexo-azul-acao);
+    background: #fff;
+    color: var(--nexo-azul-acao);
+    font-weight: 700;
+    transition: background .18s ease, color .18s ease, border-color .18s ease;
+}
+
+.nexo-review-btn:hover,
+.nexo-review-btn:focus {
+    border-color: var(--nexo-azul-acao);
+    background: var(--nexo-azul-claro);
+    color: var(--nexo-azul);
+}
+
+.nexo-review-btn:active {
+    background: var(--nexo-azul-acao);
+    color: #fff;
+}
+
+.nexo-review-toast {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 1080;
+    max-width: 360px;
+    border: 1px solid rgba(47, 128, 237, .18);
+    box-shadow: 0 18px 44px rgba(15, 58, 104, .18);
+}
+
+.nexo-public-status {
+    max-width: 760px;
+}
+
+.nexo-status-dot {
+    display: block;
+    width: 72px;
+    height: 72px;
+    border-radius: 50%;
+    background:
+        radial-gradient(circle at center, var(--nexo-azul-acao) 0 32%, transparent 33%),
+        var(--nexo-azul-claro);
+    border: 1px solid rgba(47, 128, 237, 0.18);
+    box-shadow: 0 18px 36px rgba(47, 128, 237, 0.18);
+}
+
+@media (max-width: 1100px) {
+    .nexo-public-success {
+        grid-template-columns: 1fr;
+    }
+}
