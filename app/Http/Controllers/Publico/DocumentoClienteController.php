@@ -52,29 +52,29 @@ class DocumentoClienteController extends Controller
 
         if (RateLimiter::tooManyAttempts($limiteKey, 5)) {
             return back()->withErrors([
-                'prefixo_documento' => 'Muitas tentativas inválidas. Aguarde alguns minutos e tente novamente.',
+                'chave_acesso' => 'Muitas tentativas inválidas. Aguarde alguns minutos e tente novamente.',
             ]);
         }
 
         $dados = $request->validate([
-            'prefixo_documento' => ['required', 'digits:6'],
+            'chave_acesso' => ['required', 'string', 'max:16', 'regex:/^[A-Za-z0-9-]+$/'],
         ], [
-            'prefixo_documento.required' => 'Informe os 6 primeiros números.',
-            'prefixo_documento.digits' => 'Informe exatamente 6 números.',
+            'chave_acesso.required' => 'Informe a chave recebida por SMS.',
+            'chave_acesso.regex' => 'Informe apenas letras, números e hífen.',
         ]);
 
-        if (! $this->validarPrefixoDocumento($preCadastro, $dados['prefixo_documento'])) {
+        if (! $this->validarChaveAcesso($preCadastro, $dados['chave_acesso'])) {
             RateLimiter::hit($limiteKey, 300);
             usleep(250000);
 
             return back()->withErrors([
-                'prefixo_documento' => 'Os dados informados não conferem.',
+                'chave_acesso' => 'A chave informada não confere ou expirou.',
             ]);
         }
 
         RateLimiter::clear($limiteKey);
         session()->put($this->chaveSessaoAcesso($preCadastro), [
-            'prefixo' => $dados['prefixo_documento'],
+            'chave' => strtoupper($dados['chave_acesso']),
             'expires_at' => now()->addMinutes(30)->timestamp,
         ]);
 
@@ -89,7 +89,7 @@ class DocumentoClienteController extends Controller
         $preCadastro = $this->resolverPreCadastro($slug, $token);
 
         if ($this->formularioBloqueado($preCadastro)) {
-            abort(423, 'Este pré-cadastro está em análise e não aceita novas edições no momento.');
+            abort(423, 'Este pre-cadastro esta em analise e nao aceita novas edicoes no momento.');
         }
 
         abort_unless($this->acessoAutorizado($preCadastro), 403);
@@ -97,7 +97,6 @@ class DocumentoClienteController extends Controller
         $emCorrecao = $this->emModoCorrecao($preCadastro);
         $arquivos = $request->file('documentos', []);
         if (! $emCorrecao) {
-            $this->validarDocumentoContraAcesso($preCadastro, $request->validated('vidas', []));
             $this->atualizarDadosDasVidas($preCadastro, $request->validated('vidas', []));
         }
 
@@ -141,14 +140,14 @@ class DocumentoClienteController extends Controller
         $preCadastro->indicacao?->update(['status' => 'documentacao_em_analise']);
         $this->notificarCorretor($preCadastro);
         $preCadastro->indicacao?->timelineEventos()->create([
-            'titulo' => $reenviado ? 'Cliente reenviou documentação' : 'Pré-cadastro enviado pelo cliente',
+            'titulo' => $reenviado ? 'Cliente reenviou documentacao' : 'Pré-cadastro enviado pelo cliente',
             'descricao' => $reenviado
-                ? 'Cliente corrigiu as informações solicitadas e reenviou a documentação para análise.'
-                : 'O cliente preencheu o formulário público e enviou os documentos para análise.',
+                ? 'Cliente corrigiu as informacoes solicitadas e reenviou a documentacao para analise.'
+                : 'O cliente preencheu o formulario publico e enviou os documentos para analise.',
         ]);
         $preCadastro->indicacao?->timelineEventos()->create([
-            'titulo' => 'Documentação em análise',
-            'descricao' => 'O formulário público foi bloqueado enquanto a documentação é revisada pelo corretor.',
+            'titulo' => 'Documentacao em analise',
+            'descricao' => 'O formulario publico foi bloqueado enquanto a documentacao e revisada pelo corretor.',
         ]);
 
         return redirect()
@@ -220,7 +219,7 @@ class DocumentoClienteController extends Controller
             $idsEditaveis = $editaveis->pluck('id')->all();
 
             if (collect($idsEnviados)->diff($idsEditaveis)->isNotEmpty()) {
-                return 'Envie apenas os documentos liberados para correção.';
+                return 'Envie apenas os documentos liberados para correcao.';
             }
 
             $faltandoCorrecao = $editaveis
@@ -228,7 +227,7 @@ class DocumentoClienteController extends Controller
                 ->contains(fn ($documento) => ! in_array($documento->id, $idsEnviados, true));
 
             return $faltandoCorrecao
-                ? 'Envie todos os documentos solicitados para correção antes de reenviar.'
+                ? 'Envie todos os documentos solicitados para correcao antes de reenviar.'
                 : null;
         }
 
@@ -238,7 +237,7 @@ class DocumentoClienteController extends Controller
                 && ! in_array($documento->id, $idsEnviados, true));
 
         if ($semAlternativaFaltando) {
-            return 'Envie todos os documentos obrigatórios antes de finalizar o pré-cadastro.';
+            return 'Envie todos os documentos obrigatorios antes de finalizar o pre-cadastro.';
         }
 
         $grupoFaltando = $obrigatorios
@@ -248,7 +247,7 @@ class DocumentoClienteController extends Controller
                 || in_array($documento->id, $idsEnviados, true)));
 
         return $grupoFaltando
-            ? 'Escolha pelo menos uma opção válida em cada grupo documental alternativo.'
+            ? 'Escolha pelo menos uma opcao valida em cada grupo documental alternativo.'
             : null;
     }
 
@@ -330,45 +329,20 @@ class DocumentoClienteController extends Controller
             return false;
         }
 
-        $prefixoEsperado = $this->prefixoDocumentoSalvo($preCadastro);
-
-        return ! $prefixoEsperado || hash_equals($prefixoEsperado, (string) ($sessao['prefixo'] ?? ''));
+        return $this->validarChaveAcesso($preCadastro, (string) ($sessao['chave'] ?? ''));
     }
 
-    private function validarPrefixoDocumento(PreCadastro $preCadastro, string $prefixo): bool
+    private function validarChaveAcesso(PreCadastro $preCadastro, string $chave): bool
     {
-        $prefixoEsperado = $this->prefixoDocumentoSalvo($preCadastro);
-
-        return ! $prefixoEsperado || hash_equals($prefixoEsperado, $prefixo);
-    }
-
-    private function prefixoDocumentoSalvo(PreCadastro $preCadastro): ?string
-    {
-        $vida = $preCadastro->pessoa === 'PF'
-            ? ($preCadastro->vidas->firstWhere('tipo', 'titular') ?? $preCadastro->vidas->sortBy('ordem')->first())
-            : ($preCadastro->vidas->firstWhere('tipo', 'socio') ?? $preCadastro->vidas->sortBy('ordem')->first());
-
-        $documento = preg_replace('/\D/', '', (string) $vida?->cpf);
-
-        return strlen($documento) >= 6 ? substr($documento, 0, 6) : null;
-    }
-
-    private function validarDocumentoContraAcesso(PreCadastro $preCadastro, array $vidas): void
-    {
-        $sessao = session($this->chaveSessaoAcesso($preCadastro));
-        $prefixo = (string) ($sessao['prefixo'] ?? '');
-        if (! $prefixo) {
-            abort(403);
+        if (! $preCadastro->chave_acesso) {
+            return false;
         }
 
-        $vidaReferencia = $preCadastro->pessoa === 'PF'
-            ? ($preCadastro->vidas->firstWhere('tipo', 'titular') ?? $preCadastro->vidas->sortBy('ordem')->first())
-            : ($preCadastro->vidas->firstWhere('tipo', 'socio') ?? $preCadastro->vidas->sortBy('ordem')->first());
-
-        $documento = preg_replace('/\D/', '', (string) ($vidas[$vidaReferencia?->id]['cpf'] ?? ''));
-        if (! str_starts_with($documento, $prefixo)) {
-            abort(422, 'Os dados informados não conferem com a validação de acesso.');
+        if ($preCadastro->chave_expira_em && $preCadastro->chave_expira_em->isPast()) {
+            return false;
         }
+
+        return hash_equals(strtoupper($preCadastro->chave_acesso), strtoupper(trim($chave)));
     }
 
     private function notificarCorretor(PreCadastro $preCadastro): void

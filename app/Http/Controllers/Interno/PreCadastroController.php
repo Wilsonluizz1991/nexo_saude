@@ -24,17 +24,26 @@ class PreCadastroController extends Controller
     public function store(StorePreCadastroRequest $request, Indicacao $indicacao, PreCadastroService $service)
     {
         abort_unless($indicacao->user_id === auth()->id(), 403);
+
         $preCadastro = $service->iniciar($indicacao, $request->validated());
+        $link = $this->linkPublico($preCadastro);
+        $preCadastro = $service->enviarSmsComLink($preCadastro, $link);
 
         return redirect()->route('pre-cadastros.show', $preCadastro)
-            ->with('status', 'Pré-cadastro criado. Link do cliente: '.$this->linkPublico($preCadastro));
+            ->with('status', 'Pré-cadastro criado e link preparado.')
+            ->with('pre_cadastro_link', $link)
+            ->with('pre_cadastro_chave', $preCadastro->chave_acesso)
+            ->with('pre_cadastro_sms_status', $preCadastro->sms_status)
+            ->with('pre_cadastro_cliente', $preCadastro->indicacao?->nome_cliente);
     }
 
-    public function show(PreCadastro $preCadastro)
+    public function show(PreCadastro $preCadastro, PreCadastroService $service)
     {
+        $preCadastro = $service->garantirTokenAcesso($preCadastro);
         $preCadastro->load([
             'indicacao.user.corretorPerfil',
             'indicacao.timelineEventos',
+            'indicacao.tarefas',
             'vidas',
             'documentosObrigatorios.tipoDocumento',
             'documentosObrigatorios.envio',

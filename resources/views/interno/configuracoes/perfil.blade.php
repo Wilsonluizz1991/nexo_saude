@@ -11,7 +11,7 @@
             <div class="col-md-6"><label class="form-label">Nome</label><input name="name" class="form-control" value="{{ $user->name }}" required></div>
             <div class="col-md-6"><label class="form-label">E-mail</label><input name="email" type="email" class="form-control" value="{{ $user->email }}" required></div>
             <div class="col-md-6"><label class="form-label">Telefone</label><input name="telefone" class="form-control" value="{{ $user->telefone }}"></div>
-            <div class="col-md-6"><label class="form-label">Slug público</label><input name="slug" class="form-control" value="{{ $user->corretorPerfil->slug }}" required></div>
+            <div class="col-md-6"><label class="form-label">Link público</label><input class="form-control" value="{{ route('publico.corretor', $user->corretorPerfil->slug) }}" readonly></div>
             <div class="col-12"><label class="form-label">Biografia</label><textarea name="bio" class="form-control">{{ $user->corretorPerfil->bio }}</textarea></div>
             <div class="col-md-6"><label class="form-label">Especialidades</label><input name="especialidades" class="form-control" value="{{ implode(', ', $user->corretorPerfil->especialidades ?? []) }}"></div>
             <div class="col-md-3"><label class="form-label">Cidade</label><input name="cidade" class="form-control" value="{{ $user->corretorPerfil->cidade }}"></div>

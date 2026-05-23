@@ -14,7 +14,7 @@ return new class extends Migration
             $table->date('data_inicio_teste_gratis');
             $table->date('data_fim_teste_gratis');
             $table->enum('status_assinatura', ['teste_gratis', 'ativa', 'vencida', 'cancelada', 'bloqueada'])->default('teste_gratis');
-            $table->decimal('valor_assinatura', 10, 2)->default(249.90);
+            $table->decimal('valor_assinatura', 10, 2)->default(49.90);
             $table->date('vencimento_assinatura')->nullable();
             $table->timestamps();
         });

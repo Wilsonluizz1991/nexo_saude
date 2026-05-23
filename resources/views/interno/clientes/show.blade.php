@@ -278,6 +278,7 @@
                             @empty
                                 <p>Nenhuma tarefa vinculada.</p>
                             @endforelse
+                            {{ $tarefas->links('vendor.pagination.nexo') }}
                         </div>
 
                         <div class="nexo-side-block">
@@ -290,6 +291,7 @@
                             @empty
                                 <p>Nenhum alerta vinculado.</p>
                             @endforelse
+                            {{ $alertas->links('vendor.pagination.nexo') }}
                         </div>
                     </div>
                 </section>

@@ -35,4 +35,10 @@ return [
         ],
     ],
 
+    'sms' => [
+        'provider' => env('SMS_PROVIDER', 'log'),
+        'endpoint' => env('SMS_ENDPOINT'),
+        'token' => env('SMS_TOKEN'),
+    ],
+
 ];

@@ -9,6 +9,7 @@ use App\Models\Indicacao;
 use App\Models\DocumentoObrigatorioPreCadastro;
 use App\Models\Operadora;
 use App\Services\ImplantacaoService;
+use App\Services\PlanoSaudeService;
 use App\Services\ServicoLembrete;
 use App\Services\ServicoProposta;
 use Illuminate\Http\Request;
@@ -33,7 +34,7 @@ class IndicacaoController extends Controller
         $query->whereIn('etapa', $statusPorEtapa[$etapa] ?? $statusPorEtapa['leads']);
 
         return view('interno.indicacoes.index', [
-            'indicacoes' => $query->paginate(12)->withQueryString(),
+            'indicacoes' => $query->paginate(10)->withQueryString(),
             'etapaAtual' => $etapa,
             'contadoresEtapas' => [
                 'todos' => (clone $base)->count(),
@@ -56,31 +57,56 @@ class IndicacaoController extends Controller
 
     public function store(Request $request)
     {
+        $request->merge([
+            'tipo_plano' => PlanoSaudeService::normalizarTipo($request->input('tipo_plano')),
+            'quantidade_vidas' => PlanoSaudeService::normalizarQuantidadeVidas(
+                $request->input('tipo_plano'),
+                $request->input('quantidade_vidas')
+            ),
+        ]);
+
+        if ($request->input('possui_preferencias') !== 'sim') {
+            $request->merge([
+                'operadoras' => [],
+                'hospitais' => [],
+                'faixa_valor_mensal' => null,
+            ]);
+        }
+
         $dados = $request->validate([
             'nome_cliente' => ['required', 'string', 'max:255'],
             'telefone' => ['required', 'string', 'max:30'],
-            'email' => ['nullable', 'email'],
+            'email' => ['required', 'email', 'max:255'],
             'tipo_plano' => ['required', 'string', 'max:80'],
-            'quantidade_vidas' => ['required', 'integer', 'min:1'],
+            'quantidade_vidas' => ['required', 'integer', 'min:1', 'max:999'],
             'cidade' => ['required', 'string', 'max:120'],
             'estado' => ['required', 'string', 'size:2'],
+            'possui_preferencias' => ['required', 'in:sim,nao,ainda_nao_sei'],
             'operadoras' => ['nullable', 'array', 'max:3'],
             'operadoras.*' => ['integer', 'distinct', 'exists:operadoras,id'],
+            'hospitais' => ['nullable', 'array', 'max:3'],
+            'hospitais.*' => ['nullable', 'string', 'max:120'],
+            'faixa_valor_mensal' => ['nullable', 'string', 'max:80'],
             'observacoes' => ['nullable', 'string', 'max:2000'],
         ]);
 
+        $possuiPreferencias = $dados['possui_preferencias'] === 'sim';
         $operadorasPreferidas = collect($dados['operadoras'] ?? [])
             ->map(fn ($operadoraId) => (int) $operadoraId)
+            ->take(3)
             ->values()
             ->all();
-        unset($dados['operadoras']);
+        $hospitaisPreferidos = array_values(array_filter(array_slice($dados['hospitais'] ?? [], 0, 3)));
+        unset($dados['possui_preferencias'], $dados['operadoras'], $dados['hospitais']);
 
         $indicacao = Indicacao::create(array_merge($dados, [
             'user_id' => auth()->id(),
             'origem' => 'cadastro_interno',
             'estado' => strtoupper($dados['estado']),
-            'possui_preferencias' => ! empty($operadorasPreferidas),
-            'operadoras_preferidas' => $operadorasPreferidas,
+            'possui_preferencias' => $possuiPreferencias,
+            'operadoras_preferidas' => $possuiPreferencias ? $operadorasPreferidas : [],
+            'hospitais_preferidos' => $possuiPreferencias ? $hospitaisPreferidos : [],
+            'faixa_valor_mensal' => $possuiPreferencias ? ($dados['faixa_valor_mensal'] ?? null) : null,
             'etapa' => 'lead',
             'status' => 'nova',
         ]));
@@ -119,7 +145,7 @@ class IndicacaoController extends Controller
     public function storeProposta(StorePropostaRequest $request, Indicacao $indicacao, ServicoProposta $service)
     {
         abort_unless($indicacao->user_id === auth()->id(), 403);
-        abort_unless(in_array($indicacao->etapa, ['lead', 'propostas'], true), 422);
+        abort_unless(in_array($indicacao->etapa, ['lead', 'propostas', 'pre_cadastros', 'implantacoes'], true), 422);
 
         $service->anexar($indicacao, $request->validated(), $request->file('arquivo_pdf'));
 
@@ -131,7 +157,7 @@ class IndicacaoController extends Controller
     public function storeLembrete(StoreLembreteRequest $request, Indicacao $indicacao, ServicoLembrete $service)
     {
         abort_unless($indicacao->user_id === auth()->id(), 403);
-        abort_unless(in_array($indicacao->etapa, ['lead', 'propostas'], true), 422);
+        abort_unless(in_array($indicacao->etapa, ['lead', 'propostas', 'pre_cadastros', 'implantacoes'], true), 422);
 
         $service->criar($indicacao, $request->validated());
 
@@ -172,6 +198,10 @@ class IndicacaoController extends Controller
             'enviar_email' => ['nullable', 'boolean'],
             'enviar_sms' => ['nullable', 'boolean'],
         ]);
+        $dados['quantidade_vidas'] = PlanoSaudeService::normalizarQuantidadeVidas(
+            $dados['tipo_contrato'],
+            $dados['quantidade_vidas']
+        );
         $service->contratoVigente($indicacao, $dados);
 
         return redirect()

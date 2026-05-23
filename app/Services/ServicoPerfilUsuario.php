@@ -2,9 +2,9 @@
 
 namespace App\Services;
 
+use App\Models\CorretorPerfil;
 use App\Models\User;
 use Illuminate\Http\Request;
-use Illuminate\Support\Str;
 
 class ServicoPerfilUsuario
 {
@@ -28,7 +28,7 @@ class ServicoPerfilUsuario
         ]);
 
         $user->corretorPerfil()->updateOrCreate(['user_id' => $user->id], [
-            'slug' => Str::slug($dados['slug']),
+            'slug' => $user->corretorPerfil?->slug ?: CorretorPerfil::gerarHashPublico(),
             'nome_publico' => $dados['name'],
             'bio' => $dados['bio'] ?? null,
             'especialidades' => collect(explode(',', $dados['especialidades'] ?? ''))->map(fn ($item) => trim($item))->filter()->values()->all(),

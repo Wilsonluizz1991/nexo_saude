@@ -12,11 +12,23 @@
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
 <body>
-@if(session('status'))
-    <div class="container mt-3"><div class="alert alert-info mb-0">{{ session('status') }}</div></div>
-@endif
-@if($errors->any())
-    <div class="container mt-3"><div class="alert alert-danger mb-0">{{ $errors->first() }}</div></div>
+@if(session('status') || $errors->any())
+    <div class="nexo-floating-toast {{ $errors->any() ? 'is-danger' : '' }}" data-nexo-page-toast>
+        <div class="nexo-floating-toast-icon">
+            <i class="bi {{ $errors->any() ? 'bi-exclamation-triangle' : 'bi-check2-circle' }}"></i>
+        </div>
+
+        <div class="nexo-floating-toast-content">
+            <strong>{{ $errors->any() ? 'Revise os dados' : 'Sucesso' }}</strong>
+            <span>{{ $errors->any() ? $errors->first() : session('status') }}</span>
+        </div>
+
+        <button type="button" class="nexo-floating-toast-close" data-toast-close aria-label="Fechar notificacao">
+            <i class="bi bi-x-lg"></i>
+        </button>
+
+        <div class="nexo-floating-toast-progress"></div>
+    </div>
 @endif
 
 {{ $slot }}

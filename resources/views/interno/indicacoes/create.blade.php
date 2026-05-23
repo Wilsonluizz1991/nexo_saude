@@ -44,135 +44,165 @@
                 $operadorasSelecionadas = collect(old('operadoras', []))
                     ->map(fn ($id) => (string) $id)
                     ->toArray();
+                $possuiPreferencias = old('possui_preferencias', 'ainda_nao_sei');
             @endphp
 
             <form method="post" action="{{ route('indicacoes.store') }}" class="row g-3">
                 @csrf
-
                 <div class="col-md-6">
                     <label class="form-label">Nome da lead</label>
-                    <input name="nome_cliente" class="form-control" placeholder="Ex.: Maria Oliveira" required>
+                    <input name="nome_cliente" class="form-control" value="{{ old('nome_cliente') }}" placeholder="Ex.: Maria Oliveira" required>
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label">Telefone</label>
-                    <input id="nexo-input-telefone" name="telefone" class="form-control" placeholder="(11) 99999-9999" maxlength="15" required>
+                    <input id="nexo-input-telefone" name="telefone" class="form-control" value="{{ old('telefone') }}" placeholder="(11) 99999-9999" maxlength="15" required>
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label">E-mail</label>
-                    <input name="email" type="email" class="form-control" placeholder="cliente@email.com">
+                    <input name="email" type="email" class="form-control" value="{{ old('email') }}" placeholder="cliente@email.com" required>
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label">Tipo de plano</label>
-                    <input name="tipo_plano" class="form-control" placeholder="Ex.: Familiar, PME, Individual" required>
+                    <select name="tipo_plano" class="form-select d-none" data-plan-type required>
+                        @foreach(['Individual', 'Familiar', 'PME', 'Empresarial'] as $tipoPlano)
+                            <option value="{{ $tipoPlano }}" @selected(old('tipo_plano') === $tipoPlano)>{{ $tipoPlano }}</option>
+                        @endforeach
+                    </select>
+
+                    <div class="dropdown nexo-bootstrap-select" data-bootstrap-select-wrapper>
+                        <button class="nexo-bootstrap-select-toggle dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <span data-bootstrap-select-label>{{ old('tipo_plano', 'Individual') }}</span>
+                        </button>
+
+                        <ul class="dropdown-menu nexo-bootstrap-select-menu">
+                            @foreach(['Individual' => 'bi-person', 'Familiar' => 'bi-people', 'PME' => 'bi-shop', 'Empresarial' => 'bi-buildings'] as $tipoPlano => $iconePlano)
+                                <li>
+                                    <button class="dropdown-item nexo-bootstrap-select-item" type="button" data-select-value="{{ $tipoPlano }}">
+                                        <i class="bi {{ $iconePlano }}"></i>
+                                        <span>{{ $tipoPlano }}</span>
+                                    </button>
+                                </li>
+                            @endforeach
+                        </ul>
+                    </div>
                 </div>
 
                 <div class="col-md-2">
-                    <label class="form-label">Vidas</label>
-                    <input name="quantidade_vidas" type="number" min="1" class="form-control" placeholder="1" required>
-                </div>
-
-                <div class="col-md-6">
-                    <label class="form-label">Operadoras de preferência</label>
-
-                    <div class="nexo-check-multiselect" data-operadoras-multiselect>
-                        <button
-                            type="button"
-                            class="nexo-check-multiselect-control"
-                            data-operadoras-toggle
-                            aria-expanded="false"
-                        >
-                            <span class="nexo-check-multiselect-tags" data-operadoras-tags></span>
-
-                            <span class="nexo-check-multiselect-placeholder" data-operadoras-placeholder>
-                                Selecione até 3 operadoras
-                            </span>
-
-                            <i class="bi bi-chevron-down" aria-hidden="true"></i>
-                        </button>
-
-                        <div class="nexo-check-multiselect-dropdown" data-operadoras-dropdown hidden>
-                            @foreach($operadoras as $operadora)
-                                @php
-                                    $operadoraId = (string) $operadora->id;
-                                    $selecionada = in_array($operadoraId, $operadorasSelecionadas, true);
-                                @endphp
-
-                                <label class="nexo-check-multiselect-option">
-                                    <input
-                                        type="checkbox"
-                                        value="{{ $operadora->id }}"
-                                        data-operadora-checkbox
-                                        data-label="{{ $operadora->nome }}"
-                                        @checked($selecionada)
-                                    >
-
-                                    <span class="nexo-checkmark" aria-hidden="true"></span>
-                                    <span>{{ $operadora->nome }}</span>
-                                </label>
-                            @endforeach
-                        </div>
-
-                        <div data-operadoras-hidden-inputs>
-                            @foreach($operadorasSelecionadas as $operadoraSelecionada)
-                                <input type="hidden" name="operadoras[]" value="{{ $operadoraSelecionada }}">
-                            @endforeach
-                        </div>
-                    </div>
-
-                    <div class="nexo-form-hint" data-operadoras-warning hidden>
-                        Selecione no máximo 3 operadoras.
-                    </div>
-
-                    @error('operadoras')
-                        <div class="text-danger small fw-semibold mt-2">{{ $message }}</div>
-                    @enderror
+                    <label class="form-label">Quantidade de vidas</label>
+                    <input name="quantidade_vidas" type="number" min="1" max="999" class="form-control" value="{{ old('quantidade_vidas') }}" data-lives-count placeholder="1" required>
                 </div>
 
                 <div class="col-md-4">
                     <label class="form-label">Cidade</label>
-                    <input name="cidade" class="form-control" placeholder="Ex.: São Paulo" required>
+                    <input name="cidade" class="form-control" value="{{ old('cidade') }}" placeholder="Ex.: São Paulo" required>
                 </div>
 
                 <div class="col-md-2">
                     <label class="form-label">Estado</label>
                     <select name="estado" class="form-select text-uppercase" required>
-                        <option value="" disabled selected>SP</option>
-                        <option value="AC">AC</option>
-                        <option value="AL">AL</option>
-                        <option value="AM">AM</option>
-                        <option value="AP">AP</option>
-                        <option value="BA">BA</option>
-                        <option value="CE">CE</option>
-                        <option value="DF">DF</option>
-                        <option value="ES">ES</option>
-                        <option value="GO">GO</option>
-                        <option value="MA">MA</option>
-                        <option value="MG">MG</option>
-                        <option value="MS">MS</option>
-                        <option value="MT">MT</option>
-                        <option value="PA">PA</option>
-                        <option value="PB">PB</option>
-                        <option value="PE">PE</option>
-                        <option value="PI">PI</option>
-                        <option value="PR">PR</option>
-                        <option value="RJ">RJ</option>
-                        <option value="RN">RN</option>
-                        <option value="RO">RO</option>
-                        <option value="RR">RR</option>
-                        <option value="RS">RS</option>
-                        <option value="SC">SC</option>
-                        <option value="SE">SE</option>
-                        <option value="SP">SP</option>
-                        <option value="TO">TO</option>
+                        <option value="" disabled @selected(! old('estado'))>Selecione um estado</option>
+                        @foreach(['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'] as $estado)
+                            <option value="{{ $estado }}" @selected(old('estado') === $estado)>{{ $estado }}</option>
+                        @endforeach
                     </select>
                 </div>
 
                 <div class="col-12">
+                    <label class="form-label">Possui alguma preferência?</label>
+                    <select name="possui_preferencias" class="form-select" data-preferences-toggle required>
+                        <option value="ainda_nao_sei" @selected($possuiPreferencias === 'ainda_nao_sei')>Ainda não sei</option>
+                        <option value="nao" @selected($possuiPreferencias === 'nao')>Não</option>
+                        <option value="sim" @selected($possuiPreferencias === 'sim')>Sim</option>
+                    </select>
+                </div>
+
+                <div class="col-12 nexo-preferences-panel" data-preferences-panel hidden>
+                    <div class="nexo-preferences-card">
+                        <div class="row g-3">
+                            <div class="col-12">
+                                <label class="form-label">Selecione até 3 operadoras de sua preferência.</label>
+
+                                <div class="nexo-check-multiselect" data-operadoras-multiselect>
+                                    <button
+                                        type="button"
+                                        class="nexo-check-multiselect-control"
+                                        data-operadoras-toggle
+                                        aria-expanded="false"
+                                    >
+                                        <span class="nexo-check-multiselect-tags" data-operadoras-tags></span>
+
+                                        <span class="nexo-check-multiselect-placeholder" data-operadoras-placeholder>
+                                            Selecione as operadoras
+                                        </span>
+
+                                        <i class="bi bi-chevron-down" aria-hidden="true"></i>
+                                    </button>
+
+                                    <div class="nexo-check-multiselect-dropdown" data-operadoras-dropdown hidden>
+                                        @foreach($operadoras as $operadora)
+                                            @php
+                                                $operadoraId = (string) $operadora->id;
+                                                $selecionada = in_array($operadoraId, $operadorasSelecionadas, true);
+                                            @endphp
+
+                                            <label class="nexo-check-multiselect-option">
+                                                <input
+                                                    type="checkbox"
+                                                    name="operadoras[]"
+                                                    value="{{ $operadora->id }}"
+                                                    data-operadora-checkbox
+                                                    data-label="{{ $operadora->nome }}"
+                                                    @checked($selecionada)
+                                                >
+
+                                                <span class="nexo-checkmark" aria-hidden="true"></span>
+                                                <span>{{ $operadora->nome }}</span>
+                                            </label>
+                                        @endforeach
+                                    </div>
+                                </div>
+
+                                <div class="nexo-form-hint" data-operadoras-warning hidden>
+                                    Selecione no máximo 3 operadoras.
+                                </div>
+
+                                @error('operadoras')
+                                    <div class="text-danger small fw-semibold mt-2">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Selecione até 3 hospitais de sua preferência.</label>
+                            </div>
+
+                            @for($i = 0; $i < 3; $i++)
+                                <div class="col-md-4">
+                                    <label class="form-label">Hospital {{ $i + 1 }}</label>
+                                    <input name="hospitais[]" class="form-control" value="{{ old('hospitais.'.$i) }}" placeholder="Nome do hospital">
+                                </div>
+                            @endfor
+
+                            <div class="col-12">
+                                <label class="form-label">Faixa de valor mensal desejada.</label>
+                                <input
+                                    name="faixa_valor_mensal"
+                                    class="form-control"
+                                    value="{{ old('faixa_valor_mensal') }}"
+                                    inputmode="numeric"
+                                    data-money-mask
+                                    placeholder="R$ 0,00"
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-12">
                     <label class="form-label">Observações</label>
-                    <textarea name="observacoes" class="form-control" rows="4" placeholder="Adicione informações importantes sobre o interesse, urgência, operadoras desejadas ou próximos passos."></textarea>
+                    <textarea name="observacoes" class="form-control" rows="4" placeholder="Adicione informações importantes sobre o interesse, urgência, preferências ou próximos passos.">{{ old('observacoes') }}</textarea>
                 </div>
 
                 <div class="col-12">
@@ -295,6 +325,13 @@
             background: #FFFFFF;
             border: 1px solid #E4EBF5;
             box-shadow: 0 20px 42px rgba(15, 23, 42, 0.055);
+        }
+
+        .nexo-preferences-card {
+            border: 1px solid #CFE2FF;
+            border-radius: 18px;
+            background: linear-gradient(180deg, #F7FBFF 0%, #FFFFFF 100%);
+            padding: 22px;
         }
 
         .nexo-section-header {
@@ -563,14 +600,40 @@
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const inputTelefone = document.getElementById('nexo-input-telefone');
+            const preferencesToggle = document.querySelector('[data-preferences-toggle]');
+            const preferencesPanel = document.querySelector('[data-preferences-panel]');
             const multiselect = document.querySelector('[data-operadoras-multiselect]');
+
+            function renderTags() {}
+
+            function togglePreferencesPanel() {
+                if (!preferencesToggle || !preferencesPanel) {
+                    return;
+                }
+
+                const shouldShow = preferencesToggle.value === 'sim';
+
+                preferencesPanel.hidden = !shouldShow;
+
+                if (!shouldShow && multiselect) {
+                    multiselect.querySelectorAll('[data-operadora-checkbox]').forEach((checkbox) => {
+                        checkbox.checked = false;
+                    });
+
+                    renderTags();
+                }
+            }
+
+            if (preferencesToggle) {
+                preferencesToggle.addEventListener('change', togglePreferencesPanel);
+                togglePreferencesPanel();
+            }
 
             if (multiselect) {
                 const toggle = multiselect.querySelector('[data-operadoras-toggle]');
                 const dropdown = multiselect.querySelector('[data-operadoras-dropdown]');
                 const tagsContainer = multiselect.querySelector('[data-operadoras-tags]');
                 const placeholder = multiselect.querySelector('[data-operadoras-placeholder]');
-                const hiddenInputsContainer = multiselect.querySelector('[data-operadoras-hidden-inputs]');
                 const warning = document.querySelector('[data-operadoras-warning]');
                 const checkboxes = Array.from(multiselect.querySelectorAll('[data-operadora-checkbox]'));
                 const maxOperadoras = 3;
@@ -582,19 +645,7 @@
                         label: checkbox.dataset.label || checkbox.value,
                     }));
 
-                const syncHiddenInputs = (selected) => {
-                    hiddenInputsContainer.innerHTML = '';
-
-                    selected.forEach((item) => {
-                        const input = document.createElement('input');
-                        input.type = 'hidden';
-                        input.name = 'operadoras[]';
-                        input.value = item.value;
-                        hiddenInputsContainer.appendChild(input);
-                    });
-                };
-
-                const renderTags = () => {
+                renderTags = () => {
                     const selected = selectedValues();
 
                     tagsContainer.innerHTML = '';
@@ -628,8 +679,6 @@
                         tag.appendChild(removeButton);
                         tagsContainer.appendChild(tag);
                     });
-
-                    syncHiddenInputs(selected);
                 };
 
                 const closeDropdown = () => {
@@ -676,6 +725,24 @@
 
                 renderTags();
             }
+
+            document.querySelectorAll('[data-money-mask]').forEach((input) => {
+                input.addEventListener('input', (event) => {
+                    let value = event.target.value.replace(/\D/g, '');
+
+                    if (!value) {
+                        event.target.value = '';
+
+                        return;
+                    }
+
+                    value = (Number(value) / 100).toFixed(2);
+                    value = value.replace('.', ',');
+                    value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+                    event.target.value = `R$ ${value}`;
+                });
+            });
 
             if (inputTelefone) {
                 inputTelefone.addEventListener('input', function (e) {

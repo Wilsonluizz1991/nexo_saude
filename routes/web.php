@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Interno\AssinaturaController;
+use App\Http\Controllers\Interno\BuscaGlobalController;
 use App\Http\Controllers\Interno\ClienteController;
 use App\Http\Controllers\Interno\Configuracoes\ConfiguracoesController;
 use App\Http\Controllers\Interno\DashboardController;
@@ -28,8 +29,8 @@ Route::middleware('guest')->group(function () {
 
 Route::post('/sair', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
 
-Route::get('/corretor/{slug}', [PaginaCorretorController::class, 'show'])->name('publico.corretor');
-Route::post('/corretor/{slug}/solicitacao', [PaginaCorretorController::class, 'store'])->name('publico.indicacoes.store');
+Route::get('/perfil-corretor/{slug}', [PaginaCorretorController::class, 'show'])->name('publico.corretor');
+Route::post('/perfil-corretor/{slug}/solicitacao', [PaginaCorretorController::class, 'store'])->name('publico.indicacoes.store');
 Route::get('/{slug}/pre-cadastro/{token}', [DocumentoClienteController::class, 'show'])->name('cliente.pre-cadastro.show');
 Route::post('/{slug}/pre-cadastro/{token}/validar-acesso', [DocumentoClienteController::class, 'validarAcesso'])->name('cliente.pre-cadastro.validar-acesso');
 Route::post('/{slug}/pre-cadastro/{token}', [DocumentoClienteController::class, 'store'])->name('cliente.pre-cadastro.store');
@@ -43,6 +44,7 @@ Route::middleware(['auth'])->group(function () {
 
 Route::middleware(['auth', 'assinatura.ativa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
+    Route::get('/busca', BuscaGlobalController::class)->name('busca.index');
     Route::get('/indicacoes', [IndicacaoController::class, 'index'])->name('indicacoes.index');
     Route::get('/indicacoes/nova', [IndicacaoController::class, 'create'])->name('indicacoes.create');
     Route::post('/indicacoes', [IndicacaoController::class, 'store'])->name('indicacoes.store');
@@ -69,6 +71,8 @@ Route::middleware(['auth', 'assinatura.ativa'])->group(function () {
         Route::get('/assinatura', [ConfiguracoesController::class, 'assinatura'])->name('assinatura');
         Route::get('/preferencias', [ConfiguracoesController::class, 'preferencias'])->name('preferencias');
         Route::post('/preferencias', [ConfiguracoesController::class, 'atualizarPreferencias'])->name('preferencias.update');
+        Route::get('/mensagem-whatsapp', [ConfiguracoesController::class, 'mensagemWhatsapp'])->name('mensagem-whatsapp');
+        Route::post('/mensagem-whatsapp', [ConfiguracoesController::class, 'atualizarMensagemWhatsapp'])->name('mensagem-whatsapp.update');
         Route::get('/privacidade', [ConfiguracoesController::class, 'privacidade'])->name('privacidade');
         Route::get('/sessoes', [ConfiguracoesController::class, 'sessoes'])->name('sessoes');
         Route::post('/sessoes/encerrar-outras', [ConfiguracoesController::class, 'encerrarOutrasSessoes'])->name('sessoes.encerrar-outras');

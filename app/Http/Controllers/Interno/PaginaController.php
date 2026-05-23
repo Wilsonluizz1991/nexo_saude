@@ -11,6 +11,7 @@ use App\Models\Indicacao;
 use App\Models\Tarefa;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Validator;
 
@@ -41,9 +42,10 @@ class PaginaController extends Controller
         $permitidas = ['agenda', 'propostas', 'pre-cadastros', 'implantacoes', 'clientes', 'carteira', 'tarefas', 'alertas', 'relatorios'];
         abort_unless(in_array($pagina, $permitidas, true), 404);
 
-        $clientes = Cliente::where('user_id', auth()->id())->with('contratos', 'dependentes')->latest()->get();
-        $contratos = $clientes->flatMap(fn (Cliente $cliente) => $cliente->contratos);
-        $dadosCarteira = $this->dadosCarteiraEstrategica($clientes, $contratos);
+        $clientesTodos = Cliente::where('user_id', auth()->id())->with('contratos', 'dependentes')->latest()->get();
+        $clientes = Cliente::where('user_id', auth()->id())->with('contratos', 'dependentes')->latest()->paginate(10)->withQueryString();
+        $contratos = $clientesTodos->flatMap(fn (Cliente $cliente) => $cliente->contratos);
+        $dadosCarteira = $this->dadosCarteiraEstrategica($clientesTodos, $contratos);
 
         return view('interno.paginas.simples', array_merge([
             'pagina' => $pagina,
@@ -52,10 +54,14 @@ class PaginaController extends Controller
             'metricasCarteira' => [
                 'renovacoes_proximas' => $contratos->filter(fn ($contrato) => $contrato->renovacao_em && $contrato->renovacao_em->between(now(), now()->addDays(60)))->count(),
                 'reajustes_proximos' => $contratos->filter(fn ($contrato) => $contrato->reajuste_em && $contrato->reajuste_em->between(now(), now()->addDays(60)))->count(),
-                'dependentes' => $clientes->sum(fn (Cliente $cliente) => $cliente->dependentes->count()),
+                'dependentes' => $clientesTodos->sum(fn (Cliente $cliente) => $cliente->dependentes->count()),
             ],
-            'tarefas' => Tarefa::where('user_id', auth()->id())->latest()->get(),
-            'alertas' => Alerta::where('user_id', auth()->id())->latest()->get(),
+            'tarefas' => Tarefa::where('user_id', auth()->id())->latest()->paginate(10)->withQueryString(),
+            'tarefasHoje' => $this->paginarCollection(
+                Tarefa::where('user_id', auth()->id())->latest()->get()->filter(fn ($tarefa) => $tarefa->vencimento?->isToday())->values(),
+                'page'
+            ),
+            'alertas' => Alerta::where('user_id', auth()->id())->latest()->paginate(10)->withQueryString(),
         ], $dadosCarteira));
     }
 
@@ -189,11 +195,28 @@ class PaginaController extends Controller
         $query = Indicacao::where('user_id', auth()->id())->with('preCadastro', 'implantacao')->latest();
 
         return match ($pagina) {
-            'propostas' => $query->where('etapa', 'propostas')->get(),
-            'pre-cadastros' => $query->where('etapa', 'pre_cadastros')->get(),
-            'implantacoes' => $query->where('etapa', 'implantacoes')->get(),
-            default => $query->get(),
+            'propostas' => $query->where('etapa', 'propostas')->paginate(10)->withQueryString(),
+            'pre-cadastros' => $query->where('etapa', 'pre_cadastros')->paginate(10)->withQueryString(),
+            'implantacoes' => $query->where('etapa', 'implantacoes')->paginate(10)->withQueryString(),
+            default => $query->paginate(10)->withQueryString(),
         };
+    }
+
+    private function paginarCollection(Collection $items, string $pageName = 'page', int $perPage = 10): LengthAwarePaginator
+    {
+        $page = LengthAwarePaginator::resolveCurrentPage($pageName);
+
+        return new LengthAwarePaginator(
+            $items->forPage($page, $perPage)->values(),
+            $items->count(),
+            $perPage,
+            $page,
+            [
+                'path' => request()->url(),
+                'query' => request()->query(),
+                'pageName' => $pageName,
+            ]
+        );
     }
 
     private function marcarAlertaComoLido(Alerta $alerta): void

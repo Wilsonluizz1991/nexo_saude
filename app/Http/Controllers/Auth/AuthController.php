@@ -4,13 +4,14 @@ namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\CriarContaRequest;
+use App\Models\CorretorPerfil;
 use App\Models\User;
 use App\Services\AssinaturaService;
 use App\Services\ServicoSessaoUsuario;
+use App\Services\WhatsAppLinkService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
-use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -30,16 +31,17 @@ class AuthController extends Controller
 
         $assinaturaService->iniciarTesteGratis($user);
         $user->corretorPerfil()->create([
-            'slug' => Str::slug($user->name).'-'.$user->id,
+            'slug' => CorretorPerfil::gerarHashPublico(),
             'nome_publico' => $user->name,
             'bio' => 'Especialista em planos de saúde.',
             'especialidades' => ['Planos individuais', 'Planos familiares'],
+            'mensagem_primeiro_contato_whatsapp' => WhatsAppLinkService::DEFAULT_LEAD_TEMPLATE,
             'cidade_regiao' => 'São Paulo e região',
         ]);
 
         Auth::login($user);
 
-        return redirect()->route('dashboard');
+        return redirect()->route('perfil-publico.edit');
     }
 
     public function showLogin()

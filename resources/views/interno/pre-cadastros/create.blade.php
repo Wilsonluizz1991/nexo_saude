@@ -25,18 +25,6 @@
             </div>
         </section>
 
-        @if($errors->any())
-            <div class="nexo-alert-danger">
-                <strong>Revise a estrutura:</strong>
-
-                <ul class="mb-0">
-                    @foreach($errors->all() as $erro)
-                        <li>{{ $erro }}</li>
-                    @endforeach
-                </ul>
-            </div>
-        @endif
-
         <section class="nexo-panel-card">
             <div class="nexo-section-header">
                 <div>
@@ -185,7 +173,13 @@
                                         </div>
                                     </div>
 
-                                    <div class="col-md-8">
+                                    <div class="col-md-4" data-beneficiary-link-field hidden>
+                                        <label class="form-label">Vinculado a</label>
+                                        <select class="form-select" name="vidas[{{ $i }}][vinculo_beneficiario_id]" data-beneficiary-link></select>
+                                        <div class="nexo-field-help">Obrigatorio para dependentes de socio ou colaborador.</div>
+                                    </div>
+
+                                    <div class="col-md-8" data-beneficiary-docs-column>
                                         <label class="form-label">Solicitar documentos</label>
 
                                         <select class="form-select d-none" name="vidas[{{ $i }}][documentos_solicitados][]" data-documentos multiple>
@@ -256,7 +250,13 @@
                     </div>
                 </div>
 
-                <div class="col-md-8">
+                <div class="col-md-4" data-beneficiary-link-field hidden>
+                    <label class="form-label">Vinculado a</label>
+                    <select class="form-select" data-beneficiary-link></select>
+                    <div class="nexo-field-help">Obrigatorio para dependentes de socio ou colaborador.</div>
+                </div>
+
+                <div class="col-md-8" data-beneficiary-docs-column>
                     <label class="form-label">Solicitar documentos</label>
                     <select class="form-select d-none" data-documentos multiple></select>
                     <div class="nexo-field-help">O cliente preencherá dados pessoais e anexará apenas os documentos definidos aqui.</div>
@@ -379,22 +379,6 @@
             color: #64748B;
             margin: 0;
             font-weight: 650;
-        }
-
-        .nexo-alert-danger {
-            padding: 18px 20px;
-            border-radius: 20px;
-            background: #FFF1F2;
-            border: 1px solid #FFCDD5;
-            color: #9F1239;
-            margin-bottom: 24px;
-            font-weight: 750;
-        }
-
-        .nexo-alert-danger strong {
-            display: block;
-            margin-bottom: 8px;
-            font-weight: 950;
         }
 
         .form-label {
@@ -798,6 +782,7 @@
             };
 
             const currentCards = () => Array.from(list.querySelectorAll('[data-beneficiario]'));
+            const needsLink = (tipo) => ['dependente_socio', 'dependente_colaborador'].includes(tipo);
 
             const selectOptionLabel = (select) => {
                 const selected = select.options[select.selectedIndex];
@@ -1004,10 +989,57 @@
                     pessoa.value = 'PJ';
                     pessoa.disabled = true;
                 } else {
-                    pessoa.disabled = false;
+                    pessoa.value = 'PF';
+                    pessoa.disabled = true;
                 }
 
                 syncPessoaDropdownState();
+            };
+
+            const syncDependentLinks = () => {
+                const cards = currentCards();
+
+                cards.forEach((card, index) => {
+                    const type = card.querySelector('[data-beneficiary-type]');
+                    const linkField = card.querySelector('[data-beneficiary-link-field]');
+                    const linkSelect = card.querySelector('[data-beneficiary-link]');
+                    const docsColumn = card.querySelector('[data-beneficiary-docs-column]');
+
+                    if (!linkField || !linkSelect) {
+                        return;
+                    }
+
+                    const tipoAtual = type.value;
+                    const deveVincular = needsLink(tipoAtual);
+                    const tipoVinculo = tipoAtual === 'dependente_colaborador' ? 'colaborador' : 'socio';
+                    const elegiveis = cards
+                        .map((item, indice) => ({ item, indice, tipo: item.querySelector('[data-beneficiary-type]')?.value }))
+                        .filter((item) => item.indice !== index && item.tipo === tipoVinculo);
+
+                    linkField.hidden = !deveVincular;
+                    linkSelect.disabled = !deveVincular;
+                    linkSelect.required = deveVincular;
+                    linkSelect.name = `vidas[${index}][vinculo_beneficiario_id]`;
+                    linkSelect.innerHTML = '<option value="">Selecione o titular do vinculo</option>';
+
+                    elegiveis.forEach(({ indice, item }) => {
+                        const option = document.createElement('option');
+                        option.value = String(indice);
+                        option.textContent = `${indice + 1} - ${item.querySelector('[data-beneficiary-title]')?.textContent || tipoVinculo}`;
+                        linkSelect.appendChild(option);
+                    });
+
+                    if (deveVincular && !elegiveis.some(({ indice }) => String(indice) === linkSelect.value)) {
+                        linkSelect.value = elegiveis.length ? String(elegiveis[0].indice) : '';
+                    }
+
+                    if (!deveVincular) {
+                        linkSelect.value = '';
+                    }
+
+                    docsColumn?.classList.toggle('col-md-4', deveVincular);
+                    docsColumn?.classList.toggle('col-md-8', !deveVincular);
+                });
             };
 
             const syncCard = (card) => {
@@ -1019,10 +1051,12 @@
                 card.querySelectorAll('select').forEach((field) => {
                     if (field.dataset.beneficiaryType !== undefined) field.name = `vidas[${index}][tipo]`;
                     if (field.dataset.documentos !== undefined) field.name = `vidas[${index}][documentos_solicitados][]`;
+                    if (field.dataset.beneficiaryLink !== undefined) field.name = `vidas[${index}][vinculo_beneficiario_id]`;
                 });
                 selectDocumentosPadrao(card);
                 renderDocumentosUi(card.querySelector('[data-documentos]'));
                 syncBootstrapSelect(type);
+                syncDependentLinks();
             };
 
             const ensurePfTitular = () => {
@@ -1041,8 +1075,22 @@
             };
 
             const renumber = () => {
+                if (tipoProposta.value === 'individual') {
+                    currentCards().slice(1).forEach((card) => card.remove());
+                    const first = currentCards()[0];
+                    const firstType = first?.querySelector('[data-beneficiary-type]');
+
+                    if (firstType) {
+                        fillTypeOptions(firstType, 'titular');
+                        firstType.value = 'titular';
+                        syncBootstrapSelect(firstType);
+                    }
+                }
+
                 currentCards().forEach(syncCard);
                 total.textContent = String(currentCards().length);
+                form.querySelector('[data-add-beneficiario]').disabled = tipoProposta.value === 'individual';
+                syncDependentLinks();
             };
 
             const applyPersonMode = () => {
@@ -1064,6 +1112,7 @@
             const attachCardEvents = (card) => {
                 card.querySelector('[data-beneficiary-type]').addEventListener('change', () => {
                     ensurePfTitular();
+                    syncDependentLinks();
                     renumber();
                 });
                 card.querySelector('[data-remove-beneficiario]').addEventListener('click', () => {

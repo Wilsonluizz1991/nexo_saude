@@ -3,10 +3,13 @@
 namespace App\Http\Controllers\Interno\Configuracoes;
 
 use App\Http\Controllers\Controller;
+use App\Models\CorretorPerfil;
+use App\Models\Indicacao;
 use App\Services\ServicoPerfilUsuario;
 use App\Services\ServicoPrivacidade;
 use App\Services\ServicoSegurancaUsuario;
 use App\Services\ServicoSessaoUsuario;
+use App\Services\WhatsAppLinkService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
@@ -30,7 +33,6 @@ class ConfiguracoesController extends Controller
             'especialidades' => ['nullable', 'string', 'max:255'],
             'cidade' => ['nullable', 'string', 'max:120'],
             'estado' => ['nullable', 'string', 'size:2'],
-            'slug' => ['required', 'alpha_dash', 'max:80', Rule::unique('corretor_perfis', 'slug')->ignore(auth()->user()->corretorPerfil?->id)],
             'anos_experiencia' => ['nullable', 'integer', 'min:0', 'max:80'],
         ]);
 
@@ -67,6 +69,41 @@ class ConfiguracoesController extends Controller
         return view('interno.configuracoes.preferencias', ['user' => auth()->user()]);
     }
 
+    public function mensagemWhatsapp(WhatsAppLinkService $whatsApp)
+    {
+        $perfil = $this->perfilDoCorretor();
+        $mensagem = $perfil->mensagem_primeiro_contato_whatsapp ?: WhatsAppLinkService::DEFAULT_LEAD_TEMPLATE;
+        $leadPreview = new Indicacao([
+            'nome_cliente' => 'Fernando Diniz',
+            'telefone' => '(11) 99953-5578',
+            'tipo_plano' => 'PME',
+            'quantidade_vidas' => 11,
+            'cidade' => 'Sao Paulo',
+            'estado' => 'SP',
+        ]);
+
+        return view('interno.configuracoes.mensagem-whatsapp', [
+            'perfil' => $perfil,
+            'mensagem' => $mensagem,
+            'preview' => $whatsApp->parseMessageTemplate($mensagem, $leadPreview),
+            'variaveis' => ['{nome}', '{telefone}', '{tipo_plano}', '{quantidade_vidas}', '{cidade}', '{estado}'],
+        ]);
+    }
+
+    public function atualizarMensagemWhatsapp(Request $request)
+    {
+        $dados = $request->validate([
+            'mensagem_primeiro_contato_whatsapp' => ['required', 'string', 'max:500'],
+        ], [
+            'mensagem_primeiro_contato_whatsapp.required' => 'Informe a mensagem padrao de primeiro contato.',
+            'mensagem_primeiro_contato_whatsapp.max' => 'A mensagem deve ter no maximo 500 caracteres.',
+        ]);
+
+        $this->perfilDoCorretor()->update($dados);
+
+        return back()->with('status', 'Mensagem de WhatsApp salva.');
+    }
+
     public function atualizarPreferencias(Request $request)
     {
         auth()->user()->update($request->validate([
@@ -91,7 +128,7 @@ class ConfiguracoesController extends Controller
     {
         $service->registrarAcesso(auth()->user(), $request);
 
-        return view('interno.configuracoes.sessoes', ['sessoes' => auth()->user()->sessoesUsuario()->latest('ultima_atividade_em')->get()]);
+        return view('interno.configuracoes.sessoes', ['sessoes' => auth()->user()->sessoesUsuario()->latest('ultima_atividade_em')->paginate(10)->withQueryString()]);
     }
 
     public function encerrarOutrasSessoes(Request $request, ServicoSessaoUsuario $service)
@@ -119,5 +156,19 @@ class ConfiguracoesController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login')->with('status', 'Conta excluída.');
+    }
+
+    private function perfilDoCorretor()
+    {
+        $user = auth()->user();
+
+        return $user->corretorPerfil()->firstOrCreate(
+            ['user_id' => $user->id],
+            [
+                'slug' => CorretorPerfil::gerarHashPublico(),
+                'nome_publico' => $user->name,
+                'mensagem_primeiro_contato_whatsapp' => WhatsAppLinkService::DEFAULT_LEAD_TEMPLATE,
+            ]
+        );
     }
 }

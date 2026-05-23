@@ -5,5 +5,6 @@
         <tr><td>{{ $sessao->dispositivo }}</td><td>{{ $sessao->navegador }}</td><td>{{ $sessao->sistema_operacional }}</td><td>{{ $sessao->ip }}</td><td>{{ optional($sessao->ultima_atividade_em)->format('d/m/Y H:i') }}</td></tr>
     @endforeach
     </tbody></table>
+    {{ $sessoes->links('vendor.pagination.nexo') }}
     <form method="post" action="{{ route('configuracoes.sessoes.encerrar-outras') }}">@csrf<button class="btn btn-outline-danger">Encerrar outras sessões</button></form>
 </x-configuracoes.layout>

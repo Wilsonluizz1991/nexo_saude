@@ -637,12 +637,32 @@
                 const wrapper = document.createElement('div');
 
                 wrapper.setAttribute('data-nexo-review-toast', 'true');
-                wrapper.className = `alert alert-${type === 'success' ? 'info' : 'danger'} nexo-review-toast`;
-                wrapper.textContent = message;
+                wrapper.setAttribute('data-nexo-page-toast', 'true');
+                wrapper.className = `nexo-floating-toast ${type === 'success' ? '' : 'is-danger'}`;
+                wrapper.innerHTML = `
+                    <div class="nexo-floating-toast-icon">
+                        <i class="bi ${type === 'success' ? 'bi-check2-circle' : 'bi-exclamation-triangle'}"></i>
+                    </div>
+                    <div class="nexo-floating-toast-content">
+                        <strong>${type === 'success' ? 'Sucesso' : 'Revise o documento'}</strong>
+                        <span>${message}</span>
+                    </div>
+                    <button type="button" class="nexo-floating-toast-close" data-toast-close aria-label="Fechar notificacao">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                    <div class="nexo-floating-toast-progress"></div>
+                `;
 
                 document.body.appendChild(wrapper);
 
-                window.setTimeout(() => wrapper.remove(), 3200);
+                const close = () => {
+                    wrapper.classList.add('is-leaving');
+                    wrapper.addEventListener('animationend', () => wrapper.remove(), { once: true });
+                    window.setTimeout(() => wrapper.remove(), 360);
+                };
+
+                wrapper.querySelector('[data-toast-close]')?.addEventListener('click', close, { once: true });
+                window.setTimeout(close, 3200);
             };
 
             document.querySelectorAll('[data-review-form]').forEach((form) => {

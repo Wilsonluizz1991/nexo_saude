@@ -24,9 +24,12 @@ class IndicacaoService
             'cidade' => $dados['cidade'],
             'estado' => strtoupper($dados['estado']),
             'possui_preferencias' => $possuiPreferencias,
-            'operadoras_preferidas' => $possuiPreferencias ? array_slice($dados['operadoras'] ?? [], 0, 3) : [],
+            'operadoras_preferidas' => $possuiPreferencias
+                ? collect($dados['operadoras'] ?? [])->map(fn ($operadoraId) => (int) $operadoraId)->take(3)->values()->all()
+                : [],
             'hospitais_preferidos' => $possuiPreferencias ? array_values(array_filter(array_slice($dados['hospitais'] ?? [], 0, 3))) : [],
             'faixa_valor_mensal' => $possuiPreferencias ? ($dados['faixa_valor_mensal'] ?? null) : null,
+            'observacoes' => $this->observacoesPublicas($dados, $possuiPreferencias),
             'etapa' => 'lead',
             'status' => 'nova',
         ]);
@@ -47,5 +50,24 @@ class IndicacaoService
         ]);
 
         return $indicacao;
+    }
+
+    private function observacoesPublicas(array $dados, bool $possuiPreferencias): ?string
+    {
+        if (! $possuiPreferencias) {
+            return null;
+        }
+
+        $partes = [];
+
+        if (! empty($dados['hospitais'])) {
+            $partes[] = 'Hospitais: '.implode(', ', array_filter($dados['hospitais']));
+        }
+
+        if (! empty($dados['faixa_valor_mensal'])) {
+            $partes[] = 'Faixa desejada: '.$dados['faixa_valor_mensal'];
+        }
+
+        return $partes ? implode("\n", $partes) : null;
     }
 }

@@ -25,7 +25,8 @@ class ClienteController extends Controller
         $tarefas = Tarefa::where('user_id', auth()->id())
             ->where('indicacao_id', $cliente->indicacao_id)
             ->latest()
-            ->get();
+            ->paginate(10, ['*'], 'tarefas_page')
+            ->withQueryString();
 
         $alertas = Alerta::where('user_id', auth()->id())
             ->where(function ($query) use ($cliente) {
@@ -33,7 +34,8 @@ class ClienteController extends Controller
                     ->orWhere('indicacao_id', $cliente->indicacao_id);
             })
             ->latest()
-            ->get();
+            ->paginate(10, ['*'], 'alertas_page')
+            ->withQueryString();
 
         return view('interno.clientes.show', [
             'cliente' => $cliente,

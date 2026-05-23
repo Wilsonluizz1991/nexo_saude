@@ -55,29 +55,6 @@
             </div>
         </div>
 
-        @if(session('status'))
-            <div class="nexo-floating-toast" data-nexo-page-toast>
-                <div class="nexo-floating-toast-icon">
-                    <i class="bi bi-check2-circle"></i>
-                </div>
-
-                <div class="nexo-floating-toast-content">
-                    <strong>Sucesso</strong>
-                    <span>{{ session('status') }}</span>
-                </div>
-
-                <button
-                    type="button"
-                    class="nexo-floating-toast-close"
-                    data-toast-close
-                    aria-label="Fechar notificação"
-                >
-                    <i class="bi bi-x-lg"></i>
-                </button>
-
-                <div class="nexo-floating-toast-progress"></div>
-            </div>
-        @endif
 
         <div class="nexo-page-panel">
             @if($pagina === 'relatorios')
@@ -89,7 +66,7 @@
 
                         <div>
                             <span>Leads</span>
-                            <strong>{{ $indicacoes->count() }}</strong>
+                            <strong>{{ method_exists($indicacoes, 'total') ? $indicacoes->total() : $indicacoes->count() }}</strong>
                         </div>
                     </div>
 
@@ -100,7 +77,7 @@
 
                         <div>
                             <span>Clientes</span>
-                            <strong>{{ $clientes->count() }}</strong>
+                            <strong>{{ method_exists($clientes, 'total') ? $clientes->total() : $clientes->count() }}</strong>
                         </div>
                     </div>
 
@@ -111,7 +88,7 @@
 
                         <div>
                             <span>Tarefas</span>
-                            <strong>{{ $tarefas->count() }}</strong>
+                            <strong>{{ method_exists($tarefas, 'total') ? $tarefas->total() : $tarefas->count() }}</strong>
                         </div>
                     </div>
 
@@ -122,7 +99,7 @@
 
                         <div>
                             <span>Alertas</span>
-                            <strong>{{ $alertas->count() }}</strong>
+                            <strong>{{ method_exists($alertas, 'total') ? $alertas->total() : $alertas->count() }}</strong>
                         </div>
                     </div>
                 </div>
@@ -138,7 +115,7 @@
                         </thead>
 
                         <tbody>
-                            @forelse($tarefas->filter(fn ($tarefa) => $tarefa->vencimento?->isToday()) as $tarefa)
+                            @forelse($tarefasHoje as $tarefa)
                                 <tr>
                                     <td>
                                         <strong>{{ $tarefa->titulo }}</strong>
@@ -167,7 +144,12 @@
                         </tbody>
                     </table>
                 </div>
+                {{ $tarefasHoje->links('vendor.pagination.nexo') }}
             @elseif($pagina === 'clientes')
+                @php
+                    $whatsapp = app(\App\Services\WhatsAppLinkService::class);
+                @endphp
+
                 <div class="table-responsive">
                     <table class="table align-middle nexo-page-table">
                         <thead>
@@ -191,7 +173,22 @@
                                     </td>
 
                                     <td>
-                                        {{ $cliente->telefone }}
+                                        <div class="nexo-phone-actions">
+                                            <span>{{ $cliente->telefone }}</span>
+
+                                            @if($cliente->telefone)
+                                                <a
+                                                    href="{{ $whatsapp->buildClientLink($cliente->telefone) }}"
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                    class="nexo-whatsapp-link"
+                                                    title="Conversar no WhatsApp"
+                                                    aria-label="Conversar no WhatsApp"
+                                                >
+                                                    <i class="bi bi-whatsapp"></i>
+                                                </a>
+                                            @endif
+                                        </div>
                                     </td>
 
                                     <td>
@@ -219,6 +216,7 @@
                         </tbody>
                     </table>
                 </div>
+                {{ $clientes->links('vendor.pagination.nexo') }}
             @elseif($pagina === 'carteira')
                 @php
                     $moeda = fn ($valor) => 'R$ '.number_format((float) ($valor ?? 0), 2, ',', '.');
@@ -529,6 +527,7 @@
                             </tbody>
                         </table>
                     </div>
+                    {{ $clientes->links('vendor.pagination.nexo') }}
                 </section>
             @elseif($pagina === 'tarefas')
                 <div class="table-responsive">
@@ -584,6 +583,7 @@
                         </tbody>
                     </table>
                 </div>
+                {{ $tarefas->links('vendor.pagination.nexo') }}
             @elseif($pagina === 'alertas')
                 <div class="table-responsive">
                     <table class="table align-middle nexo-page-table">
@@ -643,6 +643,7 @@
                         </tbody>
                     </table>
                 </div>
+                {{ $alertas->links('vendor.pagination.nexo') }}
             @else
                 <div class="table-responsive">
                     <table class="table align-middle nexo-page-table">
@@ -657,6 +658,8 @@
                                         Registro
                                     @endif
                                 </th>
+                                <th>Plano</th>
+                                <th>Vidas</th>
                                 <th>Etapa</th>
                                 <th class="text-end">Ação</th>
                             </tr>
@@ -671,6 +674,19 @@
 
                                             <strong>{{ $indicacao->nome_cliente }}</strong>
                                         </div>
+                                    </td>
+
+                                    <td>
+                                        <span class="nexo-plan-chip">
+                                            <i class="bi bi-shield-check"></i>
+                                            {{ $indicacao->tipo_plano }}
+                                        </span>
+                                    </td>
+
+                                    <td>
+                                        <span class="nexo-lives-chip">
+                                            {{ $indicacao->quantidade_vidas }} vida(s)
+                                        </span>
                                     </td>
 
                                     <td>
@@ -707,7 +723,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="3">
+                                    <td colspan="5">
                                         <div class="nexo-empty-state">
                                             <i class="bi bi-inbox"></i>
                                             <p>Nenhum registro nesta etapa.</p>
@@ -718,6 +734,7 @@
                         </tbody>
                     </table>
                 </div>
+                {{ $indicacoes->links('vendor.pagination.nexo') }}
             @endif
         </div>
     </main>
@@ -763,14 +780,14 @@
             top: 28px;
             right: 28px;
             z-index: 99999;
-            width: min(420px, calc(100vw - 32px));
+            width: min(520px, calc(100vw - 32px));
             overflow: hidden;
             display: flex;
             align-items: center;
-            gap: 14px;
-            padding: 18px;
-            border-radius: 24px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            gap: 16px;
+            padding: 20px 22px;
+            border-radius: 26px;
+            border: 1px solid rgba(255, 255, 255, 0.10);
             background:
                 linear-gradient(135deg, rgba(6, 28, 63, 0.98) 0%, rgba(15, 58, 104, 0.98) 100%);
             backdrop-filter: blur(18px);
@@ -791,9 +808,9 @@
 
         .nexo-floating-toast-icon {
             position: relative;
-            width: 52px;
-            height: 52px;
-            border-radius: 18px;
+            width: 64px;
+            height: 64px;
+            border-radius: 20px;
             flex-shrink: 0;
             display: inline-flex;
             align-items: center;
@@ -801,7 +818,7 @@
             background:
                 linear-gradient(135deg, #16A34A 0%, #22C55E 100%);
             color: #FFFFFF;
-            font-size: 1.4rem;
+            font-size: 1.55rem;
             box-shadow:
                 0 12px 28px rgba(34, 197, 94, 0.32),
                 inset 0 1px 0 rgba(255, 255, 255, 0.25);
@@ -832,8 +849,8 @@
 
         .nexo-floating-toast-close {
             position: relative;
-            width: 34px;
-            height: 34px;
+            width: 44px;
+            height: 44px;
             border: none;
             border-radius: 12px;
             background: rgba(255, 255, 255, 0.08);
@@ -853,12 +870,12 @@
             position: absolute;
             left: 0;
             bottom: 0;
-            height: 4px;
+            height: 5px;
             width: 100%;
             background:
                 linear-gradient(90deg, #5BA7FF 0%, #22C55E 100%);
             transform-origin: left;
-            animation: nexoToastProgress 3.2s linear forwards;
+            animation: nexoToastProgress 4.5s linear forwards;
         }
 
         .nexo-page-panel {
@@ -1676,34 +1693,6 @@
 
                         sessionStorage.removeItem('nexoCarteiraScrollY');
                     });
-                }
-
-                const toasts = Array.from(document.querySelectorAll('[data-nexo-page-toast]'));
-
-                if (toasts.length > 1) {
-                    toasts.slice(0, -1).forEach((toast) => toast.remove());
-                }
-
-                const toastAtual = document.querySelector('[data-nexo-page-toast]');
-
-                if (toastAtual) {
-                    const fecharToast = () => {
-                        toastAtual.style.animation = 'nexoToastOut 0.28s ease forwards';
-
-                        window.setTimeout(() => {
-                            toastAtual.remove();
-                        }, 280);
-                    };
-
-                    const botaoFechar = toastAtual.querySelector('[data-toast-close]');
-
-                    if (botaoFechar) {
-                        botaoFechar.addEventListener('click', fecharToast);
-                    }
-
-                    window.setTimeout(() => {
-                        fecharToast();
-                    }, 3200);
                 }
 
                 const metaAtingida = @json((bool) session('meta_atingida'));

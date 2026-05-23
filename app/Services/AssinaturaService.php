@@ -8,6 +8,8 @@ use Carbon\CarbonImmutable;
 
 class AssinaturaService
 {
+    public const VALOR_MENSAL = 49.90;
+
     public function iniciarTesteGratis(User $user): Assinatura
     {
         $inicio = CarbonImmutable::today();
@@ -17,7 +19,7 @@ class AssinaturaService
             'data_inicio_teste_gratis' => $inicio,
             'data_fim_teste_gratis' => $inicio->addDays(30),
             'status_assinatura' => 'teste_gratis',
-            'valor_assinatura' => 249.90,
+            'valor_assinatura' => self::VALOR_MENSAL,
             'vencimento_assinatura' => $inicio->addDays(30),
         ]);
     }
@@ -40,7 +42,7 @@ class AssinaturaService
     {
         $assinatura->update([
             'status_assinatura' => 'ativa',
-            'valor_assinatura' => 249.90,
+            'valor_assinatura' => self::VALOR_MENSAL,
             'vencimento_assinatura' => now()->addMonth()->toDateString(),
         ]);
 

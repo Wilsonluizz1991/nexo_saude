@@ -11,6 +11,10 @@ class PreCadastro extends Model
     protected $fillable = [
         'indicacao_id',
         'token',
+        'chave_acesso',
+        'chave_expira_em',
+        'sms_enviado_em',
+        'sms_status',
         'tipo_proposta',
         'pessoa',
         'status',
@@ -24,6 +28,8 @@ class PreCadastro extends Model
     {
         return [
             'formulario_bloqueado' => 'boolean',
+            'chave_expira_em' => 'datetime',
+            'sms_enviado_em' => 'datetime',
             'enviado_em' => 'datetime',
             'bloqueado_em' => 'datetime',
         ];

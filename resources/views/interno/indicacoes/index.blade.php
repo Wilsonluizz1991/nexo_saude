@@ -1,5 +1,7 @@
 <x-layouts.app title="Leads | Nexo Saúde">
     @php
+        $whatsapp = app(\App\Services\WhatsAppLinkService::class);
+
         $statusLegiveis = [
             'nova' => 'Nova',
             'proposta_enviada' => 'Proposta enviada',
@@ -132,15 +134,36 @@
                                             <small>
                                                 {{ $indicacao->cidade }}/{{ $indicacao->estado }}
                                             </small>
+
+                                            @if(filled($indicacao->observacoes))
+                                                <small class="nexo-lead-observation">
+                                                    {{ \Illuminate\Support\Str::limit($indicacao->observacoes, 90) }}
+                                                </small>
+                                            @endif
                                         </div>
                                     </div>
                                 </td>
 
                                 <td>
                                     <div class="nexo-lead-contact">
-                                        <strong>
-                                            {{ $indicacao->telefone }}
-                                        </strong>
+                                        <div class="nexo-phone-actions">
+                                            <strong>
+                                                {{ $indicacao->telefone }}
+                                            </strong>
+
+                                            @if($indicacao->telefone)
+                                                <a
+                                                    href="{{ $whatsapp->buildLeadLink($indicacao, auth()->user()) }}"
+                                                    target="_blank"
+                                                    rel="noopener"
+                                                    class="nexo-whatsapp-link"
+                                                    title="Conversar no WhatsApp"
+                                                    aria-label="Conversar no WhatsApp"
+                                                >
+                                                    <i class="bi bi-whatsapp"></i>
+                                                </a>
+                                            @endif
+                                        </div>
 
                                         <span>
                                             {{ $indicacao->email }}
@@ -187,7 +210,7 @@
             </div>
 
             <div class="mt-4">
-                {{ $indicacoes->links() }}
+                {{ $indicacoes->links('vendor.pagination.nexo') }}
             </div>
         </div>
     </main>
@@ -380,7 +403,15 @@
         }
 
         .nexo-lead-user small {
+            display: block;
             color: #64748B;
+        }
+
+        .nexo-lead-observation {
+            max-width: 320px;
+            color: #7C8BA1 !important;
+            font-size: 0.78rem;
+            font-weight: 700;
         }
 
         .nexo-lead-contact strong {

@@ -90,6 +90,49 @@
             </div>
         </div>
 
+        <section class="nexo-pre-link-card mb-4" data-pre-link-card>
+            <div>
+                <span class="nexo-section-kicker">
+                    <i class="bi bi-send-check"></i>
+                    Link do cliente
+                </span>
+
+                <h2>Pré-cadastro pronto para envio</h2>
+                <p>
+                    Compartilhe o link com a chave de acesso enviada por SMS. O cliente usará a chave alfanumérica, sem depender de CPF.
+                </p>
+            </div>
+
+            <div class="nexo-pre-link-box">
+                <label>Link público</label>
+                <input type="text" class="form-control" value="{{ $linkPublico }}" readonly data-copy-link-input>
+
+                <label>Token de acesso</label>
+                <input type="text" class="form-control" value="{{ $preCadastro->chave_acesso }}" readonly data-copy-key-input>
+
+                <div class="nexo-pre-link-actions">
+                    <button type="button" class="nexo-primary-btn" data-copy-pre-link>
+                        <i class="bi bi-link-45deg"></i>
+                        Copiar link de pré-cadastro
+                    </button>
+
+                    <button type="button" class="nexo-secondary-btn" data-copy-pre-token>
+                        <i class="bi bi-key"></i>
+                        Copiar token de acesso
+                    </button>
+                </div>
+
+                <small data-copy-feedback hidden>Copiado para a área de transferência.</small>
+                <span class="nexo-sms-status {{ $preCadastro->sms_status === 'sent' ? 'is-success' : 'is-warning' }}">
+                    SMS: {{ $preCadastro->sms_status === 'sent' ? 'enviado' : 'envio pendente' }}
+                </span>
+            </div>
+        </section>
+
+        <section class="mb-4">
+            @include('interno.indicacoes.partials.lembretes-card', ['indicacao' => $indicacao])
+        </section>
+
         <div class="row g-4">
             <div class="col-xl-8">
                 <section class="nexo-pre-panel" data-pre-cadastro-review-panel>
@@ -313,6 +356,28 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
+            const copiarValor = async (valor, mensagem) => {
+                const feedback = document.querySelector('[data-copy-feedback]');
+
+                await navigator.clipboard.writeText(valor);
+
+                if (feedback) {
+                    feedback.textContent = mensagem;
+                    feedback.hidden = false;
+                    window.setTimeout(() => {
+                        feedback.hidden = true;
+                    }, 2200);
+                }
+            };
+
+            document.querySelector('[data-copy-pre-link]')?.addEventListener('click', async () => {
+                await copiarValor(document.querySelector('[data-copy-link-input]')?.value || '', 'Link de pré-cadastro copiado.');
+            });
+
+            document.querySelector('[data-copy-pre-token]')?.addEventListener('click', async () => {
+                await copiarValor(document.querySelector('[data-copy-key-input]')?.value || '', 'Token de acesso copiado.');
+            });
+
             const reviewPanel = document.querySelector('[data-pre-cadastro-review-panel]');
             const botaoImplantacao = document.querySelector('[data-btn-implantacao]');
             const hintImplantacao = document.querySelector('[data-implantacao-hint]');
@@ -629,6 +694,76 @@
             letter-spacing: -0.04em;
         }
 
+        .nexo-pre-link-card {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) minmax(320px, 440px);
+            gap: 22px;
+            padding: 24px;
+            border: 1px solid #D7E7FF;
+            border-radius: 28px;
+            background: linear-gradient(135deg, #FFFFFF 0%, #F8FBFF 100%);
+            box-shadow: 0 20px 42px rgba(15, 23, 42, 0.055);
+        }
+
+        .nexo-pre-link-card h2 {
+            color: #061C3F;
+            font-size: 1.45rem;
+            font-weight: 950;
+            margin: 0 0 6px;
+        }
+
+        .nexo-pre-link-card p {
+            color: #64748B;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .nexo-pre-link-box {
+            display: grid;
+            gap: 10px;
+        }
+
+        .nexo-pre-link-actions {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 10px;
+        }
+
+        .nexo-pre-link-box label {
+            color: #64748B;
+            font-size: 0.78rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .nexo-pre-link-box input {
+            min-height: 46px;
+            border-radius: 14px;
+            color: #061C3F;
+            font-weight: 800;
+        }
+
+        .nexo-pre-link-box small {
+            color: #16834F;
+            font-weight: 850;
+        }
+
+        .nexo-sms-status {
+            width: fit-content;
+            min-height: 30px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: #FFF5E8;
+            color: #B45309;
+            font-size: 0.8rem;
+            font-weight: 900;
+        }
+
+        .nexo-sms-status.is-success {
+            background: #EAFBF1;
+            color: #16834F;
+        }
+
         .nexo-pre-panel {
             border-radius: 28px;
             background: #FFFFFF;
@@ -917,6 +1052,14 @@
         }
 
         @media (max-width: 768px) {
+            .nexo-pre-link-card {
+                grid-template-columns: 1fr;
+            }
+
+            .nexo-pre-link-actions {
+                grid-template-columns: 1fr;
+            }
+
             .nexo-pre-header {
                 flex-direction: column;
                 align-items: flex-start;

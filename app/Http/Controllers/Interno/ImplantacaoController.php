@@ -14,6 +14,7 @@ class ImplantacaoController extends Controller
             'indicacao.propostas.operadora',
             'indicacao.preCadastro.vidas',
             'indicacao.timelineEventos',
+            'indicacao.tarefas',
             'indicacao.user.corretorPerfil',
         ]);
 

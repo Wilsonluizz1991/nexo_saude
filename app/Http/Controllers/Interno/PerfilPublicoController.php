@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Interno;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\AtualizarPerfilPublicoRequest;
-use Illuminate\Support\Str;
+use App\Models\CorretorPerfil;
 
 class PerfilPublicoController extends Controller
 {
@@ -24,7 +24,7 @@ class PerfilPublicoController extends Controller
 
         auth()->user()->corretorPerfil()->updateOrCreate(
             ['user_id' => auth()->id()],
-            array_merge($data, ['slug' => Str::slug($data['slug'])])
+            array_merge($data, ['slug' => auth()->user()->corretorPerfil?->slug ?: CorretorPerfil::gerarHashPublico()])
         );
 
         return back()->with('status', 'Perfil público atualizado.');

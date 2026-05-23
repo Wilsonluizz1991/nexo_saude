@@ -6,6 +6,7 @@
         ['Segurança', 'configuracoes.seguranca', 'bi-shield-lock'],
         ['Assinatura', 'configuracoes.assinatura', 'bi-credit-card'],
         ['Preferências', 'configuracoes.preferencias', 'bi-sliders'],
+        ['Mensagem WhatsApp', 'configuracoes.mensagem-whatsapp', 'bi-whatsapp'],
         ['Privacidade', 'configuracoes.privacidade', 'bi-file-lock'],
         ['Sessões Ativas', 'configuracoes.sessoes', 'bi-laptop'],
         ['Excluir Conta', 'configuracoes.excluir-conta', 'bi-trash'],

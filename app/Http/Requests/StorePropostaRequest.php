@@ -2,10 +2,20 @@
 
 namespace App\Http\Requests;
 
+use App\Services\PlanoSaudeService;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StorePropostaRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        $tipo = $this->route('indicacao')?->tipo_plano ?? $this->input('tipo_plano');
+
+        $this->merge([
+            'quantidade_vidas' => PlanoSaudeService::normalizarQuantidadeVidas($tipo, $this->input('quantidade_vidas')),
+        ]);
+    }
+
     public function rules(): array
     {
         return [

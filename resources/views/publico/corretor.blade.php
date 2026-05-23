@@ -104,13 +104,30 @@
                         <div class="col-md-6">
                             <label class="form-label">Tipo de plano</label>
 
-                            <select name="tipo_plano" class="form-select" required>
+                            <select name="tipo_plano" class="form-select d-none" data-plan-type required>
                                 @foreach(['Individual', 'Familiar', 'PME', 'Empresarial'] as $tipo)
                                     <option value="{{ $tipo }}" @selected(old('tipo_plano') === $tipo)>
                                         {{ $tipo }}
                                     </option>
                                 @endforeach
                             </select>
+
+                            <div class="dropdown nexo-bootstrap-select" data-bootstrap-select-wrapper>
+                                <button class="nexo-bootstrap-select-toggle dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                    <span data-bootstrap-select-label>{{ old('tipo_plano', 'Individual') }}</span>
+                                </button>
+
+                                <ul class="dropdown-menu nexo-bootstrap-select-menu">
+                                    @foreach(['Individual' => 'bi-person', 'Familiar' => 'bi-people', 'PME' => 'bi-shop', 'Empresarial' => 'bi-buildings'] as $tipo => $icone)
+                                        <li>
+                                            <button class="dropdown-item nexo-bootstrap-select-item" type="button" data-select-value="{{ $tipo }}">
+                                                <i class="bi {{ $icone }}"></i>
+                                                <span>{{ $tipo }}</span>
+                                            </button>
+                                        </li>
+                                    @endforeach
+                                </ul>
+                            </div>
                         </div>
 
                         <div class="col-md-4">
@@ -121,6 +138,7 @@
                                 type="number"
                                 min="1"
                                 class="form-control"
+                                data-lives-count
                                 value="{{ old('quantidade_vidas') }}"
                                 placeholder="Ex: 3"
                                 required
@@ -143,7 +161,7 @@
                             <label class="form-label">Estado</label>
 
                             <select name="estado" class="form-select" required>
-                                <option value="">Selecione</option>
+                                <option value="" disabled @selected(! old('estado'))>Selecione um estado</option>
 
                                 @foreach([
                                     'AC','AL','AP','AM','BA','CE','DF','ES','GO',
@@ -239,6 +257,7 @@
                                                     <label class="nexo-check-multiselect-option">
                                                         <input
                                                             type="checkbox"
+                                                            name="operadoras[]"
                                                             value="{{ $operadora->id }}"
                                                             data-operadora-checkbox
                                                             data-label="{{ $operadora->nome }}"
@@ -252,15 +271,7 @@
                                                 @endforeach
                                             </div>
 
-                                            <div data-operadoras-hidden-inputs>
-                                                @foreach($operadorasSelecionadas as $operadoraSelecionada)
-                                                    <input
-                                                        type="hidden"
-                                                        name="operadoras[]"
-                                                        value="{{ $operadoraSelecionada }}"
-                                                    >
-                                                @endforeach
-                                            </div>
+                                            <div data-operadoras-hidden-inputs></div>
                                         </div>
 
                                         <div
@@ -715,13 +726,11 @@
 
                 const tagsContainer = multiselect.querySelector('[data-operadoras-tags]');
                 const placeholder = multiselect.querySelector('[data-operadoras-placeholder]');
-                const hiddenInputsContainer = multiselect.querySelector('[data-operadoras-hidden-inputs]');
                 const checked = Array.from(
                     multiselect.querySelectorAll('[data-operadora-checkbox]:checked')
                 );
 
                 tagsContainer.innerHTML = '';
-                hiddenInputsContainer.innerHTML = '';
 
                 placeholder.hidden = checked.length > 0;
 
@@ -751,14 +760,6 @@
                     tag.appendChild(removeButton);
 
                     tagsContainer.appendChild(tag);
-
-                    const hiddenInput = document.createElement('input');
-
-                    hiddenInput.type = 'hidden';
-                    hiddenInput.name = 'operadoras[]';
-                    hiddenInput.value = checkbox.value;
-
-                    hiddenInputsContainer.appendChild(hiddenInput);
                 });
             }
 

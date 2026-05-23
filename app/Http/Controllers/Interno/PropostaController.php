@@ -16,7 +16,8 @@ class PropostaController extends Controller
         abort_unless($indicacao->etapa === 'propostas', 404);
 
         return view('interno.propostas.show', [
-            'indicacao' => $indicacao->load('propostas.operadora', 'user.corretorPerfil'),
+            'indicacao' => $indicacao->load('propostas.operadora', 'tarefas', 'user.corretorPerfil'),
+            'propostas' => $indicacao->propostas()->with('operadora')->latest()->paginate(10)->withQueryString(),
             'operadoras' => Operadora::where('ativa', true)->orderBy('nome')->get(),
         ]);
     }

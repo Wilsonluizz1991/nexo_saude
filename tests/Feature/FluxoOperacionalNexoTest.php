@@ -13,6 +13,7 @@ use App\Models\Tarefa;
 use App\Models\TipoDocumento;
 use App\Models\User;
 use App\Services\CabecalhoService;
+use App\Services\WhatsAppLinkService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -46,11 +47,141 @@ class FluxoOperacionalNexoTest extends TestCase
             ->assertDontSee('Ctrl K');
     }
 
+    public function test_busca_global_encontra_registros_em_todo_funil(): void
+    {
+        $operadora = Operadora::firstOrFail();
+
+        $lead = Indicacao::create([
+            'user_id' => $this->corretor->id,
+            'origem' => 'cadastro_interno',
+            'nome_cliente' => 'Busca Lead Global',
+            'telefone' => '(11) 90000-0001',
+            'email' => 'busca-lead@example.com',
+            'tipo_plano' => 'Individual',
+            'quantidade_vidas' => 1,
+            'cidade' => 'Sao Paulo',
+            'estado' => 'SP',
+            'etapa' => 'lead',
+            'status' => 'nova',
+        ]);
+
+        $proposta = Indicacao::create([
+            'user_id' => $this->corretor->id,
+            'origem' => 'cadastro_interno',
+            'nome_cliente' => 'Busca Proposta Global',
+            'telefone' => '(11) 90000-0002',
+            'email' => 'busca-proposta@example.com',
+            'tipo_plano' => 'Familiar',
+            'quantidade_vidas' => 3,
+            'cidade' => 'Sao Paulo',
+            'estado' => 'SP',
+            'etapa' => 'propostas',
+            'status' => 'proposta_enviada',
+        ]);
+        $proposta->propostas()->create([
+            'operadora_id' => $operadora->id,
+            'titulo' => 'Plano Diamante Pesquisavel',
+            'arquivo_pdf_path' => 'propostas/busca-global.pdf',
+            'quantidade_vidas' => 3,
+            'valor_mensal' => 1200,
+            'status' => 'enviada',
+        ]);
+
+        $preCadastro = Indicacao::create([
+            'user_id' => $this->corretor->id,
+            'origem' => 'cadastro_interno',
+            'nome_cliente' => 'Busca Pre Cadastro Global',
+            'telefone' => '(11) 90000-0003',
+            'email' => 'busca-pre@example.com',
+            'tipo_plano' => 'Familiar',
+            'quantidade_vidas' => 2,
+            'cidade' => 'Campinas',
+            'estado' => 'SP',
+            'etapa' => 'pre_cadastros',
+            'status' => 'aguardando_envio',
+        ]);
+        $preCadastro->preCadastro()->create([
+            'token' => 'token-busca-global-pre',
+            'chave_acesso' => 'ABCD-1234',
+            'chave_expira_em' => now()->addDays(14),
+            'tipo_proposta' => 'familiar',
+            'pessoa' => 'PF',
+            'status' => 'aguardando_envio',
+        ]);
+
+        $implantacao = Indicacao::create([
+            'user_id' => $this->corretor->id,
+            'origem' => 'cadastro_interno',
+            'nome_cliente' => 'Busca Implantacao Global',
+            'telefone' => '(11) 90000-0004',
+            'email' => 'busca-implantacao@example.com',
+            'tipo_plano' => 'Empresarial',
+            'quantidade_vidas' => 12,
+            'cidade' => 'Osasco',
+            'estado' => 'SP',
+            'etapa' => 'implantacoes',
+            'status' => 'pendencia_na_operadora',
+        ]);
+        $implantacao->implantacao()->create([
+            'status' => 'pendencia_na_operadora',
+            'data_inicio' => now()->toDateString(),
+            'observacoes' => 'Documento pendente pesquisavel',
+        ]);
+
+        $cliente = Indicacao::create([
+            'user_id' => $this->corretor->id,
+            'origem' => 'cadastro_interno',
+            'nome_cliente' => 'Busca Cliente Global',
+            'telefone' => '(11) 90000-0005',
+            'email' => 'busca-cliente@example.com',
+            'tipo_plano' => 'Empresarial',
+            'quantidade_vidas' => 20,
+            'cidade' => 'Barueri',
+            'estado' => 'SP',
+            'etapa' => 'clientes',
+            'status' => 'contrato_vigente',
+        ]);
+        $clienteAtivo = $cliente->cliente()->create([
+            'user_id' => $this->corretor->id,
+            'nome' => 'Busca Cliente Global',
+            'email' => 'busca-cliente@example.com',
+            'telefone' => '(11) 90000-0005',
+            'inicio_vigencia' => now()->toDateString(),
+            'valor_mensal' => 5000,
+            'status' => 'ativo',
+        ]);
+        $clienteAtivo->dependentes()->create([
+            'nome' => 'Dependente Pesquisavel',
+            'data_nascimento' => now()->subYears(8)->toDateString(),
+            'parentesco' => 'filho',
+        ]);
+
+        $this->actingAs($this->corretor)
+            ->get(route('busca.index', ['q' => 'Busca']))
+            ->assertOk()
+            ->assertSee('Busca Lead Global')
+            ->assertSee('Busca Proposta Global')
+            ->assertSee('Busca Pre Cadastro Global')
+            ->assertSee('Busca Implantacao Global')
+            ->assertSee('Busca Cliente Global')
+            ->assertSee(route('indicacoes.show', $lead), false)
+            ->assertSee(route('propostas.show', $proposta), false)
+            ->assertSee(route('pre-cadastros.show', $preCadastro->preCadastro), false)
+            ->assertSee(route('implantacoes.show', $implantacao->implantacao), false)
+            ->assertSee(route('clientes.show', $clienteAtivo), false);
+
+        $this->actingAs($this->corretor)
+            ->get(route('busca.index', ['q' => 'Dependente Pesquisavel']))
+            ->assertOk()
+            ->assertSee('Busca Cliente Global');
+    }
+
     public function test_perfil_publico_cria_lead_com_origem_alerta_e_preferencias_controladas(): void
     {
         $operadoras = Operadora::take(3)->pluck('id')->all();
+        $nomesOperadoras = Operadora::take(3)->pluck('nome')->all();
 
-        $this->post('/corretor/carlos-oliveira/solicitacao', [
+        $this->post('/perfil-corretor/CARLOSOLIVEIRA/solicitacao', [
             'nome' => 'Mariana Silva',
             'telefone' => '(11) 97777-1111',
             'email' => 'mariana@example.com',
@@ -75,6 +206,34 @@ class FluxoOperacionalNexoTest extends TestCase
         $this->assertSame($operadoras, $lead->operadoras_preferidas);
         $this->assertCount(3, $lead->hospitais_preferidos);
 
+        $this->post('/perfil-corretor/CARLOSOLIVEIRA/solicitacao', [
+            'nome' => 'Lead Preferencias Nomeadas',
+            'telefone' => '(11) 95555-8899',
+            'email' => 'preferencias-nomeadas@example.com',
+            'tipo_plano' => 'Individual',
+            'quantidade_vidas' => 1,
+            'cidade' => 'Sao Paulo',
+            'estado' => 'SP',
+            'possui_preferencias' => 'sim',
+            'operadoras' => $nomesOperadoras,
+            'hospitais' => ['Albert Einsten', 'Sirio libanes', 'Sao Luiz'],
+            'faixa_valor_mensal' => 'R$ 3.900,00',
+        ])->assertOk()->assertSee('Recebemos seu pedido.');
+
+        $leadComPreferencias = Indicacao::where('email', 'preferencias-nomeadas@example.com')->firstOrFail();
+
+        $this->assertSame($operadoras, $leadComPreferencias->operadoras_preferidas);
+        $this->assertSame(['Albert Einsten', 'Sirio libanes', 'Sao Luiz'], $leadComPreferencias->hospitais_preferidos);
+        $this->assertSame('R$ 3.900,00', $leadComPreferencias->faixa_valor_mensal);
+
+        $this->actingAs($this->corretor)
+            ->get(route('indicacoes.show', $leadComPreferencias))
+            ->assertOk()
+            ->assertSee('Preferências da lead')
+            ->assertSee($nomesOperadoras[0])
+            ->assertSee('Albert Einsten')
+            ->assertSee('R$ 3.900,00');
+
         $this->assertDatabaseHas('alertas', [
             'user_id' => $this->corretor->id,
             'indicacao_id' => $lead->id,
@@ -82,7 +241,7 @@ class FluxoOperacionalNexoTest extends TestCase
             'lido' => false,
         ]);
 
-        $this->post('/corretor/carlos-oliveira/solicitacao', [
+        $this->post('/perfil-corretor/CARLOSOLIVEIRA/solicitacao', [
             'nome' => 'Sem Preferência',
             'telefone' => '(11) 96666-2222',
             'email' => 'sempreferencia@example.com',
@@ -115,7 +274,10 @@ class FluxoOperacionalNexoTest extends TestCase
                 'quantidade_vidas' => 3,
                 'cidade' => 'Sao Paulo',
                 'estado' => 'SP',
+                'possui_preferencias' => 'sim',
                 'operadoras' => $operadoras,
+                'hospitais' => ['Albert Einsten', 'Sirio libanes', 'Sao Luiz'],
+                'faixa_valor_mensal' => 'R$ 3.900,00',
                 'observacoes' => 'Preferencia registrada no cadastro interno.',
             ])
             ->assertRedirect();
@@ -124,6 +286,8 @@ class FluxoOperacionalNexoTest extends TestCase
 
         $this->assertTrue($lead->possui_preferencias);
         $this->assertSame($operadoras, $lead->operadoras_preferidas);
+        $this->assertSame(['Albert Einsten', 'Sirio libanes', 'Sao Luiz'], $lead->hospitais_preferidos);
+        $this->assertSame('R$ 3.900,00', $lead->faixa_valor_mensal);
 
         $this->actingAs($this->corretor)
             ->from(route('indicacoes.create'))
@@ -135,10 +299,33 @@ class FluxoOperacionalNexoTest extends TestCase
                 'quantidade_vidas' => 3,
                 'cidade' => 'Sao Paulo',
                 'estado' => 'SP',
+                'possui_preferencias' => 'sim',
                 'operadoras' => Operadora::take(4)->pluck('id')->all(),
             ])
             ->assertRedirect(route('indicacoes.create'))
             ->assertSessionHasErrors(['operadoras']);
+
+        $this->actingAs($this->corretor)
+            ->post(route('indicacoes.store'), [
+                'nome_cliente' => 'Lead interna sem preferencias',
+                'telefone' => '(11) 98888-5555',
+                'email' => 'lead-interna-sem-preferencias@example.com',
+                'tipo_plano' => 'Individual',
+                'quantidade_vidas' => 1,
+                'cidade' => 'Sao Paulo',
+                'estado' => 'SP',
+                'possui_preferencias' => 'nao',
+                'operadoras' => $operadoras,
+                'hospitais' => ['Hospital indevido'],
+                'faixa_valor_mensal' => 'Valor indevido',
+            ])
+            ->assertRedirect();
+
+        $semPreferencias = Indicacao::where('email', 'lead-interna-sem-preferencias@example.com')->firstOrFail();
+        $this->assertFalse($semPreferencias->possui_preferencias);
+        $this->assertSame([], $semPreferencias->operadoras_preferidas);
+        $this->assertSame([], $semPreferencias->hospitais_preferidos);
+        $this->assertNull($semPreferencias->faixa_valor_mensal);
     }
 
     public function test_fluxo_completo_lead_proposta_pre_cadastro_implantacao_cliente_carteira(): void
@@ -254,11 +441,11 @@ class FluxoOperacionalNexoTest extends TestCase
         }
 
         $documento = $lead->preCadastro->documentosObrigatorios->first();
-        $this->post(route('cliente.pre-cadastro.validar-acesso', ['slug' => 'carlos-oliveira', 'token' => $lead->preCadastro->token]), [
-            'prefixo_documento' => '000000',
+        $this->post(route('cliente.pre-cadastro.validar-acesso', ['slug' => 'CARLOSOLIVEIRA', 'token' => $lead->preCadastro->token]), [
+            'chave_acesso' => $lead->preCadastro->chave_acesso,
         ])->assertRedirect();
 
-        $this->post(route('cliente.pre-cadastro.store', ['slug' => 'carlos-oliveira', 'token' => $lead->preCadastro->token]), [
+        $this->post(route('cliente.pre-cadastro.store', ['slug' => 'CARLOSOLIVEIRA', 'token' => $lead->preCadastro->token]), [
             'vidas' => $lead->preCadastro->vidas->mapWithKeys(fn ($vida) => [$vida->id => [
                 'nome' => 'Beneficiário '.$vida->ordem,
                 'cpf' => '0000000000'.$vida->ordem,
@@ -547,11 +734,11 @@ class FluxoOperacionalNexoTest extends TestCase
         $this->actingAs($this->corretor)
             ->get('/carteira')
             ->assertOk()
-            ->assertSee('Performance do mês')
-            ->assertSee('Leads recebidas no mês')
+            ->assertSee('Carteira estratégica')
+            ->assertSee('Leads no mês')
             ->assertSee('Contratos fechados')
             ->assertSee('Vidas vendidas')
-            ->assertSee('Taxa de conversão')
+            ->assertSee('Conversão')
             ->assertSee('R$ 1.250,00')
             ->assertSee('R$ 2.000,00')
             ->assertSee('62,5%')
@@ -575,6 +762,82 @@ class FluxoOperacionalNexoTest extends TestCase
             ->count());
     }
 
+    public function test_whatsapp_usa_mensagem_em_leads_e_link_limpo_em_clientes(): void
+    {
+        $mensagem = 'Oi {nome}, recebi seu interesse em {tipo_plano} para {quantidade_vidas} vidas em {cidade}/{estado}.';
+
+        $this->actingAs($this->corretor)
+            ->get(route('configuracoes.mensagem-whatsapp'))
+            ->assertOk()
+            ->assertSee('Mensagem de WhatsApp para Leads')
+            ->assertSee('{nome}');
+
+        $this->actingAs($this->corretor)
+            ->post(route('configuracoes.mensagem-whatsapp.update'), [
+                'mensagem_primeiro_contato_whatsapp' => $mensagem,
+            ])
+            ->assertRedirect();
+
+        $this->assertDatabaseHas('corretor_perfis', [
+            'user_id' => $this->corretor->id,
+            'mensagem_primeiro_contato_whatsapp' => $mensagem,
+        ]);
+
+        $lead = Indicacao::create([
+            'user_id' => $this->corretor->id,
+            'origem' => 'cadastro_interno',
+            'nome_cliente' => 'Fernando Diniz',
+            'telefone' => '(11) 99953-5578',
+            'email' => 'fernando@example.com',
+            'tipo_plano' => 'PME',
+            'quantidade_vidas' => 11,
+            'cidade' => 'Sao Paulo',
+            'estado' => 'SP',
+            'etapa' => 'lead',
+            'status' => 'nova',
+        ]);
+
+        $whatsApp = app(WhatsAppLinkService::class);
+        $this->actingAs($this->corretor)
+            ->get(route('indicacoes.index'))
+            ->assertOk()
+            ->assertSee($whatsApp->buildLeadLink($lead, $this->corretor->fresh('corretorPerfil')), false)
+            ->assertSee('bi-whatsapp', false);
+
+        $indicacaoCliente = Indicacao::create([
+            'user_id' => $this->corretor->id,
+            'origem' => 'cadastro_interno',
+            'nome_cliente' => 'Cliente WhatsApp',
+            'telefone' => '(11) 98888-7700',
+            'email' => 'cliente-whatsapp@example.com',
+            'tipo_plano' => 'Familiar',
+            'quantidade_vidas' => 2,
+            'cidade' => 'Sao Paulo',
+            'estado' => 'SP',
+            'etapa' => 'carteira',
+            'status' => 'contrato_vigente',
+        ]);
+
+        $cliente = Cliente::create([
+            'indicacao_id' => $indicacaoCliente->id,
+            'user_id' => $this->corretor->id,
+            'nome' => 'Cliente WhatsApp',
+            'email' => 'cliente-whatsapp@example.com',
+            'telefone' => '(11) 98888-7700',
+            'inicio_vigencia' => now()->toDateString(),
+            'valor_mensal' => 1000,
+            'status' => 'ativo',
+        ]);
+
+        $clienteLink = $whatsApp->buildClientLink($cliente->telefone);
+
+        $this->actingAs($this->corretor)
+            ->get(route('paginas.simples', 'clientes'))
+            ->assertOk()
+            ->assertSee($clienteLink, false)
+            ->assertDontSee($clienteLink.'?text', false);
+    }
+
     public function test_assinatura_expirada_bloqueia_area_interna_sem_bloquear_rotas_publicas(): void
     {
         $this->corretor->assinatura->update([
@@ -583,7 +846,14 @@ class FluxoOperacionalNexoTest extends TestCase
         ]);
 
         $this->actingAs($this->corretor)->get('/dashboard')->assertRedirect('/assinatura');
-        $this->get('/corretor/carlos-oliveira')->assertOk()->assertDontSee('Nova Lead');
+        $this->actingAs($this->corretor)->get('/assinatura')->assertOk()->assertSee('R$ 49,90');
+        $this->actingAs($this->corretor)->post(route('assinatura.assinar'))->assertRedirect(route('dashboard'));
+        $this->assertDatabaseHas('assinaturas', [
+            'user_id' => $this->corretor->id,
+            'status_assinatura' => 'ativa',
+            'valor_assinatura' => '49.90',
+        ]);
+        $this->get('/perfil-corretor/CARLOSOLIVEIRA')->assertOk()->assertDontSee('Nova Lead');
     }
 
     public function test_tarefas_e_alertas_podem_ser_resolvidos(): void
@@ -769,7 +1039,7 @@ class FluxoOperacionalNexoTest extends TestCase
         $this->assertSame('colaborador', $vidas[1]->tipo);
         $this->assertNull($vidas[1]->cargo);
         $this->assertSame('dependente_colaborador', $vidas[2]->tipo);
-        $this->assertNull($vidas[2]->vinculo_beneficiario_id);
+        $this->assertSame($vidas[1]->id, $vidas[2]->vinculo_beneficiario_id);
 
         $titulos = $lead->preCadastro->documentosObrigatorios->pluck('titulo')->all();
         $this->assertContains('RG - Beneficiário 1', $titulos);
@@ -809,7 +1079,7 @@ class FluxoOperacionalNexoTest extends TestCase
 
         $lead->refresh()->load('preCadastro.documentosObrigatorios');
         $tokenOriginal = $lead->preCadastro->token;
-        $rotaPublica = route('cliente.pre-cadastro.show', ['slug' => 'carlos-oliveira', 'token' => $tokenOriginal]);
+        $rotaPublica = route('cliente.pre-cadastro.show', ['slug' => 'CARLOSOLIVEIRA', 'token' => $tokenOriginal]);
 
         $this->actingAs($this->corretor)
             ->get(route('pre-cadastros.show', $lead->preCadastro))
@@ -828,8 +1098,8 @@ class FluxoOperacionalNexoTest extends TestCase
             ->assertOk()
             ->assertSee('Validar acesso ao pré-cadastro');
 
-        $this->post(route('cliente.pre-cadastro.validar-acesso', ['slug' => 'carlos-oliveira', 'token' => $tokenOriginal]), [
-            'prefixo_documento' => '123456',
+        $this->post(route('cliente.pre-cadastro.validar-acesso', ['slug' => 'CARLOSOLIVEIRA', 'token' => $tokenOriginal]), [
+            'chave_acesso' => $lead->preCadastro->chave_acesso,
         ])->assertRedirect($rotaPublica);
 
         $this->get($rotaPublica)
@@ -841,7 +1111,7 @@ class FluxoOperacionalNexoTest extends TestCase
             $documentosUpload[$documento->id] = UploadedFile::fake()->create('doc-'.$documento->id.'.pdf', 20, 'application/pdf');
         }
 
-        $this->post(route('cliente.pre-cadastro.store', ['slug' => 'carlos-oliveira', 'token' => $tokenOriginal]), [
+        $this->post(route('cliente.pre-cadastro.store', ['slug' => 'CARLOSOLIVEIRA', 'token' => $tokenOriginal]), [
             'vidas' => $lead->preCadastro->vidas->mapWithKeys(fn ($vida) => [$vida->id => [
                 'nome' => 'Cliente Link',
                 'cpf' => '12345678900',
@@ -862,7 +1132,7 @@ class FluxoOperacionalNexoTest extends TestCase
             ->assertSee('Recebemos suas informações com sucesso')
             ->assertDontSee('Enviar pré-cadastro');
 
-        $this->post(route('cliente.pre-cadastro.store', ['slug' => 'carlos-oliveira', 'token' => $tokenOriginal]), [
+        $this->post(route('cliente.pre-cadastro.store', ['slug' => 'CARLOSOLIVEIRA', 'token' => $tokenOriginal]), [
             'vidas' => $lead->preCadastro->vidas->mapWithKeys(fn ($vida) => [$vida->id => [
                 'nome' => 'Cliente Link',
                 'cpf' => '12345678900',

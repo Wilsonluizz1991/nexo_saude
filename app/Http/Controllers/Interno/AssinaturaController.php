@@ -16,6 +16,6 @@ class AssinaturaController extends Controller
     {
         $service->ativar(auth()->user()->assinatura);
 
-        return redirect()->route('dashboard')->with('status', 'Assinatura ativada por R$ 249,90/mês.');
+        return redirect()->route('dashboard')->with('status', 'Assinatura ativada por R$ 49,90/mes.');
     }
 }

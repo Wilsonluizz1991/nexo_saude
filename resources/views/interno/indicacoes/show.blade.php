@@ -18,6 +18,16 @@
         $podePreCadastro = $indicacao->etapa === 'propostas';
         $podeLembrete = in_array($indicacao->etapa, ['lead', 'propostas'], true);
         $slugCorretor = $indicacao->user?->corretorPerfil?->slug ?? \Illuminate\Support\Str::slug($indicacao->user?->name ?? 'corretor');
+        $operadorasPorId = $operadoras->keyBy('id');
+        $operadorasPreferidas = collect($indicacao->operadoras_preferidas ?? [])
+            ->map(fn ($operadoraId) => $operadorasPorId->get((int) $operadoraId)?->nome)
+            ->filter()
+            ->values();
+        $hospitaisPreferidos = collect($indicacao->hospitais_preferidos ?? [])->filter()->values();
+        $temPreferencias = $indicacao->possui_preferencias
+            || $operadorasPreferidas->isNotEmpty()
+            || $hospitaisPreferidos->isNotEmpty()
+            || filled($indicacao->faixa_valor_mensal);
 
         $statusLegivel = [
             'nova' => 'Nova',
@@ -70,8 +80,79 @@
             </div>
         </section>
 
+        <section class="nexo-panel-card nexo-preferences-summary">
+            <div class="nexo-section-header">
+                <div>
+                    <span class="nexo-section-kicker">
+                        <i class="bi bi-sliders"></i>
+                        Preferências
+                    </span>
+
+                    <h2>Preferências da lead</h2>
+
+                    <p>
+                        Informações recebidas no formulário público para orientar a proposta.
+                    </p>
+                </div>
+            </div>
+
+            @if($temPreferencias)
+                <div class="nexo-preferences-grid">
+                    <div class="nexo-preference-block">
+                        <span>Operadoras preferidas</span>
+
+                        <div class="nexo-preference-tags">
+                            @forelse($operadorasPreferidas as $operadoraPreferida)
+                                <strong>{{ $operadoraPreferida }}</strong>
+                            @empty
+                                <em>Não informadas</em>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    <div class="nexo-preference-block">
+                        <span>Hospitais preferidos</span>
+
+                        <div class="nexo-preference-tags">
+                            @forelse($hospitaisPreferidos as $hospitalPreferido)
+                                <strong>{{ $hospitalPreferido }}</strong>
+                            @empty
+                                <em>Não informados</em>
+                            @endforelse
+                        </div>
+                    </div>
+
+                    <div class="nexo-preference-block">
+                        <span>Faixa de valor mensal</span>
+                        <strong>{{ $indicacao->faixa_valor_mensal ?: 'Não informada' }}</strong>
+                    </div>
+                </div>
+            @else
+                <div class="nexo-empty-state">
+                    A lead não informou preferências no formulário público.
+                </div>
+            @endif
+        </section>
+
         <div class="row g-4">
             <div class="col-lg-7">
+                @if(filled($indicacao->observacoes))
+                    <section class="nexo-panel-card">
+                        <div class="nexo-section-header">
+                            <div>
+                                <span class="nexo-section-kicker">
+                                    <i class="bi bi-chat-left-text"></i>
+                                    Observação
+                                </span>
+
+                                <h2>Observações da lead</h2>
+
+                                <p>{{ $indicacao->observacoes }}</p>
+                            </div>
+                        </div>
+                    </section>
+                @endif
+
                 <section class="nexo-panel-card">
                     <div class="nexo-section-header">
                         <div>
@@ -117,7 +198,8 @@
 
                             <div class="col-md-4">
                                 <label class="form-label">Quantidade de vidas</label>
-                                <input class="form-control" name="quantidade_vidas" type="number" min="1" value="{{ old('quantidade_vidas', $indicacao->quantidade_vidas) }}">
+                                <input type="hidden" value="{{ $indicacao->tipo_plano }}" data-plan-type>
+                                <input class="form-control" name="quantidade_vidas" type="number" min="1" value="{{ old('quantidade_vidas', $indicacao->quantidade_vidas) }}" data-lives-count>
                             </div>
 
                             <div class="col-md-4">
@@ -502,7 +584,7 @@
                             <div class="col-md-6">
                                 <label class="form-label">Tipo de contrato</label>
 
-                                <select class="form-select" name="tipo_contrato" required>
+                            <select class="form-select" name="tipo_contrato" data-plan-type required>
                                     <option value="individual">Individual</option>
                                     <option value="familiar">Familiar</option>
                                     <option value="pme">PME</option>
@@ -512,7 +594,7 @@
 
                             <div class="col-md-4">
                                 <label class="form-label">Quantidade de vidas</label>
-                                <input class="form-control" name="quantidade_vidas" type="number" min="1" value="{{ $indicacao->quantidade_vidas }}" required>
+                                <input class="form-control" name="quantidade_vidas" type="number" min="1" value="{{ $indicacao->quantidade_vidas }}" data-lives-count required>
                             </div>
 
                             <div class="col-md-4">
@@ -716,6 +798,63 @@
             border: 1px solid #E4EBF5;
             box-shadow: 0 20px 42px rgba(15, 23, 42, 0.055);
             margin-bottom: 24px;
+        }
+
+        .nexo-preferences-summary {
+            border-color: #D7E7FF;
+            background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
+        }
+
+        .nexo-preferences-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 14px;
+        }
+
+        .nexo-preference-block {
+            display: grid;
+            gap: 10px;
+            min-height: 104px;
+            padding: 16px;
+            border: 1px solid #E4EBF5;
+            border-radius: 18px;
+            background: #FFFFFF;
+        }
+
+        .nexo-preference-block > span {
+            color: #64748B;
+            font-size: 0.78rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .nexo-preference-block > strong {
+            color: #061C3F;
+            font-size: 1rem;
+            font-weight: 950;
+        }
+
+        .nexo-preference-tags {
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 8px;
+        }
+
+        .nexo-preference-tags strong {
+            min-height: 28px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: #EAF3FF;
+            color: #145FC5;
+            font-size: 0.82rem;
+            font-weight: 900;
+        }
+
+        .nexo-preference-tags em {
+            color: #94A3B8;
+            font-style: normal;
+            font-weight: 800;
         }
 
         .nexo-section-header {
@@ -1215,6 +1354,12 @@
                 flex-direction: row;
                 justify-content: space-between;
                 align-items: flex-start;
+            }
+        }
+
+        @media (max-width: 991px) {
+            .nexo-preferences-grid {
+                grid-template-columns: 1fr;
             }
         }
 

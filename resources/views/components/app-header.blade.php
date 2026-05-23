@@ -26,9 +26,15 @@
                     <img src="{{ asset('assets/nexo-logo-topo.png') }}" alt="Nexo Saúde">
                 </a>
 
-                <form class="nexo-search" role="search">
+                <form class="nexo-search" role="search" method="GET" action="{{ route('busca.index') }}">
                     <i class="bi bi-search nexo-search-icon" aria-hidden="true"></i>
-                    <input type="search" placeholder="Buscar por leads, clientes, propostas..." aria-label="Buscar por leads, clientes, propostas">
+                    <input
+                        type="search"
+                        name="q"
+                        value="{{ request('q') }}"
+                        placeholder="Buscar por leads, clientes, propostas..."
+                        aria-label="Buscar por leads, clientes, propostas"
+                    >
                 </form>
 
                 <div class="nexo-header-actions">

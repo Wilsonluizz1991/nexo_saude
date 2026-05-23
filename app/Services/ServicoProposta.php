@@ -14,7 +14,10 @@ class ServicoProposta
             'titulo' => $dados['titulo'],
             'operadora_id' => $dados['operadora_id'] ?? null,
             'valor_mensal' => $dados['valor_mensal'] ?? null,
-            'quantidade_vidas' => $dados['quantidade_vidas'] ?? $indicacao->quantidade_vidas,
+            'quantidade_vidas' => PlanoSaudeService::normalizarQuantidadeVidas(
+                $indicacao->tipo_plano,
+                $dados['quantidade_vidas'] ?? $indicacao->quantidade_vidas
+            ),
             'validade' => $dados['validade'] ?? null,
             'observacoes' => $dados['observacoes'] ?? null,
             'arquivo_pdf_path' => $arquivo->store('propostas', 'public'),

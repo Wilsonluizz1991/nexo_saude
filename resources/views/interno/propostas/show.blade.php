@@ -32,6 +32,7 @@
 
                     <form method="post" action="{{ route('propostas.store', $indicacao) }}" enctype="multipart/form-data" class="row g-3">
                         @csrf
+                        <input type="hidden" value="{{ $indicacao->tipo_plano }}" data-plan-type>
 
                         <div class="col-md-6">
                             <label class="form-label">Título da proposta</label>
@@ -58,7 +59,7 @@
 
                         <div class="col-md-4">
                             <label class="form-label">Quantidade de vidas</label>
-                            <input class="form-control" name="quantidade_vidas" type="number" min="1" value="{{ old('quantidade_vidas', $indicacao->quantidade_vidas) }}">
+                            <input class="form-control" name="quantidade_vidas" type="number" min="1" value="{{ old('quantidade_vidas', $indicacao->quantidade_vidas) }}" data-lives-count>
                         </div>
 
                         <div class="col-md-4">
@@ -94,7 +95,7 @@
                     </div>
 
                     <div class="nexo-proposta-list">
-                        @forelse($indicacao->propostas as $proposta)
+                        @forelse($propostas as $proposta)
                             <article class="nexo-proposta-item">
                                 <div>
                                     <strong>{{ $proposta->titulo }}</strong>
@@ -120,6 +121,7 @@
                             </div>
                         @endforelse
                     </div>
+                    {{ $propostas->links('vendor.pagination.nexo') }}
                 </section>
             </div>
 
@@ -163,6 +165,10 @@
                         </button>
                     </form>
                 </section>
+
+                <div class="mt-4">
+                    @include('interno.indicacoes.partials.lembretes-card', ['indicacao' => $indicacao])
+                </div>
             </div>
         </div>
     </main>

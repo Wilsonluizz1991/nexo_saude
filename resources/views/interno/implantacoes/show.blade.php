@@ -270,6 +270,10 @@
                         @endforelse
                     </div>
                 </section>
+
+                <div class="mt-4">
+                    @include('interno.indicacoes.partials.lembretes-card', ['indicacao' => $indicacao])
+                </div>
             </div>
         </div>
     </main>
@@ -339,7 +343,7 @@
                         <div class="col-md-6">
                             <label class="form-label">Tipo de contrato</label>
 
-                            <select class="form-select" name="tipo_contrato" required>
+                            <select class="form-select" name="tipo_contrato" data-plan-type required>
                                 <option value="individual">Individual</option>
                                 <option value="familiar">Familiar</option>
                                 <option value="pme">PME</option>
@@ -356,6 +360,7 @@
                                 type="number"
                                 min="1"
                                 value="{{ $vidas->count() ?: $indicacao->quantidade_vidas }}"
+                                data-lives-count
                                 required
                             >
                         </div>

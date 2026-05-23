@@ -12,6 +12,7 @@ class PreCadastroService
     public function __construct(
         private ChecklistDocumentalService $checklist,
         private ServicoTimeline $timeline,
+        private SmsService $sms,
     ) {
     }
 
@@ -21,6 +22,8 @@ class PreCadastroService
             ['indicacao_id' => $indicacao->id],
             [
                 'token' => $indicacao->preCadastro?->token ?? Str::random(48),
+                'chave_acesso' => $indicacao->preCadastro?->chave_acesso ?? $this->gerarChaveAcesso(),
+                'chave_expira_em' => now()->addDays(14),
                 'tipo_proposta' => $dados['tipo_proposta'],
                 'pessoa' => $dados['pessoa'],
                 'status' => 'aguardando_envio',
@@ -86,6 +89,50 @@ class PreCadastroService
         ]);
 
         return $preCadastro;
+    }
+
+    public function enviarSmsComLink(PreCadastro $preCadastro, string $linkPublico): PreCadastro
+    {
+        $preCadastro = $this->garantirTokenAcesso($preCadastro);
+        $preCadastro->loadMissing('indicacao');
+        $sms = $this->sms->enviarPreCadastro($preCadastro, $linkPublico);
+
+        $preCadastro->update([
+            'sms_enviado_em' => $sms->sent_at,
+            'sms_status' => $sms->status,
+        ]);
+
+        $preCadastro->indicacao?->timelineEventos()->create([
+            'titulo' => $sms->status === 'sent' ? 'SMS de pré-cadastro enviado' : 'Falha no SMS de pré-cadastro',
+            'descricao' => $sms->status === 'sent'
+                ? 'Link e chave de acesso enviados automaticamente para o celular da lead.'
+                : 'Não foi possível confirmar o envio do SMS. Copie o link e envie manualmente.',
+        ]);
+
+        return $preCadastro->refresh();
+    }
+
+    public function garantirTokenAcesso(PreCadastro $preCadastro): PreCadastro
+    {
+        if ($preCadastro->chave_acesso && $preCadastro->chave_expira_em && $preCadastro->chave_expira_em->isFuture()) {
+            return $preCadastro;
+        }
+
+        $preCadastro->update([
+            'chave_acesso' => $this->gerarChaveAcesso(),
+            'chave_expira_em' => now()->addDays(14),
+        ]);
+
+        return $preCadastro->refresh();
+    }
+
+    private function gerarChaveAcesso(): string
+    {
+        do {
+            $chave = strtoupper(Str::random(4).'-'.Str::random(4));
+        } while (PreCadastro::where('chave_acesso', $chave)->exists());
+
+        return $chave;
     }
 
     private function parentescoDaVida(array $vidaDados): ?string

@@ -7,7 +7,9 @@ use App\Models\Indicacao;
 use App\Models\Operadora;
 use App\Models\Tarefa;
 use App\Models\User;
+use App\Models\CorretorPerfil;
 use App\Services\AssinaturaService;
+use App\Services\WhatsAppLinkService;
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
@@ -61,8 +63,9 @@ class DatabaseSeeder extends Seeder
         }
 
         $corretor->corretorPerfil()->updateOrCreate(['user_id' => $corretor->id], [
-            'slug' => 'carlos-oliveira',
+            'slug' => $corretor->corretorPerfil?->slug ?: 'CARLOSOLIVEIRA',
             'nome_publico' => 'Carlos Oliveira',
+            'mensagem_primeiro_contato_whatsapp' => WhatsAppLinkService::DEFAULT_LEAD_TEMPLATE,
             'bio' => 'Corretor especializado em planos de saúde para famílias, profissionais liberais e pequenas empresas.',
             'especialidades' => ['Planos familiares', 'PME', 'Adesão'],
             'cidade_regiao' => 'São Paulo e Grande São Paulo',

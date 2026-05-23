@@ -1,12 +1,4 @@
 <x-layouts.public title="Validar acesso | Nexo Saúde">
-    @php
-        $isPj = strtoupper((string) $preCadastro->pessoa) === 'PJ';
-        $documentoLabel = $isPj ? 'CNPJ' : 'CPF do titular';
-        $instrucao = $isPj
-            ? 'Digite os 6 primeiros números do CNPJ'
-            : 'Digite os 6 primeiros números do CPF do titular';
-    @endphp
-
     <main class="nexo-access-page">
         <section class="nexo-access-card">
             <div class="nexo-access-brand">
@@ -27,7 +19,7 @@
                 </h1>
 
                 <p>
-                    Para proteger suas informações, confirme os primeiros números do documento antes de acessar o formulário.
+                    Para proteger suas informações, informe a chave alfanumérica enviada por SMS antes de acessar o formulário.
                 </p>
 
                 <div class="nexo-access-steps">
@@ -69,7 +61,7 @@
                 </h2>
 
                 <p>
-                    {{ $instrucao }} para liberar o preenchimento do pré-cadastro.
+                    Digite a chave de acesso recebida por SMS para liberar o preenchimento do pré-cadastro.
                 </p>
 
                 <form method="post" action="{{ route('cliente.pre-cadastro.validar-acesso', ['slug' => $slug, 'token' => $preCadastro->token]) }}" class="nexo-access-form">
@@ -77,31 +69,31 @@
 
                     <div>
                         <label class="form-label">
-                            {{ $documentoLabel }}
+                            Token de acesso
                         </label>
 
                         <input
                             class="form-control"
-                            name="prefixo_documento"
-                            inputmode="numeric"
+                            name="chave_acesso"
+                            inputmode="text"
                             autocomplete="one-time-code"
-                            maxlength="6"
-                            pattern="[0-9]{6}"
-                            placeholder="000000"
-                            value="{{ old('prefixo_documento') }}"
+                            maxlength="16"
+                            pattern="[A-Za-z0-9-]+"
+                            placeholder="ABCD-1234"
+                            value="{{ old('chave_acesso') }}"
                             required
                             autofocus
-                            data-six-digits
+                            data-access-key
                         >
 
-                        @error('prefixo_documento')
+                        @error('chave_acesso')
                             <div class="nexo-access-error">
                                 {{ $message }}
                             </div>
                         @enderror
 
                         <div class="nexo-access-hint">
-                            Não exibimos o {{ $documentoLabel }} completo nesta tela.
+                            A chave expira por segurança. Se não recebeu o SMS, fale com seu corretor.
                         </div>
                     </div>
 
@@ -120,7 +112,7 @@
                         </strong>
 
                         <span>
-                            Esta validação ajuda a impedir que terceiros acessem seus documentos pelo link público.
+                            Esta validação por SMS ajuda a impedir que terceiros acessem seus documentos pelo link público.
                         </span>
                     </div>
                 </div>
@@ -570,9 +562,12 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
-            document.querySelectorAll('[data-six-digits]').forEach((input) => {
+            document.querySelectorAll('[data-access-key]').forEach((input) => {
                 input.addEventListener('input', () => {
-                    input.value = input.value.replace(/\D/g, '').slice(0, 6);
+                    input.value = input.value
+                        .replace(/[^A-Za-z0-9-]/g, '')
+                        .toUpperCase()
+                        .slice(0, 16);
                 });
             });
         });

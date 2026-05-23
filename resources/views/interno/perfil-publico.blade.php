@@ -7,7 +7,6 @@
                     <p class="muted">A página pública tem design único. Você só configura foto, nome, bio, especialidades e cidade/região.</p>
                     <form method="post" action="{{ route('perfil-publico.update') }}" enctype="multipart/form-data" class="row g-3">
                         @csrf
-                        <div class="col-md-6"><label class="form-label">Slug</label><input name="slug" class="form-control" value="{{ $perfil->slug }}"></div>
                         <div class="col-md-6"><label class="form-label">Foto</label><input name="foto" type="file" class="form-control" accept="image/*"></div>
                         <div class="col-12"><label class="form-label">Nome</label><input name="nome_publico" class="form-control" value="{{ $perfil->nome_publico }}"></div>
                         <div class="col-12"><label class="form-label">Bio</label><textarea name="bio" class="form-control">{{ $perfil->bio }}</textarea></div>
