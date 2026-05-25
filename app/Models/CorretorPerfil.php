@@ -9,7 +9,7 @@ class CorretorPerfil extends Model
 {
     protected $table = 'corretor_perfis';
 
-    protected $fillable = ['user_id', 'slug', 'public_hash', 'foto_path', 'nome_publico', 'bio', 'especialidades', 'cidade_regiao', 'cidade', 'estado', 'anos_experiencia', 'publico_ativo', 'mensagem_primeiro_contato_whatsapp'];
+    protected $fillable = ['user_id', 'slug', 'public_hash', 'foto_path', 'nome_publico', 'bio', 'especialidades', 'cidade_regiao', 'cidade', 'estado', 'anos_experiencia', 'publico_ativo', 'mensagem_primeiro_contato_whatsapp', 'mensagem_contrato_vigente_whatsapp'];
 
     protected function casts(): array
     {

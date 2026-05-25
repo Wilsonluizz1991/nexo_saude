@@ -103,7 +103,7 @@
                 <div class="col-md-2">
                     <label class="form-label">Estado</label>
                     <select name="estado" class="form-select text-uppercase" required>
-                        <option value="" disabled @selected(! old('estado'))>Selecione um estado</option>
+                        <option value="" disabled @selected(! old('estado'))>Selecione</option>
                         @foreach(['AC', 'AL', 'AP', 'AM', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MT', 'MS', 'MG', 'PA', 'PB', 'PR', 'PE', 'PI', 'RJ', 'RN', 'RS', 'RO', 'RR', 'SC', 'SP', 'SE', 'TO'] as $estado)
                             <option value="{{ $estado }}" @selected(old('estado') === $estado)>{{ $estado }}</option>
                         @endforeach

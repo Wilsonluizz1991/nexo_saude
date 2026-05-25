@@ -13,6 +13,7 @@ use App\Http\Controllers\Interno\PerfilPublicoController;
 use App\Http\Controllers\Interno\PreCadastroController;
 use App\Http\Controllers\Interno\PropostaController;
 use App\Http\Controllers\Publico\DocumentoClienteController;
+use App\Http\Controllers\Publico\AvaliacaoAtendimentoController;
 use App\Http\Controllers\Publico\PaginaCorretorController;
 use Illuminate\Support\Facades\Route;
 
@@ -33,6 +34,8 @@ Route::get('/perfil/{slug}', [PaginaCorretorController::class, 'show'])->name('p
 Route::post('/perfil/{slug}/solicitacao', [PaginaCorretorController::class, 'store'])->name('publico.indicacoes.store');
 Route::get('/perfil-corretor/{slug}', [PaginaCorretorController::class, 'showAntigo'])->name('publico.corretor.antigo');
 Route::post('/perfil-corretor/{slug}/solicitacao', [PaginaCorretorController::class, 'storeAntigo'])->name('publico.indicacoes.store.antigo');
+Route::get('/avaliacao/{token}', [AvaliacaoAtendimentoController::class, 'show'])->name('publico.avaliacoes.show');
+Route::post('/avaliacao/{token}', [AvaliacaoAtendimentoController::class, 'store'])->name('publico.avaliacoes.store');
 Route::get('/{slug}/pre-cadastro/{token}', [DocumentoClienteController::class, 'show'])->name('cliente.pre-cadastro.show');
 Route::post('/{slug}/pre-cadastro/{token}/validar-acesso', [DocumentoClienteController::class, 'validarAcesso'])->name('cliente.pre-cadastro.validar-acesso');
 Route::post('/{slug}/pre-cadastro/{token}', [DocumentoClienteController::class, 'store'])->name('cliente.pre-cadastro.store');

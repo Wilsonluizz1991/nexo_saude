@@ -6,10 +6,12 @@ use App\Http\Controllers\Controller;
 use App\Models\Alerta;
 use App\Models\Cliente;
 use App\Models\Tarefa;
+use App\Services\AvaliacaoAtendimentoService;
+use App\Services\WhatsAppLinkService;
 
 class ClienteController extends Controller
 {
-    public function show(Cliente $cliente)
+    public function show(Cliente $cliente, AvaliacaoAtendimentoService $avaliacoes, WhatsAppLinkService $whatsApp)
     {
         abort_unless($cliente->user_id === auth()->id(), 403);
 
@@ -20,6 +22,7 @@ class ClienteController extends Controller
             'indicacao.propostas.operadora',
             'indicacao.preCadastro.vidas',
             'indicacao.timelineEventos',
+            'avaliacoesAtendimento',
         ]);
 
         $tarefas = Tarefa::where('user_id', auth()->id())
@@ -37,11 +40,19 @@ class ClienteController extends Controller
             ->paginate(10, ['*'], 'alertas_page')
             ->withQueryString();
 
+        $avaliacao = $avaliacoes->obterOuCriar($cliente, $cliente->indicacao);
+        $avaliacao->loadMissing('cliente.contratos', 'indicacao');
+        $linkAvaliacao = $avaliacoes->link($avaliacao);
+        $linkWhatsappAvaliacao = $whatsApp->buildContractReviewLink($avaliacao, auth()->user(), $linkAvaliacao);
+
         return view('interno.clientes.show', [
             'cliente' => $cliente,
             'indicacao' => $cliente->indicacao,
             'tarefas' => $tarefas,
             'alertas' => $alertas,
+            'avaliacaoAtendimento' => $avaliacao,
+            'linkAvaliacaoAtendimento' => $linkAvaliacao,
+            'linkWhatsappAvaliacaoAtendimento' => $linkWhatsappAvaliacao,
         ]);
     }
 }

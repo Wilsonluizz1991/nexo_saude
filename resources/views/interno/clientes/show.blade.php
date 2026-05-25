@@ -96,6 +96,60 @@
                     </div>
                 </section>
 
+                @if(($avaliacaoAtendimento ?? null) && $avaliacaoAtendimento->status !== 'respondida')
+                    <section class="nexo-cliente-panel nexo-review-resend-panel mb-4">
+                        <div class="nexo-section-header">
+                            <div>
+                                <h2>Avaliação de atendimento</h2>
+                                <p>O cliente ainda não respondeu a avaliação pós-contrato. Reenvie o convite quando desejar.</p>
+                            </div>
+                        </div>
+
+                        <div class="nexo-review-resend-card">
+                            <div class="nexo-review-resend-icon">
+                                <i class="bi bi-star-fill"></i>
+                            </div>
+
+                            <div>
+                                <strong>Convite de avaliação pendente</strong>
+                                <span>Use o WhatsApp para reenviar a mensagem pronta ou copie o link direto.</span>
+                            </div>
+
+                            <div class="nexo-review-resend-actions">
+                                <a class="nexo-review-whatsapp-btn" href="{{ $linkWhatsappAvaliacaoAtendimento }}" target="_blank" rel="noopener">
+                                    <i class="bi bi-whatsapp"></i>
+                                    Enviar pelo WhatsApp
+                                </a>
+
+                                <button type="button" class="nexo-review-copy-btn" data-copy-review-link="{{ $linkAvaliacaoAtendimento }}">
+                                    <i class="bi bi-copy"></i>
+                                    Copiar link
+                                </button>
+                            </div>
+                        </div>
+                    </section>
+                @elseif(($avaliacaoAtendimento ?? null) && $avaliacaoAtendimento->status === 'respondida')
+                    <section class="nexo-cliente-panel nexo-review-resend-panel mb-4">
+                        <div class="nexo-section-header">
+                            <div>
+                                <h2>Avaliação de atendimento</h2>
+                                <p>Cliente já respondeu a avaliação pós-contrato.</p>
+                            </div>
+                        </div>
+
+                        <div class="nexo-review-resend-card is-finished">
+                            <div class="nexo-review-resend-icon">
+                                <i class="bi bi-star-fill"></i>
+                            </div>
+
+                            <div>
+                                <strong>{{ number_format($avaliacaoAtendimento->media, 1, ',', '.') }} de 5</strong>
+                                <span>{{ $avaliacaoAtendimento->comentario ?: 'Avaliação registrada sem comentário adicional.' }}</span>
+                            </div>
+                        </div>
+                    </section>
+                @endif
+
                 <section class="nexo-cliente-panel mb-4">
                     <div class="nexo-section-header">
                         <div>
@@ -673,5 +727,239 @@
                 justify-content: flex-start;
             }
         }
+
+        .nexo-review-resend-card {
+            display: grid;
+            grid-template-columns: 56px minmax(0, 1fr) auto;
+            gap: 16px;
+            align-items: center;
+            border: 1px solid rgba(212, 175, 55, 0.32);
+            border-radius: 22px;
+            background: linear-gradient(135deg, #FFFFFF 0%, #FFFDF4 100%);
+            padding: 18px;
+        }
+
+        .nexo-review-resend-card.is-finished {
+            grid-template-columns: 56px minmax(0, 1fr);
+            border-color: #BEECD3;
+            background: #EAFBF1;
+        }
+
+        .nexo-review-resend-icon {
+            width: 56px;
+            height: 56px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 18px;
+            color: #061C3F;
+            background: linear-gradient(135deg, #F9E7A4 0%, #D4AF37 48%, #B8860B 100%);
+            box-shadow: 0 14px 28px rgba(212, 175, 55, 0.22);
+            font-size: 1.35rem;
+        }
+
+        .nexo-review-resend-card strong,
+        .nexo-review-resend-card span {
+            display: block;
+        }
+
+        .nexo-review-resend-card strong {
+            color: #061C3F;
+            font-size: 1rem;
+            font-weight: 950;
+            margin-bottom: 4px;
+        }
+
+        .nexo-review-resend-card span {
+            color: #64748B;
+            font-weight: 750;
+            line-height: 1.45;
+        }
+
+        .nexo-review-resend-actions {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: flex-end;
+        }
+
+        .nexo-review-whatsapp-btn,
+        .nexo-review-copy-btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            min-height: 42px;
+            border-radius: 13px;
+            border: 0;
+            padding: 0 14px;
+            font-weight: 900;
+            text-decoration: none;
+            transition: 0.2s ease;
+        }
+
+        .nexo-review-whatsapp-btn {
+            background: #22C55E;
+            color: #FFFFFF;
+            box-shadow: 0 14px 28px rgba(34, 197, 94, 0.18);
+        }
+
+        .nexo-review-copy-btn {
+            background: #EAF3FF;
+            color: #2F80ED;
+        }
+
+        .nexo-review-whatsapp-btn:hover {
+            color: #FFFFFF;
+            transform: translateY(-1px);
+        }
+
+        .nexo-review-copy-btn:hover {
+            background: #2F80ED;
+            color: #FFFFFF;
+        }
+
+        .nexo-review-vigente-modal .modal-content {
+            border: 0;
+            border-radius: 26px;
+            overflow: hidden;
+            box-shadow: 0 30px 90px rgba(15, 23, 42, 0.22);
+        }
+
+        .nexo-review-vigente-modal-header {
+            padding: 26px;
+            background: linear-gradient(135deg, #061C3F 0%, #0F3A68 100%);
+            color: #FFFFFF;
+        }
+
+        .nexo-review-vigente-modal-header span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #F6E7A1;
+            font-size: 0.78rem;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 10px;
+        }
+
+        .nexo-review-vigente-modal-header h2 {
+            margin: 0;
+            font-size: 1.55rem;
+            font-weight: 950;
+            letter-spacing: -0.04em;
+        }
+
+        .nexo-review-vigente-modal-body {
+            padding: 24px;
+        }
+
+        .nexo-review-vigente-modal-body p {
+            color: #64748B;
+            font-weight: 750;
+            line-height: 1.65;
+            margin: 0 0 18px;
+        }
+
+        .nexo-review-modal-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+
+        .nexo-review-modal-actions a,
+        .nexo-review-modal-actions button {
+            min-height: 50px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            border-radius: 15px;
+            border: 0;
+            font-weight: 950;
+            text-decoration: none;
+        }
+
+        .nexo-review-modal-actions a {
+            background: #22C55E;
+            color: #FFFFFF;
+        }
+
+        .nexo-review-modal-actions button {
+            background: #EAF3FF;
+            color: #2F80ED;
+        }
+
+        @media (max-width: 900px) {
+            .nexo-review-resend-card {
+                grid-template-columns: 1fr;
+            }
+
+            .nexo-review-resend-actions,
+            .nexo-review-modal-actions {
+                grid-template-columns: 1fr;
+                justify-content: stretch;
+            }
+        }
     </style>
+
+    @if(session('avaliacao_contrato_vigente'))
+        <div class="modal fade nexo-review-vigente-modal" id="avaliacaoContratoVigenteModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="nexo-review-vigente-modal-header">
+                        <span><i class="bi bi-patch-check-fill"></i> Contrato vigente</span>
+                        <h2>Enviar avaliação para {{ session('avaliacao_contrato_vigente.cliente') }}</h2>
+                    </div>
+
+                    <div class="nexo-review-vigente-modal-body">
+                        <p>
+                            O contrato foi registrado como vigente. Aproveite esse momento positivo para enviar ao cliente uma mensagem de confirmação com o convite para avaliar seu atendimento.
+                        </p>
+
+                        <div class="nexo-review-modal-actions">
+                            <a href="{{ session('avaliacao_contrato_vigente.whatsapp') }}" target="_blank" rel="noopener">
+                                <i class="bi bi-whatsapp"></i>
+                                Enviar no WhatsApp
+                            </a>
+
+                            <button type="button" data-copy-review-link="{{ session('avaliacao_contrato_vigente.link') }}">
+                                <i class="bi bi-copy"></i>
+                                Copiar link
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            document.querySelectorAll('[data-copy-review-link]').forEach((button) => {
+                button.addEventListener('click', async () => {
+                    const link = button.dataset.copyReviewLink;
+                    const original = button.innerHTML;
+
+                    try {
+                        await navigator.clipboard.writeText(link);
+                        button.innerHTML = '<i class="bi bi-check-circle"></i> Link copiado';
+                    } catch (error) {
+                        button.innerHTML = '<i class="bi bi-exclamation-circle"></i> Copie manualmente';
+                    }
+
+                    setTimeout(() => {
+                        button.innerHTML = original;
+                    }, 2200);
+                });
+            });
+
+            const avaliacaoModalElement = document.getElementById('avaliacaoContratoVigenteModal');
+
+            if (avaliacaoModalElement && window.bootstrap) {
+                window.bootstrap.Modal.getOrCreateInstance(avaliacaoModalElement).show();
+            }
+        });
+    </script>
 </x-layouts.app>

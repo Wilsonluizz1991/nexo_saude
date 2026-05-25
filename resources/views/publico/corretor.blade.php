@@ -21,7 +21,35 @@
 
                     <span class="nexo-broker-label">Corretor responsável</span>
 
-                    <h2>{{ $perfil->nome_publico }}</h2>
+                    <div class="nexo-broker-name-line">
+                        <h2>{{ $perfil->nome_publico }}</h2>
+                    </div>
+
+                    @if(($reputacao['total'] ?? 0) > 0)
+                        <div class="nexo-public-rating-summary">
+                            <div class="nexo-public-stars" aria-label="Nota média {{ number_format($reputacao['media'], 1, ',', '.') }} de 5">
+                                @for($i = 1; $i <= 5; $i++)
+                                    <i class="bi {{ $i <= round($reputacao['media']) ? 'bi-star-fill' : 'bi-star' }}"></i>
+                                @endfor
+                            </div>
+
+                            <a
+                                href="#avaliacoes-clientes"
+                                class="nexo-public-rating-link"
+                                data-bs-toggle="modal"
+                                data-bs-target="#avaliacoesClientesModal"
+                            >{{ number_format($reputacao['media'], 1, ',', '.') }} ({{ $reputacao['total'] }} avaliações)</a>
+                        </div>
+                    @endif
+
+                    @if(($reputacao['premium'] ?? false))
+                        <div class="nexo-premium-floating-badge">
+                            <img
+                                src="{{ asset('assets/logopremium.png') }}"
+                                alt="Corretor Premium - Excelência em Atendimento"
+                            >
+                        </div>
+                    @endif
 
                     <p class="muted">{{ $perfil->bio }}</p>
 
@@ -52,6 +80,7 @@
                             <span>Planos conforme seu perfil</span>
                         </div>
                     </div>
+
                 </aside>
 
                 <section class="nexo-public-form-panel nexo-public-form-panel-premium">
@@ -161,7 +190,7 @@
                             <label class="form-label">Estado</label>
 
                             <select name="estado" class="form-select" required>
-                                <option value="" disabled @selected(! old('estado'))>Selecione um estado</option>
+                                <option value="" disabled @selected(! old('estado'))>Selecione</option>
 
                                 @foreach([
                                     'AC','AL','AP','AM','BA','CE','DF','ES','GO',
@@ -393,6 +422,25 @@
             margin-bottom: 24px;
             position: relative;
             z-index: 1;
+        }
+
+        .nexo-premium-floating-badge {
+            position: absolute;
+            top: -18px;
+            right: -12px;
+            z-index: 5;
+            width: 245px;
+            pointer-events: none;
+        }
+
+        .nexo-premium-floating-badge img {
+            width: 100%;
+            height: auto;
+            display: block;
+            object-fit: contain;
+            filter:
+                drop-shadow(0 22px 38px rgba(0, 0, 0, 0.50))
+                drop-shadow(0 0 24px rgba(212, 175, 55, 0.22));
         }
 
         .nexo-broker-profile-premium .nexo-broker-photo {
@@ -692,8 +740,170 @@
                 padding: 30px 24px;
             }
         }
+
+        @media (max-width: 576px) {
+            .nexo-premium-floating-badge {
+                top: -2px;
+                right: -2px;
+                width: 180px;
+            }
+
+            .nexo-broker-photo-wrap {
+                margin-bottom: 26px;
+            }
+        }
+
+        .nexo-broker-name-line {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .nexo-broker-name-line h2 {
+            margin-bottom: 0;
+        }
+
+        .nexo-public-rating-summary {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin: 12px 0 14px;
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 0.92rem;
+            font-weight: 850;
+        }
+
+        .nexo-public-stars {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            color: #D4AF37;
+            text-shadow: 0 6px 16px rgba(212, 175, 55, 0.25);
+        }
+
+        .nexo-public-rating-link {
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 0.92rem;
+            font-weight: 850;
+            text-decoration: none;
+        }
+
+        .nexo-public-rating-link:hover {
+            color: #FFFFFF;
+            text-decoration: none;
+        }
+
+        .nexo-public-reviews-modal .modal-content {
+            border: 0;
+            border-radius: 26px;
+            overflow: hidden;
+            box-shadow: 0 30px 90px rgba(15, 23, 42, 0.24);
+        }
+
+        .nexo-public-reviews-modal-header {
+            padding: 28px;
+            background:
+                radial-gradient(circle at top right, rgba(212, 175, 55, 0.24), transparent 34%),
+                linear-gradient(135deg, #061C3F 0%, #0F3A68 100%);
+            color: #FFFFFF;
+        }
+
+        .nexo-public-reviews-modal-header span {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            color: #F6E7A1;
+            font-size: 0.78rem;
+            font-weight: 950;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 10px;
+        }
+
+        .nexo-public-reviews-modal-header h2 {
+            color: #FFFFFF;
+            font-size: 1.7rem;
+            font-weight: 950;
+            letter-spacing: -0.04em;
+            margin: 0 0 6px;
+        }
+
+        .nexo-public-reviews-modal-header p {
+            color: rgba(255, 255, 255, 0.76);
+            margin: 0;
+            font-weight: 700;
+        }
+
+        .nexo-public-reviews-modal-body {
+            max-height: 62vh;
+            overflow-y: auto;
+            padding: 22px;
+            background: #F8FBFF;
+        }
+
+        .nexo-public-reviews-modal-list {
+            display: grid;
+            gap: 12px;
+        }
+
+        .nexo-public-reviews-modal-list article {
+            border: 1px solid #E6EEF9;
+            border-radius: 18px;
+            background: #FFFFFF;
+            padding: 16px;
+            box-shadow: 0 14px 28px rgba(15, 23, 42, 0.045);
+        }
+
+        .nexo-public-reviews-modal-list article div {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            color: #D4AF37;
+            font-size: 0.92rem;
+            font-weight: 950;
+            margin-bottom: 8px;
+        }
+
+        .nexo-public-reviews-modal-list article p {
+            color: #334155;
+            font-size: 0.92rem;
+            line-height: 1.5;
+            margin: 0;
+            font-weight: 700;
+        }
+
     </style>
 
+
+    @if(($reputacao['total'] ?? 0) > 0)
+        <div class="modal fade nexo-public-reviews-modal" id="avaliacoesClientesModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-lg">
+                <div class="modal-content">
+                    <div class="nexo-public-reviews-modal-header">
+                        <span><i class="bi bi-star-fill"></i> Avaliações verificadas</span>
+                        <h2>Avaliações de clientes</h2>
+                        <p>{{ number_format($reputacao['media'], 1, ',', '.') }} de 5 com base em {{ $reputacao['total'] }} avaliações.</p>
+                    </div>
+
+                    <div class="nexo-public-reviews-modal-body">
+                        <div class="nexo-public-reviews-modal-list">
+                            @foreach(($reputacao['avaliacoes'] ?? collect()) as $avaliacao)
+                                <article>
+                                    <div>
+                                        <span>{{ number_format($avaliacao->media, 1, ',', '.') }}</span>
+                                        <i class="bi bi-star-fill"></i>
+                                    </div>
+
+                                    <p>{{ $avaliacao->comentario ?: 'Cliente avaliou positivamente o atendimento.' }}</p>
+                                </article>
+                            @endforeach
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    @endif
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const preferencesToggle = document.querySelector('[data-preferences-toggle]');

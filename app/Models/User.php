@@ -59,4 +59,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(CorretorMetaMensal::class);
     }
+
+    public function avaliacoesAtendimento()
+    {
+        return $this->hasMany(AvaliacaoAtendimento::class);
+    }
 }

@@ -73,6 +73,7 @@ class ConfiguracoesController extends Controller
     {
         $perfil = $this->perfilDoCorretor();
         $mensagem = $perfil->mensagem_primeiro_contato_whatsapp ?: WhatsAppLinkService::DEFAULT_LEAD_TEMPLATE;
+        $mensagemContrato = $perfil->mensagem_contrato_vigente_whatsapp ?: WhatsAppLinkService::DEFAULT_CONTRACT_TEMPLATE;
         $leadPreview = new Indicacao([
             'nome_cliente' => 'Fernando Diniz',
             'telefone' => '(11) 99953-5578',
@@ -82,11 +83,24 @@ class ConfiguracoesController extends Controller
             'estado' => 'SP',
         ]);
 
+        $avaliacaoPreview = new \App\Models\AvaliacaoAtendimento();
+        $clientePreview = new \App\Models\Cliente([
+            'nome' => 'Fernando Diniz',
+            'telefone' => '(11) 99953-5578',
+            'email' => 'fernando@email.com',
+            'inicio_vigencia' => now(),
+        ]);
+        $avaliacaoPreview->setRelation('cliente', $clientePreview);
+        $avaliacaoPreview->setRelation('indicacao', $leadPreview);
+
         return view('interno.configuracoes.mensagem-whatsapp', [
             'perfil' => $perfil,
             'mensagem' => $mensagem,
+            'mensagemContrato' => $mensagemContrato,
             'preview' => $whatsApp->parseMessageTemplate($mensagem, $leadPreview),
+            'previewContrato' => $whatsApp->parseContractTemplate($mensagemContrato, $avaliacaoPreview, 'https://nexosaude.com.br/avaliacao/exemplo'),
             'variaveis' => ['{nome}', '{telefone}', '{tipo_plano}', '{quantidade_vidas}', '{cidade}', '{estado}'],
+            'variaveisContrato' => ['{nome}', '{telefone}', '{email}', '{data_vigencia}', '{tipo_plano}', '{quantidade_vidas}', '{link_avaliacao}'],
         ]);
     }
 
@@ -94,14 +108,17 @@ class ConfiguracoesController extends Controller
     {
         $dados = $request->validate([
             'mensagem_primeiro_contato_whatsapp' => ['required', 'string', 'max:500'],
+            'mensagem_contrato_vigente_whatsapp' => ['required', 'string', 'max:900'],
         ], [
             'mensagem_primeiro_contato_whatsapp.required' => 'Informe a mensagem padrao de primeiro contato.',
-            'mensagem_primeiro_contato_whatsapp.max' => 'A mensagem deve ter no maximo 500 caracteres.',
+            'mensagem_primeiro_contato_whatsapp.max' => 'A mensagem de primeiro contato deve ter no maximo 500 caracteres.',
+            'mensagem_contrato_vigente_whatsapp.required' => 'Informe a mensagem de contrato vigente e avaliação.',
+            'mensagem_contrato_vigente_whatsapp.max' => 'A mensagem de contrato vigente deve ter no maximo 900 caracteres.',
         ]);
 
         $this->perfilDoCorretor()->update($dados);
 
-        return back()->with('status', 'Mensagem de WhatsApp salva.');
+        return back()->with('status', 'Mensagens de WhatsApp salvas.');
     }
 
     public function atualizarPreferencias(Request $request)
@@ -169,6 +186,7 @@ class ConfiguracoesController extends Controller
                 'public_hash' => CorretorPerfil::gerarHashPublico(),
                 'nome_publico' => $user->name,
                 'mensagem_primeiro_contato_whatsapp' => WhatsAppLinkService::DEFAULT_LEAD_TEMPLATE,
+                'mensagem_contrato_vigente_whatsapp' => WhatsAppLinkService::DEFAULT_CONTRACT_TEMPLATE,
             ]
         );
     }

@@ -6,31 +6,32 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreIndicacaoPublicaRequest;
 use App\Models\CorretorPerfil;
 use App\Models\Operadora;
+use App\Services\AvaliacaoAtendimentoService;
 use App\Services\IndicacaoService;
-use Illuminate\Http\RedirectResponse;
 
 class PaginaCorretorController extends Controller
 {
-    public function show(string $slug)
+    public function show(string $slug, AvaliacaoAtendimentoService $avaliacoes)
     {
+        $perfil = CorretorPerfil::buscarPorIdentificadorPublico($slug);
+        abort_unless($perfil && $perfil->publico_ativo, 404);
+
         return view('publico.corretor', [
-            'perfil' => CorretorPerfil::where('slug', $slug)->where('publico_ativo', true)->firstOrFail(),
+            'perfil' => $perfil,
             'operadoras' => Operadora::where('ativa', true)->orderBy('nome')->get(),
+            'reputacao' => $avaliacoes->mediaDoCorretor($perfil->user_id),
         ]);
     }
 
-    public function showAntigo(string $slug): RedirectResponse
+    public function showAntigo(string $slug, AvaliacaoAtendimentoService $avaliacoes)
     {
-        $perfil = CorretorPerfil::buscarPorIdentificadorPublico($slug);
-
-        abort_unless($perfil && $perfil->publico_ativo, 404);
-
-        return redirect()->route('publico.corretor', $perfil->slug, 301);
+        return $this->show($slug, $avaliacoes);
     }
 
     public function store(StoreIndicacaoPublicaRequest $request, string $slug, IndicacaoService $service)
     {
-        $perfil = CorretorPerfil::where('slug', $slug)->where('publico_ativo', true)->firstOrFail();
+        $perfil = CorretorPerfil::buscarPorIdentificadorPublico($slug);
+        abort_unless($perfil && $perfil->publico_ativo, 404);
         $service->criarPorSolicitacaoPublica($perfil->user, $request->validated());
 
         return view('publico.sucesso', ['perfil' => $perfil]);
@@ -38,12 +39,6 @@ class PaginaCorretorController extends Controller
 
     public function storeAntigo(StoreIndicacaoPublicaRequest $request, string $slug, IndicacaoService $service)
     {
-        $perfil = CorretorPerfil::buscarPorIdentificadorPublico($slug);
-
-        abort_unless($perfil && $perfil->publico_ativo, 404);
-
-        $service->criarPorSolicitacaoPublica($perfil->user, $request->validated());
-
-        return view('publico.sucesso', ['perfil' => $perfil]);
+        return $this->store($request, $slug, $service);
     }
 }

@@ -9,6 +9,8 @@ use App\Models\Indicacao;
 use App\Models\DocumentoObrigatorioPreCadastro;
 use App\Models\Operadora;
 use App\Services\ImplantacaoService;
+use App\Services\AvaliacaoAtendimentoService;
+use App\Services\WhatsAppLinkService;
 use App\Services\PlanoSaudeService;
 use App\Services\ServicoLembrete;
 use App\Services\ServicoProposta;
@@ -182,7 +184,7 @@ class IndicacaoController extends Controller
             ->with('status', 'Documentação aprovada. Implantação iniciada.');
     }
 
-    public function aprovarImplantacao(Indicacao $indicacao, ImplantacaoService $service, Request $request)
+    public function aprovarImplantacao(Indicacao $indicacao, ImplantacaoService $service, AvaliacaoAtendimentoService $avaliacoes, WhatsAppLinkService $whatsApp, Request $request)
     {
         abort_unless($indicacao->user_id === auth()->id(), 403);
         $dados = $request->validate([
@@ -202,11 +204,22 @@ class IndicacaoController extends Controller
             $dados['tipo_contrato'],
             $dados['quantidade_vidas']
         );
-        $service->contratoVigente($indicacao, $dados);
+        $cliente = $service->contratoVigente($indicacao, $dados);
+        $cliente->loadMissing('contratos', 'indicacao', 'user.corretorPerfil');
+
+        $avaliacao = $avaliacoes->obterOuCriar($cliente, $indicacao);
+        $avaliacao->loadMissing('cliente.contratos', 'indicacao');
+        $linkAvaliacao = $avaliacoes->link($avaliacao);
+        $linkWhatsapp = $whatsApp->buildContractReviewLink($avaliacao, auth()->user(), $linkAvaliacao);
 
         return redirect()
-            ->route('paginas.simples', 'clientes')
-            ->with('status', 'Contrato vigente confirmado. Cliente ativo criado e adicionado à carteira.');
+            ->route('clientes.show', $cliente)
+            ->with('status', 'Contrato vigente confirmado. Cliente ativo criado e adicionado à carteira.')
+            ->with('avaliacao_contrato_vigente', [
+                'cliente' => $cliente->nome,
+                'link' => $linkAvaliacao,
+                'whatsapp' => $linkWhatsapp,
+            ]);
     }
 
     public function atualizarStatusImplantacao(Indicacao $indicacao, Request $request)
