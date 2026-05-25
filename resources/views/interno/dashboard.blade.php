@@ -121,7 +121,7 @@
                             </h2>
 
                             <p>
-                                Últimas oportunidades recebidas e movimentadas.
+                                Leads recebidas nas últimas 24 horas.
                             </p>
                         </div>
 
@@ -143,7 +143,7 @@
                             </thead>
 
                             <tbody>
-                                @foreach($indicacoes as $indicacao)
+                                @forelse($indicacoes as $indicacao)
                                     <tr>
                                         <td>
                                             <div class="nexo-dashboard-lead">
@@ -186,10 +186,26 @@
                                             </a>
                                         </td>
                                     </tr>
-                                @endforeach
+                                @empty
+                                    <tr>
+                                        <td colspan="5">
+                                            <div class="nexo-dashboard-table-empty">
+                                                <i class="bi bi-check-circle"></i>
+                                                <strong>Nenhuma lead nova nas últimas 24 horas.</strong>
+                                                <span>Quando uma nova lead entrar, ela aparecerá aqui automaticamente.</span>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                @endforelse
                             </tbody>
                         </table>
                     </div>
+
+                    @if($indicacoes->hasPages())
+                        <div class="nexo-dashboard-pagination">
+                            {{ $indicacoes->links('vendor.pagination.nexo') }}
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -494,6 +510,44 @@
             color: #2F80ED;
             font-weight: 900;
             text-decoration: none;
+        }
+
+        .nexo-dashboard-pagination {
+            margin-top: 18px;
+        }
+
+        .nexo-dashboard-table-empty {
+            min-height: 180px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-direction: column;
+            text-align: center;
+            color: #64748B;
+            gap: 6px;
+            font-weight: 750;
+        }
+
+        .nexo-dashboard-table-empty i {
+            width: 54px;
+            height: 54px;
+            border-radius: 18px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #EAF3FF;
+            color: #2F80ED;
+            font-size: 1.45rem;
+            margin-bottom: 6px;
+        }
+
+        .nexo-dashboard-table-empty strong {
+            color: #061C3F;
+            font-weight: 950;
+        }
+
+        .nexo-dashboard-table-empty span {
+            max-width: 420px;
         }
 
         .nexo-dashboard-alerts {

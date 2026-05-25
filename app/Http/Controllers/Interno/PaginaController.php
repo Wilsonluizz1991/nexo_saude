@@ -17,6 +17,7 @@ use Illuminate\Support\Facades\Validator;
 
 class PaginaController extends Controller
 {
+    private const ITENS_POR_PAGINA = 5;
     public function agenda()
     {
         return $this->simples('agenda');
@@ -43,7 +44,7 @@ class PaginaController extends Controller
         abort_unless(in_array($pagina, $permitidas, true), 404);
 
         $clientesTodos = Cliente::where('user_id', auth()->id())->with('contratos', 'dependentes')->latest()->get();
-        $clientes = Cliente::where('user_id', auth()->id())->with('contratos', 'dependentes')->latest()->paginate(10)->withQueryString();
+        $clientes = Cliente::where('user_id', auth()->id())->with('contratos', 'dependentes')->latest()->paginate(self::ITENS_POR_PAGINA)->withQueryString();
         $contratos = $clientesTodos->flatMap(fn (Cliente $cliente) => $cliente->contratos);
         $dadosCarteira = $this->dadosCarteiraEstrategica($clientesTodos, $contratos);
 
@@ -56,12 +57,12 @@ class PaginaController extends Controller
                 'reajustes_proximos' => $contratos->filter(fn ($contrato) => $contrato->reajuste_em && $contrato->reajuste_em->between(now(), now()->addDays(60)))->count(),
                 'dependentes' => $clientesTodos->sum(fn (Cliente $cliente) => $cliente->dependentes->count()),
             ],
-            'tarefas' => Tarefa::where('user_id', auth()->id())->latest()->paginate(10)->withQueryString(),
+            'tarefas' => Tarefa::where('user_id', auth()->id())->latest()->paginate(self::ITENS_POR_PAGINA)->withQueryString(),
             'tarefasHoje' => $this->paginarCollection(
                 Tarefa::where('user_id', auth()->id())->latest()->get()->filter(fn ($tarefa) => $tarefa->vencimento?->isToday())->values(),
                 'page'
             ),
-            'alertas' => Alerta::where('user_id', auth()->id())->latest()->paginate(10)->withQueryString(),
+            'alertas' => Alerta::where('user_id', auth()->id())->latest()->paginate(self::ITENS_POR_PAGINA)->withQueryString(),
         ], $dadosCarteira));
     }
 
@@ -195,14 +196,14 @@ class PaginaController extends Controller
         $query = Indicacao::where('user_id', auth()->id())->with('preCadastro', 'implantacao')->latest();
 
         return match ($pagina) {
-            'propostas' => $query->where('etapa', 'propostas')->paginate(10)->withQueryString(),
-            'pre-cadastros' => $query->where('etapa', 'pre_cadastros')->paginate(10)->withQueryString(),
-            'implantacoes' => $query->where('etapa', 'implantacoes')->paginate(10)->withQueryString(),
-            default => $query->paginate(10)->withQueryString(),
+            'propostas' => $query->where('etapa', 'propostas')->paginate(self::ITENS_POR_PAGINA)->withQueryString(),
+            'pre-cadastros' => $query->where('etapa', 'pre_cadastros')->paginate(self::ITENS_POR_PAGINA)->withQueryString(),
+            'implantacoes' => $query->where('etapa', 'implantacoes')->paginate(self::ITENS_POR_PAGINA)->withQueryString(),
+            default => $query->paginate(self::ITENS_POR_PAGINA)->withQueryString(),
         };
     }
 
-    private function paginarCollection(Collection $items, string $pageName = 'page', int $perPage = 10): LengthAwarePaginator
+    private function paginarCollection(Collection $items, string $pageName = 'page', int $perPage = self::ITENS_POR_PAGINA): LengthAwarePaginator
     {
         $page = LengthAwarePaginator::resolveCurrentPage($pageName);
 

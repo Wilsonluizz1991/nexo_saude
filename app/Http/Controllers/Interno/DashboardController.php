@@ -17,7 +17,11 @@ class DashboardController extends Controller
         $alertasAutomaticos->gerarAutomaticos(auth()->user());
 
         return view('interno.dashboard', [
-            'indicacoes' => Indicacao::where('user_id', $userId)->latest()->take(8)->get(),
+            'indicacoes' => Indicacao::where('user_id', $userId)
+                ->where('etapa', 'lead')
+                ->where('created_at', '>=', now()->subDay())
+                ->latest()
+                ->paginate(5, ['*'], 'leads_page'),
             'totais' => [
                 'leads' => Indicacao::where('user_id', $userId)->where('etapa', 'lead')->count(),
                 'pré-cadastros' => Indicacao::where('user_id', $userId)->where('etapa', 'pre_cadastros')->count(),

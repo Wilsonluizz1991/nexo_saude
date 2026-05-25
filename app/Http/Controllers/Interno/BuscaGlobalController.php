@@ -14,7 +14,7 @@ class BuscaGlobalController extends Controller
         $termo = trim((string) $request->query('q', ''));
         $resultados = collect();
 
-        if ($termo !== '') {
+        if (mb_strlen($termo) >= 3) {
             $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $termo).'%';
 
             $resultados = Indicacao::query()
@@ -76,7 +76,7 @@ class BuscaGlobalController extends Controller
                         });
                 })
                 ->latest()
-                ->paginate(10)
+                ->paginate(5)
                 ->withQueryString()
                 ->through(fn (Indicacao $indicacao) => $this->formatarResultado($indicacao));
         }

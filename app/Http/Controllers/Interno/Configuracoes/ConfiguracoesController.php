@@ -165,7 +165,8 @@ class ConfiguracoesController extends Controller
         return $user->corretorPerfil()->firstOrCreate(
             ['user_id' => $user->id],
             [
-                'slug' => CorretorPerfil::gerarHashPublico(),
+                'slug' => CorretorPerfil::gerarSlugPublico($user->name),
+                'public_hash' => CorretorPerfil::gerarHashPublico(),
                 'nome_publico' => $user->name,
                 'mensagem_primeiro_contato_whatsapp' => WhatsAppLinkService::DEFAULT_LEAD_TEMPLATE,
             ]

@@ -13,6 +13,7 @@ class CabecalhoService
     public function dadosPara(User $user): array
     {
         app(ServicoLembrete::class)->sincronizarAlertas($user);
+        app(ServicoAlerta::class)->gerarAlertasAniversarioTitular($user);
 
         $compromissosHojeQuery = Tarefa::query()
             ->where('user_id', $user->id)

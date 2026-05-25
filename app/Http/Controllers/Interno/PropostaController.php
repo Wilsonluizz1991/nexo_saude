@@ -17,7 +17,7 @@ class PropostaController extends Controller
 
         return view('interno.propostas.show', [
             'indicacao' => $indicacao->load('propostas.operadora', 'tarefas', 'user.corretorPerfil'),
-            'propostas' => $indicacao->propostas()->with('operadora')->latest()->paginate(10)->withQueryString(),
+            'propostas' => $indicacao->propostas()->with('operadora')->latest()->paginate(5)->withQueryString(),
             'operadoras' => Operadora::where('ativa', true)->orderBy('nome')->get(),
         ]);
     }

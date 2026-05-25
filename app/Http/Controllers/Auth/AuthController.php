@@ -31,7 +31,8 @@ class AuthController extends Controller
 
         $assinaturaService->iniciarTesteGratis($user);
         $user->corretorPerfil()->create([
-            'slug' => CorretorPerfil::gerarHashPublico(),
+            'slug' => CorretorPerfil::gerarSlugPublico($user->name),
+            'public_hash' => CorretorPerfil::gerarHashPublico(),
             'nome_publico' => $user->name,
             'bio' => 'Especialista em planos de saúde.',
             'especialidades' => ['Planos individuais', 'Planos familiares'],

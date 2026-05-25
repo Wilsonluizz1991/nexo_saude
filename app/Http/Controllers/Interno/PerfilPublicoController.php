@@ -24,7 +24,10 @@ class PerfilPublicoController extends Controller
 
         auth()->user()->corretorPerfil()->updateOrCreate(
             ['user_id' => auth()->id()],
-            array_merge($data, ['slug' => auth()->user()->corretorPerfil?->slug ?: CorretorPerfil::gerarHashPublico()])
+            array_merge($data, [
+                'slug' => auth()->user()->corretorPerfil?->slug ?: CorretorPerfil::gerarSlugPublico($data['nome_publico'] ?? auth()->user()->name),
+                'public_hash' => auth()->user()->corretorPerfil?->public_hash ?: CorretorPerfil::gerarHashPublico(),
+            ])
         );
 
         return back()->with('status', 'Perfil público atualizado.');

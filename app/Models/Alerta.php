@@ -15,6 +15,8 @@ class Alerta extends Model
         'pre_cadastro_id',
         'proposta_id',
         'cliente_id',
+        'chave',
+        'data_referencia',
         'titulo',
         'mensagem',
         'tipo',
@@ -26,6 +28,7 @@ class Alerta extends Model
     {
         return [
             'lido' => 'boolean',
+            'data_referencia' => 'date',
         ];
     }
 }

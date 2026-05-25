@@ -26,7 +26,7 @@
                     <img src="{{ asset('assets/nexo-logo-topo.png') }}" alt="Nexo Saúde">
                 </a>
 
-                <form class="nexo-search" role="search" method="GET" action="{{ route('busca.index') }}">
+                <form class="nexo-search" role="search" method="GET" action="{{ route('busca.index') }}" data-global-search-form>
                     <i class="bi bi-search nexo-search-icon" aria-hidden="true"></i>
                     <input
                         type="search"
@@ -34,6 +34,8 @@
                         value="{{ request('q') }}"
                         placeholder="Buscar por leads, clientes, propostas..."
                         aria-label="Buscar por leads, clientes, propostas"
+                        autocomplete="off"
+                        data-global-search-input
                     >
                 </form>
 
@@ -155,3 +157,77 @@
         </div>
     </nav>
 </header>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('[data-global-search-form]');
+
+        if (!form) {
+            return;
+        }
+
+        const input = form.querySelector('[data-global-search-input]');
+        const searchUrl = form.getAttribute('action');
+        const debounceTime = 500;
+        let timeout = null;
+        let lastSubmittedValue = input ? input.value.trim() : '';
+
+        if (!input || !searchUrl) {
+            return;
+        }
+
+        const isSearchPage = function () {
+            return window.location.pathname.replace(/\/$/, '') === new URL(searchUrl, window.location.origin).pathname.replace(/\/$/, '');
+        };
+
+        const redirectToSearch = function (value) {
+            const normalizedValue = value.trim();
+
+            if (normalizedValue === lastSubmittedValue && isSearchPage()) {
+                return;
+            }
+
+            lastSubmittedValue = normalizedValue;
+
+            if (normalizedValue.length === 0) {
+                window.location.href = searchUrl;
+                return;
+            }
+
+            const url = new URL(searchUrl, window.location.origin);
+            url.searchParams.set('q', normalizedValue);
+            window.location.href = url.toString();
+        };
+
+        input.addEventListener('input', function () {
+            const value = input.value.trim();
+
+            window.clearTimeout(timeout);
+
+            timeout = window.setTimeout(function () {
+                if (value.length >= 3) {
+                    redirectToSearch(value);
+                    return;
+                }
+
+                if (value.length === 0 && isSearchPage()) {
+                    redirectToSearch('');
+                }
+            }, debounceTime);
+        });
+
+        form.addEventListener('submit', function (event) {
+            const value = input.value.trim();
+
+            if (value.length >= 3) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (value.length === 0) {
+                redirectToSearch('');
+            }
+        });
+    });
+</script>

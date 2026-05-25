@@ -10,18 +10,6 @@
                 <h1>Resultados da pesquisa</h1>
                 <p>Encontre registros em leads, propostas, pre-cadastros, implantacoes, clientes e carteira.</p>
             </div>
-
-            <form class="nexo-search-refine" method="GET" action="{{ route('busca.index') }}" role="search">
-                <i class="bi bi-search"></i>
-                <input
-                    type="search"
-                    name="q"
-                    value="{{ $termo }}"
-                    placeholder="Digite nome, telefone, e-mail, operadora, plano, token..."
-                    autofocus
-                >
-                <button type="submit">Buscar</button>
-            </form>
         </section>
 
         <section class="nexo-search-results">
@@ -82,9 +70,9 @@
 
         .nexo-search-hero {
             display: grid;
-            grid-template-columns: minmax(0, 1fr) minmax(320px, 520px);
-            gap: 24px;
-            align-items: end;
+            grid-template-columns: 1fr;
+            gap: 12px;
+            align-items: start;
             padding: 28px;
             border-radius: 28px;
             background:
@@ -110,42 +98,6 @@
             margin: 0;
             color: rgba(255, 255, 255, 0.72);
             font-weight: 700;
-        }
-
-        .nexo-search-refine {
-            min-height: 58px;
-            display: grid;
-            grid-template-columns: auto minmax(0, 1fr) auto;
-            align-items: center;
-            gap: 12px;
-            padding: 8px 8px 8px 18px;
-            border: 1px solid rgba(255, 255, 255, 0.18);
-            border-radius: 20px;
-            background: rgba(255, 255, 255, 0.10);
-            backdrop-filter: blur(14px);
-        }
-
-        .nexo-search-refine input {
-            min-width: 0;
-            border: 0;
-            outline: 0;
-            background: transparent;
-            color: #FFFFFF;
-            font-weight: 800;
-        }
-
-        .nexo-search-refine input::placeholder {
-            color: rgba(255, 255, 255, 0.58);
-        }
-
-        .nexo-search-refine button {
-            min-height: 42px;
-            padding: 0 16px;
-            border: 0;
-            border-radius: 15px;
-            background: #2F80ED;
-            color: #FFFFFF;
-            font-weight: 900;
         }
 
         .nexo-search-results {
@@ -297,15 +249,6 @@
             .nexo-search-results {
                 padding: 20px;
                 border-radius: 22px;
-            }
-
-            .nexo-search-refine {
-                grid-template-columns: auto minmax(0, 1fr);
-            }
-
-            .nexo-search-refine button {
-                grid-column: 1 / -1;
-                width: 100%;
             }
 
             .nexo-search-result-card {

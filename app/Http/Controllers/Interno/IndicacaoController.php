@@ -34,7 +34,7 @@ class IndicacaoController extends Controller
         $query->whereIn('etapa', $statusPorEtapa[$etapa] ?? $statusPorEtapa['leads']);
 
         return view('interno.indicacoes.index', [
-            'indicacoes' => $query->paginate(10)->withQueryString(),
+            'indicacoes' => $query->paginate(5)->withQueryString(),
             'etapaAtual' => $etapa,
             'contadoresEtapas' => [
                 'todos' => (clone $base)->count(),
