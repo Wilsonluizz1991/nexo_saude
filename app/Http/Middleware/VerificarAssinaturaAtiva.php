@@ -13,11 +13,21 @@ class VerificarAssinaturaAtiva
     {
         $user = $request->user();
 
-        if (! $user || app(AssinaturaService::class)->estaAtiva($user->assinatura)) {
+        if (! $user) {
+            return $next($request);
+        }
+
+        $assinatura = $user->assinatura;
+
+        if (app(AssinaturaService::class)->estaAtiva($assinatura)) {
             return $next($request);
         }
 
         if ($request->routeIs('assinatura.*')) {
+            return $next($request);
+        }
+
+        if ($request->routeIs('logout')) {
             return $next($request);
         }
 

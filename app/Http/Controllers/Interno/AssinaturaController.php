@@ -7,15 +7,21 @@ use App\Services\AssinaturaService;
 
 class AssinaturaController extends Controller
 {
-    public function bloqueada()
+    public function bloqueada(AssinaturaService $assinaturaService)
     {
-        return view('interno.assinatura.bloqueada', ['assinatura' => auth()->user()->assinatura]);
+        $assinatura = auth()->user()->assinatura;
+
+        return view('interno.assinatura.bloqueada', [
+            'assinatura' => $assinatura,
+            'statusComercial' => $assinaturaService->statusComercial($assinatura),
+            'diasRestantesTeste' => $assinaturaService->diasRestantesTeste($assinatura),
+        ]);
     }
 
     public function assinar(AssinaturaService $service)
     {
         $service->ativar(auth()->user()->assinatura);
 
-        return redirect()->route('dashboard')->with('status', 'Assinatura ativada por R$ 49,90/mes.');
+        return redirect()->route('dashboard')->with('status', 'Assinatura ativada por R$ 49,90/mês.');
     }
 }

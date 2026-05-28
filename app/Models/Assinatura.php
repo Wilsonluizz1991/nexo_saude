@@ -8,15 +8,67 @@ class Assinatura extends Model
 {
     protected $table = 'assinaturas';
 
-    protected $fillable = ['user_id', 'data_inicio_teste_gratis', 'data_fim_teste_gratis', 'status_assinatura', 'valor_assinatura', 'vencimento_assinatura'];
+    protected $fillable = [
+        'user_id',
+
+        // Campos antigos
+        'data_inicio_teste_gratis',
+        'data_fim_teste_gratis',
+        'status_assinatura',
+        'valor_assinatura',
+        'vencimento_assinatura',
+
+        // Gateway / Asaas
+        'gateway',
+        'asaas_customer_id',
+        'asaas_subscription_id',
+
+        // Billing
+        'valor',
+        'status',
+
+        // Trial / cobrança
+        'trial_started_at',
+        'trial_ends_at',
+        'next_payment_at',
+        'last_payment_at',
+
+        // Cartão
+        'card_brand',
+        'card_last_four',
+        'card_token',
+
+        // Controle
+        'canceled_at',
+        'expired_at',
+
+        // Auditoria
+        'gateway_payload',
+    ];
 
     protected function casts(): array
     {
         return [
+            // Campos antigos
             'data_inicio_teste_gratis' => 'date',
             'data_fim_teste_gratis' => 'date',
             'vencimento_assinatura' => 'date',
             'valor_assinatura' => 'decimal:2',
+
+            // Campos novos
+            'valor' => 'decimal:2',
+            'trial_started_at' => 'datetime',
+            'trial_ends_at' => 'datetime',
+            'next_payment_at' => 'datetime',
+            'last_payment_at' => 'datetime',
+            'canceled_at' => 'datetime',
+            'expired_at' => 'datetime',
+            'gateway_payload' => 'array',
         ];
+    }
+
+    public function user()
+    {
+        return $this->belongsTo(User::class);
     }
 }

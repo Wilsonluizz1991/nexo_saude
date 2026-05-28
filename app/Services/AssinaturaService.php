@@ -21,6 +21,13 @@ class AssinaturaService
             'status_assinatura' => 'teste_gratis',
             'valor_assinatura' => self::VALOR_MENSAL,
             'vencimento_assinatura' => $inicio->addDays(30),
+
+            'gateway' => null,
+            'valor' => self::VALOR_MENSAL,
+            'status' => 'trialing',
+            'trial_started_at' => now(),
+            'trial_ends_at' => now()->addDays(30),
+            'next_payment_at' => now()->addDays(30),
         ]);
     }
 
@@ -30,12 +37,135 @@ class AssinaturaService
             return false;
         }
 
-        if ($assinatura->status_assinatura === 'ativa') {
+        if ($this->estaCancelada($assinatura)) {
+            return false;
+        }
+
+        if ($this->estaInadimplente($assinatura)) {
+            return false;
+        }
+
+        if ($this->estaExpirada($assinatura)) {
+            return false;
+        }
+
+        if ($this->estaEmTeste($assinatura)) {
             return true;
         }
 
+        return $this->estaAtivaPaga($assinatura);
+    }
+
+    public function estaEmTeste(?Assinatura $assinatura): bool
+    {
+        if (! $assinatura) {
+            return false;
+        }
+
+        if ($this->estaCancelada($assinatura) || $this->estaInadimplente($assinatura)) {
+            return false;
+        }
+
+        if ($assinatura->status === 'trialing' && $assinatura->trial_ends_at) {
+            return $assinatura->trial_ends_at->endOfDay()->isFuture();
+        }
+
         return $assinatura->status_assinatura === 'teste_gratis'
+            && $assinatura->data_fim_teste_gratis
             && $assinatura->data_fim_teste_gratis->endOfDay()->isFuture();
+    }
+
+    public function estaInadimplente(?Assinatura $assinatura): bool
+    {
+        if (! $assinatura) {
+            return true;
+        }
+
+        return in_array($assinatura->status, [
+            'overdue',
+            'past_due',
+            'dunning',
+            'suspended',
+            'expired',
+        ], true) || in_array($assinatura->status_assinatura, [
+            'inadimplente',
+            'suspensa',
+            'bloqueada',
+            'expirada',
+        ], true);
+    }
+
+    public function estaCancelada(?Assinatura $assinatura): bool
+    {
+        if (! $assinatura) {
+            return true;
+        }
+
+        return in_array($assinatura->status, [
+            'canceled',
+            'cancelled',
+        ], true) || $assinatura->status_assinatura === 'cancelada';
+    }
+
+    public function estaExpirada(?Assinatura $assinatura): bool
+    {
+        if (! $assinatura) {
+            return true;
+        }
+
+        if ($assinatura->status === 'trialing' && $assinatura->trial_ends_at) {
+            return $assinatura->trial_ends_at->endOfDay()->isPast();
+        }
+
+        if ($assinatura->status_assinatura === 'teste_gratis' && $assinatura->data_fim_teste_gratis) {
+            return $assinatura->data_fim_teste_gratis->endOfDay()->isPast();
+        }
+
+        return false;
+    }
+
+    public function diasRestantesTeste(?Assinatura $assinatura): int
+    {
+        if (! $assinatura) {
+            return 0;
+        }
+
+        $fim = $assinatura->trial_ends_at ?: $assinatura->data_fim_teste_gratis;
+
+        if (! $fim || $fim->isPast()) {
+            return 0;
+        }
+
+        return now()->startOfDay()->diffInDays($fim->endOfDay());
+    }
+
+    public function statusComercial(?Assinatura $assinatura): string
+    {
+        if (! $assinatura) {
+            return 'sem_assinatura';
+        }
+
+        if ($this->estaCancelada($assinatura)) {
+            return 'cancelada';
+        }
+
+        if ($this->estaInadimplente($assinatura)) {
+            return 'inadimplente';
+        }
+
+        if ($this->estaExpirada($assinatura)) {
+            return 'expirada';
+        }
+
+        if ($this->estaEmTeste($assinatura)) {
+            return 'teste_gratis';
+        }
+
+        if ($this->estaAtivaPaga($assinatura)) {
+            return 'ativa';
+        }
+
+        return 'bloqueada';
     }
 
     public function ativar(Assinatura $assinatura): Assinatura
@@ -44,8 +174,31 @@ class AssinaturaService
             'status_assinatura' => 'ativa',
             'valor_assinatura' => self::VALOR_MENSAL,
             'vencimento_assinatura' => now()->addMonth()->toDateString(),
+
+            'status' => 'active',
+            'valor' => self::VALOR_MENSAL,
+            'last_payment_at' => now(),
+            'next_payment_at' => now()->addMonth(),
         ]);
 
+        if ($assinatura->user) {
+            $assinatura->user->update([
+                'billing_status' => 'active',
+                'billing_amount' => self::VALOR_MENSAL,
+                'next_billing_at' => now()->addMonth(),
+                'billing_suspended_at' => null,
+            ]);
+        }
+
         return $assinatura;
+    }
+
+    private function estaAtivaPaga(Assinatura $assinatura): bool
+    {
+        if (in_array($assinatura->status, ['active', 'paid'], true)) {
+            return true;
+        }
+
+        return $assinatura->status_assinatura === 'ativa';
     }
 }

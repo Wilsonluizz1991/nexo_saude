@@ -12,9 +12,33 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
 #[Fillable([
-    'name', 'email', 'telefone', 'perfil', 'avatar_path', 'password', 'ultimo_login_em', 'ultimo_ip',
-    'timezone', 'idioma', 'formato_data', 'receber_alertas_email', 'receber_notificacoes_aniversario',
-    'receber_notificacoes_renovacao', 'receber_notificacoes_tarefas',
+    'name',
+    'email',
+    'telefone',
+    'perfil',
+    'avatar_path',
+    'password',
+    'ultimo_login_em',
+    'ultimo_ip',
+    'timezone',
+    'idioma',
+    'formato_data',
+    'receber_alertas_email',
+    'receber_notificacoes_aniversario',
+    'receber_notificacoes_renovacao',
+    'receber_notificacoes_tarefas',
+
+    // Billing / Asaas
+    'asaas_customer_id',
+    'asaas_subscription_id',
+    'billing_status',
+    'billing_payment_method',
+    'billing_amount',
+    'trial_ends_at',
+    'next_billing_at',
+    'subscription_started_at',
+    'subscription_canceled_at',
+    'billing_suspended_at',
 ])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -33,10 +57,19 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'ultimo_login_em' => 'datetime',
             'password' => 'hashed',
+
             'receber_alertas_email' => 'boolean',
             'receber_notificacoes_aniversario' => 'boolean',
             'receber_notificacoes_renovacao' => 'boolean',
             'receber_notificacoes_tarefas' => 'boolean',
+
+            // Billing / Asaas
+            'billing_amount' => 'decimal:2',
+            'trial_ends_at' => 'datetime',
+            'next_billing_at' => 'datetime',
+            'subscription_started_at' => 'datetime',
+            'subscription_canceled_at' => 'datetime',
+            'billing_suspended_at' => 'datetime',
         ];
     }
 

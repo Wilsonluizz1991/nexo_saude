@@ -66,7 +66,9 @@ return new class extends Migration
             $table->foreignId('pre_cadastro_id')->constrained('pre_cadastros')->cascadeOnDelete();
             $table->foreignId('vida_proposta_id')->nullable()->constrained('vidas')->cascadeOnDelete();
             $table->foreignId('tipo_documento_id')->constrained('tipos_documentos')->cascadeOnDelete();
-            $table->foreignId('requisito_documental_id')->nullable()->constrained('requisitos_documentais')->nullOnDelete();
+
+            $table->unsignedBigInteger('requisito_documental_id')->nullable();
+
             $table->string('titulo');
             $table->boolean('obrigatorio')->default(true);
             $table->unsignedInteger('ordem')->default(1);
@@ -74,12 +76,18 @@ return new class extends Migration
             $table->string('grupo_alternativo')->nullable()->index();
             $table->text('observacoes')->nullable();
             $table->timestamps();
+
+            $table->foreign('requisito_documental_id', 'doc_obrig_req_doc_fk')
+                ->references('id')
+                ->on('requisitos_documentais')
+                ->nullOnDelete();
         });
 
         Schema::table('documentos_enviados', function (Blueprint $table) {
-            $table->foreignId('documento_obrigatorio_pre_cadastro_id')->nullable()->after('documento_solicitado_id')->constrained('documentos_obrigatorios_pre_cadastro')->cascadeOnDelete();
-            $table->foreignId('tipo_documento_solicitado_id')->nullable()->after('documento_obrigatorio_pre_cadastro_id')->constrained('tipos_documentos')->nullOnDelete();
-            $table->foreignId('tipo_documento_detectado_id')->nullable()->after('tipo_documento_solicitado_id')->constrained('tipos_documentos')->nullOnDelete();
+            $table->unsignedBigInteger('documento_obrigatorio_pre_cadastro_id')->nullable()->after('documento_solicitado_id');
+            $table->unsignedBigInteger('tipo_documento_solicitado_id')->nullable()->after('documento_obrigatorio_pre_cadastro_id');
+            $table->unsignedBigInteger('tipo_documento_detectado_id')->nullable()->after('tipo_documento_solicitado_id');
+
             $table->enum('status_ia', ['nao_analisado', 'aguardando_analise', 'analisando', 'aprovado', 'alerta', 'recusado', 'falhou'])->default('nao_analisado')->after('tipo_documento_detectado_id');
             $table->json('analise_ia')->nullable()->after('status_ia');
             $table->boolean('documento_compativel')->nullable()->after('analise_ia');
@@ -89,6 +97,21 @@ return new class extends Migration
             $table->string('nome_detectado')->nullable()->after('tremido');
             $table->timestamp('analisado_em')->nullable()->after('nome_detectado');
             $table->text('motivo_recusa')->nullable()->after('analisado_em');
+
+            $table->foreign('documento_obrigatorio_pre_cadastro_id', 'doc_env_doc_obrig_fk')
+                ->references('id')
+                ->on('documentos_obrigatorios_pre_cadastro')
+                ->cascadeOnDelete();
+
+            $table->foreign('tipo_documento_solicitado_id', 'doc_env_tipo_sol_fk')
+                ->references('id')
+                ->on('tipos_documentos')
+                ->nullOnDelete();
+
+            $table->foreign('tipo_documento_detectado_id', 'doc_env_tipo_det_fk')
+                ->references('id')
+                ->on('tipos_documentos')
+                ->nullOnDelete();
         });
 
         Schema::create('interacoes', function (Blueprint $table) {

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 80" width="120" height="80">
+  <rect width="120" height="80" rx="8" fill="#111111"/>
+  <g transform="translate(18, 16)">
+    <path d="M21 0A21 21 0 0 0 0 21a21 21 0 0 0 .1 2h9.1A12 12 0 0 1 21 12A12 12 0 0 1 32.9 21h9A21 21 0 0 0 21 0z" fill="#E21937"/>
+    <path d="M0 23a21 21 0 0 0 21 19 21 21 0 0 0 20.9-17h-9A12 12 0 0 1 21 32a12 12 0 0 1 -11.9-9z" fill="#FFCC00"/>
+    <path d="M41.9 21a21 21 0 0 0-.1-2h-9a12 12 0 0 1 0 2z" fill="#0066B3"/>
+    <text x="50" y="29" font-family="Arial, Helvetica, sans-serif" font-weight="bold" font-size="20" fill="#ffffff">elo</text>
+  </g>
+</svg>

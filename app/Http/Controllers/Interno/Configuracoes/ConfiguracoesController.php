@@ -190,4 +190,105 @@ class ConfiguracoesController extends Controller
             ]
         );
     }
+
+    public function atualizarCartaoAssinatura(Request $request, \App\Services\Asaas\AsaasSubscriptionService $asaasSubscriptionService)
+    {
+        $dados = $request->validate([
+            'billing_cpf_cnpj' => ['required', 'string', 'max:20'],
+            'card_holder_name' => ['required', 'string', 'max:255'],
+            'card_number' => ['required', 'string', 'max:30'],
+            'card_expiry_month' => ['required', 'string', 'size:2'],
+            'card_expiry_year' => ['required', 'string', 'size:4'],
+            'card_ccv' => ['required', 'string', 'min:3', 'max:4'],
+            'holder_postal_code' => ['nullable', 'string', 'max:20'],
+            'holder_address_number' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $user = auth()->user();
+        $assinatura = $user->assinatura;
+
+        if (! $assinatura || ! $assinatura->asaas_subscription_id) {
+            return back()->withErrors([
+                'assinatura' => 'Não encontramos uma assinatura válida para atualizar o cartão.',
+            ]);
+        }
+
+        $response = $asaasSubscriptionService->updateCreditCard($assinatura->asaas_subscription_id, [
+            'card_holder_name' => $dados['card_holder_name'],
+            'card_number' => $dados['card_number'],
+            'card_expiry_month' => $dados['card_expiry_month'],
+            'card_expiry_year' => $dados['card_expiry_year'],
+            'card_ccv' => $dados['card_ccv'],
+
+            'holder_name' => $user->name,
+            'holder_email' => $user->email,
+            'holder_cpf_cnpj' => $dados['billing_cpf_cnpj'],
+            'holder_phone' => $user->telefone,
+            'holder_postal_code' => $dados['holder_postal_code'] ?? '01001000',
+            'holder_address_number' => $dados['holder_address_number'] ?? '100',
+            'remote_ip' => $request->ip(),
+        ]);
+
+        if (! ($response['success'] ?? false)) {
+            return back()
+                ->withInput($request->except(['card_number', 'card_ccv']))
+                ->withErrors([
+                    'cartao' => 'Não foi possível atualizar o cartão. Verifique os dados informados e tente novamente.',
+                ]);
+        }
+
+        $asaasData = $response['data'] ?? [];
+        $creditCard = $asaasData['creditCard'] ?? [];
+
+        $assinatura->update([
+            'card_brand' => $creditCard['creditCardBrand'] ?? $assinatura->card_brand,
+            'card_last_four' => $creditCard['creditCardNumber'] ?? substr(preg_replace('/\D/', '', $dados['card_number']), -4),
+            'card_token' => $creditCard['creditCardToken'] ?? $assinatura->card_token,
+            'gateway_payload' => $asaasData,
+        ]);
+
+        return back()->with('status', 'Cartão atualizado com sucesso.');
+    }
+
+    public function cancelarAssinatura(Request $request, \App\Services\Asaas\AsaasSubscriptionService $asaasSubscriptionService)
+    {
+        $request->validate([
+            'confirmar_cancelamento' => ['accepted'],
+        ], [
+            'confirmar_cancelamento.accepted' => 'Confirme que deseja cancelar a assinatura.',
+        ]);
+
+        $user = auth()->user();
+        $assinatura = $user->assinatura;
+
+        if (! $assinatura || ! $assinatura->asaas_subscription_id) {
+            return back()->withErrors([
+                'assinatura' => 'Não encontramos uma assinatura válida para cancelar.',
+            ]);
+        }
+
+        $response = $asaasSubscriptionService->cancel($assinatura->asaas_subscription_id);
+
+        if (! ($response['success'] ?? false)) {
+            return back()->withErrors([
+                'assinatura' => 'Não foi possível cancelar a assinatura no momento. Tente novamente.',
+            ]);
+        }
+
+        $assinatura->update([
+            'status' => 'canceled',
+            'status_assinatura' => 'cancelada',
+            'canceled_at' => now(),
+            'gateway_payload' => $response['data'] ?? $response,
+        ]);
+
+        $user->update([
+            'billing_status' => 'canceled',
+            'subscription_canceled_at' => now(),
+        ]);
+
+        return redirect()
+            ->route('assinatura.bloqueada')
+            ->with('status', 'Assinatura cancelada com sucesso.');
+    }
 }

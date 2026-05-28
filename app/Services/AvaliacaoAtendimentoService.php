@@ -50,7 +50,7 @@ class AvaliacaoAtendimentoService
         return [
             'media' => $media,
             'total' => $avaliacoes->count(),
-            'premium' => $avaliacoes->count() >= 10 && $media >= 4.9,
+            'premium' => $avaliacoes->count() >= 1 && $media >= 4.9,
             'avaliacoes' => $avaliacoes,
         ];
     }
