@@ -15,6 +15,7 @@ use App\Services\PlanoSaudeService;
 use App\Services\ServicoLembrete;
 use App\Services\ServicoProposta;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class IndicacaoController extends Controller
 {
@@ -31,21 +32,27 @@ class IndicacaoController extends Controller
         ];
 
         $base = Indicacao::where('user_id', auth()->id());
-        $query = (clone $base)->latest();
+        $query = (clone $base)
+            ->select(['id', 'user_id', 'nome_cliente', 'telefone', 'email', 'tipo_plano', 'quantidade_vidas', 'cidade', 'estado', 'etapa', 'status', 'observacoes', 'created_at'])
+            ->latest();
 
         $query->whereIn('etapa', $statusPorEtapa[$etapa] ?? $statusPorEtapa['leads']);
+        $totaisPorEtapa = (clone $base)
+            ->select('etapa', DB::raw('count(*) as total'))
+            ->groupBy('etapa')
+            ->pluck('total', 'etapa');
 
         return view('interno.indicacoes.index', [
             'indicacoes' => $query->paginate(5)->withQueryString(),
             'etapaAtual' => $etapa,
             'contadoresEtapas' => [
-                'todos' => (clone $base)->count(),
-                'leads' => (clone $base)->whereIn('etapa', $statusPorEtapa['leads'])->count(),
-                'propostas' => (clone $base)->whereIn('etapa', $statusPorEtapa['propostas'])->count(),
-                'pre-cadastros' => (clone $base)->whereIn('etapa', $statusPorEtapa['pre-cadastros'])->count(),
-                'implantacoes' => (clone $base)->whereIn('etapa', $statusPorEtapa['implantacoes'])->count(),
-                'clientes' => (clone $base)->whereIn('etapa', $statusPorEtapa['clientes'])->count(),
-                'perdidos' => (clone $base)->whereIn('etapa', $statusPorEtapa['perdidos'])->count(),
+                'todos' => (int) $totaisPorEtapa->sum(),
+                'leads' => (int) ($totaisPorEtapa['lead'] ?? 0),
+                'propostas' => (int) ($totaisPorEtapa['propostas'] ?? 0),
+                'pre-cadastros' => (int) ($totaisPorEtapa['pre_cadastros'] ?? 0),
+                'implantacoes' => (int) ($totaisPorEtapa['implantacoes'] ?? 0),
+                'clientes' => (int) (($totaisPorEtapa['clientes'] ?? 0) + ($totaisPorEtapa['carteira'] ?? 0)),
+                'perdidos' => (int) ($totaisPorEtapa['perdida'] ?? 0),
             ],
         ]);
     }

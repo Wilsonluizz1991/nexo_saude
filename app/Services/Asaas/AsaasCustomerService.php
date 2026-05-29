@@ -2,6 +2,7 @@
 
 namespace App\Services\Asaas;
 
+use App\Models\Assinatura;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
 
@@ -22,8 +23,7 @@ class AsaasCustomerService
     public function create(array $data): array
     {
         try {
-            $response = Http::withoutVerifying()
-                ->withHeaders([
+            $response = Http::withHeaders([
                     'accept' => 'application/json',
                     'content-type' => 'application/json',
                     'access_token' => $this->apiKey,
@@ -45,7 +45,7 @@ class AsaasCustomerService
 
             Log::error('Erro ao criar cliente no Asaas', [
                 'status' => $response->status(),
-                'response' => $response->body(),
+                'response' => Assinatura::sanitizarGatewayPayload($response->json() ?? []),
             ]);
 
             return [
@@ -72,8 +72,7 @@ class AsaasCustomerService
     public function find(string $customerId): array
     {
         try {
-            $response = Http::withoutVerifying()
-                ->withHeaders([
+            $response = Http::withHeaders([
                     'accept' => 'application/json',
                     'content-type' => 'application/json',
                     'access_token' => $this->apiKey,
@@ -89,7 +88,7 @@ class AsaasCustomerService
 
             Log::error('Erro ao buscar cliente no Asaas', [
                 'status' => $response->status(),
-                'response' => $response->body(),
+                'response' => Assinatura::sanitizarGatewayPayload($response->json() ?? []),
             ]);
 
             return [

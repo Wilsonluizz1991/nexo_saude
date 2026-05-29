@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\VerificarAdministradorSistema;
 use App\Http\Middleware\VerificarAssinaturaAtiva;
+use App\Http\Middleware\VerificarUsuarioAtivo;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -21,6 +22,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'assinatura.ativa' => VerificarAssinaturaAtiva::class,
             'admin.sistema' => VerificarAdministradorSistema::class,
+            'usuario.ativo' => VerificarUsuarioAtivo::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

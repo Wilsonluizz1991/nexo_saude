@@ -18,13 +18,17 @@ class BuscaGlobalController extends Controller
             $like = '%'.str_replace(['%', '_'], ['\%', '\_'], $termo).'%';
 
             $resultados = Indicacao::query()
+                ->select(['id', 'user_id', 'nome_cliente', 'telefone', 'email', 'tipo_plano', 'quantidade_vidas', 'cidade', 'estado', 'status', 'etapa', 'observacoes', 'faixa_valor_mensal', 'hospitais_preferidos', 'created_at'])
                 ->where('user_id', $request->user()->id)
                 ->with([
-                    'propostas.operadora',
-                    'preCadastro',
-                    'implantacao',
-                    'cliente.contratos.operadora',
-                    'cliente.dependentes',
+                    'propostas:id,indicacao_id,operadora_id,titulo,status,observacoes',
+                    'propostas.operadora:id,nome',
+                    'preCadastro:id,indicacao_id,tipo_proposta,pessoa,status,chave_acesso,motivos_correcao',
+                    'implantacao:id,indicacao_id,status,observacoes',
+                    'cliente:id,indicacao_id,user_id,nome,email,telefone,status',
+                    'cliente.contratos:id,cliente_id,operadora_id,numero_contrato,tipo_contrato,status',
+                    'cliente.contratos.operadora:id,nome',
+                    'cliente.dependentes:id,cliente_id,nome',
                 ])
                 ->where(function (Builder $query) use ($like): void {
                     $query

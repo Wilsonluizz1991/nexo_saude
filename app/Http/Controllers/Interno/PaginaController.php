@@ -43,10 +43,36 @@ class PaginaController extends Controller
         $permitidas = ['agenda', 'propostas', 'pre-cadastros', 'implantacoes', 'clientes', 'carteira', 'tarefas', 'alertas', 'relatorios'];
         abort_unless(in_array($pagina, $permitidas, true), 404);
 
-        $clientesTodos = Cliente::where('user_id', auth()->id())->with('contratos', 'dependentes')->latest()->get();
-        $clientes = Cliente::where('user_id', auth()->id())->with('contratos', 'dependentes')->latest()->paginate(self::ITENS_POR_PAGINA)->withQueryString();
+        $userId = auth()->id();
+        $carregarCarteira = in_array($pagina, ['carteira', 'clientes', 'relatorios'], true);
+
+        $clientesTodos = $pagina === 'carteira'
+            ? Cliente::where('user_id', $userId)
+                ->select(['id', 'indicacao_id', 'user_id', 'nome', 'email', 'telefone', 'inicio_vigencia', 'valor_mensal', 'status', 'created_at'])
+                ->with([
+                    'contratos:id,cliente_id,usuario_id,status,quantidade_vidas,renovacao_em,reajuste_em,created_at',
+                    'dependentes:id,cliente_id',
+                ])
+                ->latest()
+                ->get()
+            : collect();
+
+        $clientes = $carregarCarteira
+            ? Cliente::where('user_id', $userId)
+                ->select(['id', 'indicacao_id', 'user_id', 'nome', 'email', 'telefone', 'inicio_vigencia', 'valor_mensal', 'status', 'created_at'])
+                ->with([
+                    'contratos:id,cliente_id,usuario_id,status,quantidade_vidas,renovacao_em,reajuste_em,created_at',
+                    'dependentes:id,cliente_id',
+                ])
+                ->latest()
+                ->paginate(self::ITENS_POR_PAGINA)
+                ->withQueryString()
+            : $this->paginarCollection(collect());
+
         $contratos = $clientesTodos->flatMap(fn (Cliente $cliente) => $cliente->contratos);
-        $dadosCarteira = $this->dadosCarteiraEstrategica($clientesTodos, $contratos);
+        $dadosCarteira = $pagina === 'carteira'
+            ? $this->dadosCarteiraEstrategica($clientesTodos, $contratos)
+            : $this->dadosCarteiraVazia();
 
         return view('interno.paginas.simples', array_merge([
             'pagina' => $pagina,
@@ -57,12 +83,13 @@ class PaginaController extends Controller
                 'reajustes_proximos' => $contratos->filter(fn ($contrato) => $contrato->reajuste_em && $contrato->reajuste_em->between(now(), now()->addDays(60)))->count(),
                 'dependentes' => $clientesTodos->sum(fn (Cliente $cliente) => $cliente->dependentes->count()),
             ],
-            'tarefas' => Tarefa::where('user_id', auth()->id())->latest()->paginate(self::ITENS_POR_PAGINA)->withQueryString(),
-            'tarefasHoje' => $this->paginarCollection(
-                Tarefa::where('user_id', auth()->id())->latest()->get()->filter(fn ($tarefa) => $tarefa->vencimento?->isToday())->values(),
-                'page'
-            ),
-            'alertas' => Alerta::where('user_id', auth()->id())->latest()->paginate(self::ITENS_POR_PAGINA)->withQueryString(),
+            'tarefas' => Tarefa::where('user_id', $userId)->latest()->paginate(self::ITENS_POR_PAGINA)->withQueryString(),
+            'tarefasHoje' => Tarefa::where('user_id', $userId)
+                ->whereDate('vencimento', today())
+                ->latest()
+                ->paginate(self::ITENS_POR_PAGINA)
+                ->withQueryString(),
+            'alertas' => Alerta::where('user_id', $userId)->latest()->paginate(self::ITENS_POR_PAGINA)->withQueryString(),
         ], $dadosCarteira));
     }
 
@@ -308,6 +335,47 @@ class PaginaController extends Controller
             'analiseCarteira' => $this->analiseCarteira($comissaoMesAtual, $comissaoMesAnterior, $metaMesAtual),
             'clientesAtivosCarteira' => $clientes->where('status', 'ativo')->count(),
             'contratosAtivosCarteira' => $contratos->whereIn('status', ['ativo', 'vigente'])->count(),
+        ];
+    }
+
+    private function dadosCarteiraVazia(): array
+    {
+        $comparacao = [
+            'percentual' => 0,
+            'direcao' => 'neutro',
+            'texto' => 'Sem variaÃ§Ã£o',
+        ];
+
+        return [
+            'leadsMesAtual' => 0,
+            'contratosFechadosMesAtual' => 0,
+            'vidasVendidasMesAtual' => 0,
+            'taxaConversaoMesAtual' => 0,
+            'comissaoMesAtual' => 0,
+            'metaMesAtual' => null,
+            'percentualMetaMesAtual' => 0,
+            'leadsMesAnterior' => 0,
+            'contratosFechadosMesAnterior' => 0,
+            'vidasVendidasMesAnterior' => 0,
+            'taxaConversaoMesAnterior' => 0,
+            'comissaoMesAnterior' => 0,
+            'metaMesAnterior' => null,
+            'percentualComparacaoComissao' => 0,
+            'percentualComparacaoContratos' => 0,
+            'percentualComparacaoVidas' => 0,
+            'comparacaoComissao' => $comparacao,
+            'comparacaoContratos' => $comparacao,
+            'comparacaoVidas' => $comparacao,
+            'comparacaoLeads' => $comparacao,
+            'comparacaoConversao' => $comparacao,
+            'analiseCarteira' => [
+                'tipo' => 'neutro',
+                'icone' => 'bi-bar-chart',
+                'titulo' => 'Seu resultado estÃ¡ estÃ¡vel em relaÃ§Ã£o ao mÃªs anterior.',
+                'descricao' => 'Defina sua meta mensal para acompanhar sua evoluÃ§Ã£o comercial.',
+            ],
+            'clientesAtivosCarteira' => 0,
+            'contratosAtivosCarteira' => 0,
         ];
     }
 

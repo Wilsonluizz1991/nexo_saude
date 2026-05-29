@@ -94,7 +94,7 @@ class AssinaturaController extends Controller
             'card_brand' => $creditCard['creditCardBrand'] ?? $assinatura->card_brand,
             'card_last_four' => $creditCard['creditCardNumber'] ?? substr(preg_replace('/\D/', '', $dados['card_number']), -4),
             'card_token' => $creditCard['creditCardToken'] ?? $assinatura->card_token,
-            'gateway_payload' => $asaasData,
+            'gateway_payload' => \App\Models\Assinatura::sanitizarGatewayPayload($asaasData),
         ]);
 
         return back()->with('status', 'Cartão atualizado com sucesso. Aguarde a confirmação da cobrança para liberar o acesso.');
@@ -187,7 +187,7 @@ class AssinaturaController extends Controller
             'card_brand' => $creditCard['creditCardBrand'] ?? $assinatura->card_brand,
             'card_last_four' => $creditCard['creditCardNumber'] ?? substr(preg_replace('/\D/', '', $dados['card_number']), -4),
             'card_token' => $creditCard['creditCardToken'] ?? $assinatura->card_token,
-            'gateway_payload' => $asaasSubscription,
+            'gateway_payload' => \App\Models\Assinatura::sanitizarGatewayPayload($asaasSubscription),
         ]);
 
         $user->update([

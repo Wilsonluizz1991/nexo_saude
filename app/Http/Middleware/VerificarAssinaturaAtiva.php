@@ -21,9 +21,9 @@ class VerificarAssinaturaAtiva
             return redirect()->route('admin.dashboard');
         }
 
-        $assinatura = $user->assinatura;
+        $assinaturaService = app(AssinaturaService::class);
 
-        if (app(AssinaturaService::class)->estaAtiva($assinatura)) {
+        if ($assinaturaService->usuarioPodeAcessarAreaInterna($user)) {
             return $next($request);
         }
 

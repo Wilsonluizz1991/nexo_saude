@@ -9,44 +9,55 @@ use App\Models\User;
 use App\Services\Admin\RegistrarAuditoriaService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
 
 class AdminSistemaController extends Controller
 {
     public function dashboard()
     {
+        $usuariosPorBloqueio = User::query()
+            ->selectRaw('sum(case when blocked_at is null then 1 else 0 end) as ativos')
+            ->selectRaw('sum(case when blocked_at is not null then 1 else 0 end) as bloqueados')
+            ->selectRaw('sum(case when is_admin = 1 then 1 else 0 end) as admins')
+            ->first();
+
+        $assinaturasPorStatus = Assinatura::query()
+            ->select('status', 'status_assinatura', DB::raw('count(*) as total'), DB::raw('sum(valor) as valor_total'))
+            ->groupBy('status', 'status_assinatura')
+            ->get();
+
+        $assinaturasAtivas = $assinaturasPorStatus
+            ->filter(fn ($linha) => $linha->status === 'active' || $linha->status_assinatura === 'ativa');
+
         return view('admin.dashboard', [
             'totalUsuarios' => User::count(),
-            'usuariosAtivos' => User::whereNull('blocked_at')->count(),
-            'usuariosBloqueados' => User::whereNotNull('blocked_at')->count(),
-            'admins' => User::where('is_admin', true)->count(),
+            'usuariosAtivos' => (int) ($usuariosPorBloqueio->ativos ?? 0),
+            'usuariosBloqueados' => (int) ($usuariosPorBloqueio->bloqueados ?? 0),
+            'admins' => (int) ($usuariosPorBloqueio->admins ?? 0),
 
-            'assinaturasAtivas' => Assinatura::where(function ($query) {
-                $query->where('status', 'active')
-                    ->orWhere('status_assinatura', 'ativa');
-            })->count(),
+            'assinaturasAtivas' => (int) $assinaturasAtivas->sum('total'),
 
-            'assinaturasTeste' => Assinatura::where(function ($query) {
-                $query->where('status', 'trialing')
-                    ->orWhere('status_assinatura', 'teste_gratis');
-            })->count(),
+            'assinaturasTeste' => (int) $assinaturasPorStatus
+                ->filter(fn ($linha) => $linha->status === 'trialing' || $linha->status_assinatura === 'teste_gratis')
+                ->sum('total'),
 
-            'assinaturasPendentes' => Assinatura::where(function ($query) {
-                $query->whereIn('status', ['overdue', 'past_due', 'dunning'])
-                    ->orWhereIn('status_assinatura', ['vencida', 'bloqueada']);
-            })->count(),
+            'assinaturasPendentes' => (int) $assinaturasPorStatus
+                ->filter(fn ($linha) => in_array($linha->status, ['overdue', 'past_due', 'dunning'], true)
+                    || in_array($linha->status_assinatura, ['vencida', 'bloqueada'], true))
+                ->sum('total'),
 
-            'assinaturasCanceladas' => Assinatura::where(function ($query) {
-                $query->whereIn('status', ['canceled', 'cancelled'])
-                    ->orWhere('status_assinatura', 'cancelada');
-            })->count(),
+            'assinaturasCanceladas' => (int) $assinaturasPorStatus
+                ->filter(fn ($linha) => in_array($linha->status, ['canceled', 'cancelled'], true)
+                    || $linha->status_assinatura === 'cancelada')
+                ->sum('total'),
 
-            'receitaMensalPrevista' => Assinatura::where(function ($query) {
-                $query->where('status', 'active')
-                    ->orWhere('status_assinatura', 'ativa');
-            })->sum('valor'),
+            'receitaMensalPrevista' => $assinaturasAtivas->sum('valor_total'),
 
-            'usuariosRecentes' => User::latest()->limit(8)->get(),
+            'usuariosRecentes' => User::select(['id', 'name', 'email', 'telefone', 'perfil', 'is_admin', 'blocked_at', 'created_at'])
+                ->latest()
+                ->limit(8)
+                ->get(),
             'auditoriasRecentes' => AuditoriaLog::with(['administrador', 'usuarioAlvo'])->latest()->limit(6)->get(),
         ]);
     }
@@ -55,7 +66,8 @@ class AdminSistemaController extends Controller
     {
         $busca = trim((string) $request->get('q'));
 
-        $usuarios = User::with('assinatura')
+        $usuarios = User::select(['id', 'name', 'email', 'telefone', 'perfil', 'is_admin', 'blocked_at', 'created_at'])
+            ->with(['assinatura:id,user_id,status,status_assinatura,valor,vencimento_assinatura,asaas_customer_id,asaas_subscription_id'])
             ->when($busca !== '', function ($query) use ($busca) {
                 $query->where(function ($subquery) use ($busca) {
                     $subquery->where('name', 'like', "%{$busca}%")
@@ -90,7 +102,10 @@ class AdminSistemaController extends Controller
     {
         $busca = trim((string) $request->get('q'));
 
-        $logs = AuditoriaLog::with(['administrador', 'usuarioAlvo'])
+        $logs = AuditoriaLog::with([
+            'administrador:id,name,email',
+            'usuarioAlvo:id,name,email',
+        ])
             ->when($busca !== '', function ($query) use ($busca) {
                 $query->where(function ($subquery) use ($busca) {
                     $subquery->where('acao', 'like', "%{$busca}%")
@@ -179,14 +194,23 @@ class AdminSistemaController extends Controller
             'password' => ['nullable', 'string', 'min:8'],
         ]);
 
+        $novoPerfil = $dados['perfil'] ?? $usuario->perfil;
+        $novoIsAdmin = (bool) ($dados['is_admin'] ?? false);
+
+        if ($this->removeUltimoAdministradorAtivo($usuario, $novoIsAdmin, $novoPerfil)) {
+            return back()->withErrors([
+                'usuario' => 'Nao e possivel remover os privilegios do ultimo administrador ativo.',
+            ]);
+        }
+
         $antes = $usuario->only(['id', 'name', 'email', 'telefone', 'perfil', 'is_admin', 'blocked_at']);
 
         $usuario->update([
             'name' => $dados['name'],
             'email' => $dados['email'],
             'telefone' => $dados['telefone'] ?? null,
-            'perfil' => $dados['perfil'] ?? $usuario->perfil,
-            'is_admin' => (bool) ($dados['is_admin'] ?? false),
+            'perfil' => $novoPerfil,
+            'is_admin' => $novoIsAdmin,
             'admin_since' => ! empty($dados['is_admin']) && ! $usuario->admin_since ? now() : $usuario->admin_since,
             'password' => ! empty($dados['password']) ? Hash::make($dados['password']) : $usuario->password,
         ]);
@@ -209,6 +233,12 @@ class AdminSistemaController extends Controller
         if ($usuario->id === auth()->id()) {
             return back()->withErrors([
                 'usuario' => 'Você não pode bloquear sua própria conta administradora.',
+            ]);
+        }
+
+        if ($this->bloqueiaUltimoAdministradorAtivo($usuario)) {
+            return back()->withErrors([
+                'usuario' => 'Nao e possivel bloquear o ultimo administrador ativo.',
             ]);
         }
 
@@ -260,6 +290,12 @@ class AdminSistemaController extends Controller
             ]);
         }
 
+        if ($this->bloqueiaUltimoAdministradorAtivo($usuario)) {
+            return back()->withErrors([
+                'usuario' => 'Nao e possivel excluir o ultimo administrador ativo.',
+            ]);
+        }
+
         $antes = $usuario->only(['id', 'name', 'email', 'telefone', 'perfil', 'is_admin', 'blocked_at']);
 
         $auditoria->registrar(
@@ -273,5 +309,42 @@ class AdminSistemaController extends Controller
         $usuario->delete();
 
         return back()->with('status', 'Usuário excluído.');
+    }
+
+    private function removeUltimoAdministradorAtivo(User $usuario, bool $novoIsAdmin, ?string $novoPerfil): bool
+    {
+        if (! $this->usuarioAdministradorSistema($usuario)) {
+            return false;
+        }
+
+        if ($novoIsAdmin || $novoPerfil === 'admin') {
+            return false;
+        }
+
+        return $this->quantidadeAdministradoresAtivos() <= 1;
+    }
+
+    private function bloqueiaUltimoAdministradorAtivo(User $usuario): bool
+    {
+        if (! $this->usuarioAdministradorSistema($usuario) || $usuario->blocked_at) {
+            return false;
+        }
+
+        return $this->quantidadeAdministradoresAtivos() <= 1;
+    }
+
+    private function usuarioAdministradorSistema(User $usuario): bool
+    {
+        return (bool) ($usuario->is_admin || $usuario->perfil === 'admin');
+    }
+
+    private function quantidadeAdministradoresAtivos(): int
+    {
+        return User::whereNull('blocked_at')
+            ->where(function ($query) {
+                $query->where('is_admin', true)
+                    ->orWhere('perfil', 'admin');
+            })
+            ->count();
     }
 }

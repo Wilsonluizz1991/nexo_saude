@@ -8,6 +8,11 @@ class Assinatura extends Model
 {
     protected $table = 'assinaturas';
 
+    protected $hidden = [
+        'card_token',
+        'gateway_payload',
+    ];
+
     protected $fillable = [
         'user_id',
 
@@ -70,5 +75,39 @@ class Assinatura extends Model
     public function user()
     {
         return $this->belongsTo(User::class);
+    }
+
+    public static function sanitizarGatewayPayload(?array $payload): ?array
+    {
+        if ($payload === null) {
+            return null;
+        }
+
+        $sensitivos = [
+            'creditcard',
+            'creditcardholderinfo',
+            'creditcardnumber',
+            'creditcardtoken',
+            'card_number',
+            'card_ccv',
+            'ccv',
+            'cvv',
+            'token',
+        ];
+
+        foreach ($payload as $chave => $valor) {
+            $normalizada = strtolower((string) $chave);
+
+            if (in_array($normalizada, $sensitivos, true)) {
+                $payload[$chave] = '[redacted]';
+                continue;
+            }
+
+            if (is_array($valor)) {
+                $payload[$chave] = self::sanitizarGatewayPayload($valor);
+            }
+        }
+
+        return $payload;
     }
 }

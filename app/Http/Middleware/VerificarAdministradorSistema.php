@@ -10,7 +10,9 @@ class VerificarAdministradorSistema
 {
     public function handle(Request $request, Closure $next): Response
     {
-        if (! $request->user() || ! $request->user()->is_admin) {
+        $user = $request->user();
+
+        if (! $user || (! $user->is_admin && $user->perfil !== 'admin')) {
             abort(403, 'Acesso restrito ao administrador do sistema.');
         }
 

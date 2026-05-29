@@ -19,6 +19,7 @@ class Cliente extends Model
     }
 
     public function indicacao() { return $this->belongsTo(Indicacao::class); }
+    public function user() { return $this->belongsTo(User::class); }
     public function contratos() { return $this->hasMany(Contrato::class); }
     public function dependentes() { return $this->hasMany(Dependente::class); }
     public function avaliacoesAtendimento() { return $this->hasMany(AvaliacaoAtendimento::class); }

@@ -513,7 +513,7 @@ class FluxoOperacionalNexoTest extends TestCase
             ->assertSee('Abrir implantação')
             ->assertDontSee('href="'.route('indicacoes.show', $lead).'"', false);
 
-        $this->actingAs($this->corretor)
+        $responseAprovacaoImplantacao = $this->actingAs($this->corretor)
             ->post(route('indicacoes.implantacao.aprovar', $lead), [
                 'operadora_id' => Operadora::first()->id,
                 'tipo_contrato' => 'familiar',
@@ -526,8 +526,7 @@ class FluxoOperacionalNexoTest extends TestCase
                 'observacoes' => 'Contrato confirmado no teste.',
                 'enviar_email' => 1,
                 'enviar_sms' => 1,
-            ])
-            ->assertRedirect(route('paginas.simples', 'clientes'));
+            ]);
 
         $lead->refresh();
         $this->assertSame('carteira', $lead->etapa);
@@ -538,6 +537,7 @@ class FluxoOperacionalNexoTest extends TestCase
         $this->assertDatabaseHas('timeline_eventos', ['indicacao_id' => $lead->id, 'titulo' => 'SMS automático enviado']);
 
         $cliente = Cliente::where('indicacao_id', $lead->id)->with('contratos', 'dependentes')->firstOrFail();
+        $responseAprovacaoImplantacao->assertRedirect(route('clientes.show', $cliente));
         $this->assertSame('ativo', $cliente->status);
         $this->assertCount(1, $cliente->contratos);
         $this->assertCount(3, $cliente->dependentes);
@@ -765,16 +765,19 @@ class FluxoOperacionalNexoTest extends TestCase
     public function test_whatsapp_usa_mensagem_em_leads_e_link_limpo_em_clientes(): void
     {
         $mensagem = 'Oi {nome}, recebi seu interesse em {tipo_plano} para {quantidade_vidas} vidas em {cidade}/{estado}.';
+        $mensagemContrato = 'Olá, {nome}! Seu contrato está vigente desde {data_vigencia}. Avalie meu atendimento: {link_avaliacao}';
 
         $this->actingAs($this->corretor)
             ->get(route('configuracoes.mensagem-whatsapp'))
             ->assertOk()
-            ->assertSee('Mensagem de WhatsApp para Leads')
+            ->assertSee('Mensagens automáticas')
+            ->assertSee('Primeiro contato com Lead')
             ->assertSee('{nome}');
 
         $this->actingAs($this->corretor)
             ->post(route('configuracoes.mensagem-whatsapp.update'), [
                 'mensagem_primeiro_contato_whatsapp' => $mensagem,
+                'mensagem_contrato_vigente_whatsapp' => $mensagemContrato,
             ])
             ->assertRedirect();
 

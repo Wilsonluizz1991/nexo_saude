@@ -244,7 +244,7 @@ class ConfiguracoesController extends Controller
             'card_brand' => $creditCard['creditCardBrand'] ?? $assinatura->card_brand,
             'card_last_four' => $creditCard['creditCardNumber'] ?? substr(preg_replace('/\D/', '', $dados['card_number']), -4),
             'card_token' => $creditCard['creditCardToken'] ?? $assinatura->card_token,
-            'gateway_payload' => $asaasData,
+            'gateway_payload' => \App\Models\Assinatura::sanitizarGatewayPayload($asaasData),
         ]);
 
         return back()->with('status', 'Cartão atualizado com sucesso.');
@@ -279,7 +279,7 @@ class ConfiguracoesController extends Controller
             'status' => 'canceled',
             'status_assinatura' => 'cancelada',
             'canceled_at' => now(),
-            'gateway_payload' => $response['data'] ?? $response,
+            'gateway_payload' => \App\Models\Assinatura::sanitizarGatewayPayload($response['data'] ?? $response),
         ]);
 
         $user->update([

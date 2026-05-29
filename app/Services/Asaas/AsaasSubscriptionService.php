@@ -2,6 +2,7 @@
 
 namespace App\Services\Asaas;
 
+use App\Models\Assinatura;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
@@ -20,8 +21,7 @@ class AsaasSubscriptionService
     public function create(array $data): array
     {
         try {
-            $response = Http::withoutVerifying()
-                ->timeout(60)
+            $response = Http::timeout(60)
                 ->withHeaders([
                     'accept' => 'application/json',
                     'content-type' => 'application/json',
@@ -61,7 +61,7 @@ class AsaasSubscriptionService
 
             Log::error('Erro ao criar assinatura no Asaas', [
                 'status' => $response->status(),
-                'response' => $response->body(),
+                'response' => Assinatura::sanitizarGatewayPayload($response->json() ?? []),
             ]);
 
             return [
@@ -85,8 +85,7 @@ class AsaasSubscriptionService
     public function updateCreditCard(string $subscriptionId, array $data): array
     {
         try {
-            $response = Http::withoutVerifying()
-                ->timeout(60)
+            $response = Http::timeout(60)
                 ->withHeaders([
                     'accept' => 'application/json',
                     'content-type' => 'application/json',
@@ -121,7 +120,7 @@ class AsaasSubscriptionService
             Log::error('Erro ao atualizar cartão da assinatura no Asaas', [
                 'subscription_id' => $subscriptionId,
                 'status' => $response->status(),
-                'response' => $response->body(),
+                'response' => Assinatura::sanitizarGatewayPayload($response->json() ?? []),
             ]);
 
             return [
@@ -146,8 +145,7 @@ class AsaasSubscriptionService
     public function find(string $subscriptionId): array
     {
         try {
-            $response = Http::withoutVerifying()
-                ->withHeaders([
+            $response = Http::withHeaders([
                     'accept' => 'application/json',
                     'content-type' => 'application/json',
                     'access_token' => $this->apiKey,
@@ -182,8 +180,7 @@ class AsaasSubscriptionService
     public function cancel(string $subscriptionId): array
     {
         try {
-            $response = Http::withoutVerifying()
-                ->withHeaders([
+            $response = Http::withHeaders([
                     'accept' => 'application/json',
                     'content-type' => 'application/json',
                     'access_token' => $this->apiKey,

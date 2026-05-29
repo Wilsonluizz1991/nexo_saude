@@ -34,7 +34,7 @@ class RegistrarAssinaturaService
                 'card_last_four' => $creditCard['creditCardNumber'] ?? null,
                 'card_token' => $creditCard['creditCardToken'] ?? null,
 
-                'gateway_payload' => $asaasSubscription,
+                'gateway_payload' => Assinatura::sanitizarGatewayPayload($asaasSubscription),
 
                 // Compatibilidade com os campos antigos
                 'data_inicio_teste_gratis' => now()->toDateString(),

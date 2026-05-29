@@ -56,6 +56,37 @@ class AssinaturaService
         return $this->estaAtivaPaga($assinatura);
     }
 
+    public function usuarioPodeAcessarAreaInterna(User $user): bool
+    {
+        if ($user->blocked_at) {
+            return false;
+        }
+
+        if ($user->is_admin || $user->perfil === 'admin') {
+            return true;
+        }
+
+        if (in_array($user->billing_status, [
+            'blocked',
+            'canceled',
+            'cancelled',
+            'overdue',
+            'past_due',
+            'suspended',
+            'expired',
+        ], true)) {
+            return false;
+        }
+
+        if ($user->billing_status === 'trial'
+            && $user->trial_ends_at
+            && $user->trial_ends_at->endOfDay()->isPast()) {
+            return false;
+        }
+
+        return $this->estaAtiva($user->assinatura);
+    }
+
     public function estaEmTeste(?Assinatura $assinatura): bool
     {
         if (! $assinatura) {
@@ -63,6 +94,10 @@ class AssinaturaService
         }
 
         if ($this->estaCancelada($assinatura) || $this->estaVencidaOuBloqueada($assinatura)) {
+            return false;
+        }
+
+        if ($this->estaExpirada($assinatura)) {
             return false;
         }
 
@@ -114,12 +149,14 @@ class AssinaturaService
             return true;
         }
 
-        if ($assinatura->status === 'trialing' && $assinatura->trial_ends_at) {
-            return $assinatura->trial_ends_at->endOfDay()->isPast();
+        if ($assinatura->status_assinatura === 'teste_gratis'
+            && $assinatura->data_fim_teste_gratis
+            && $assinatura->data_fim_teste_gratis->endOfDay()->isPast()) {
+            return true;
         }
 
-        if ($assinatura->status_assinatura === 'teste_gratis' && $assinatura->data_fim_teste_gratis) {
-            return $assinatura->data_fim_teste_gratis->endOfDay()->isPast();
+        if ($assinatura->status === 'trialing' && $assinatura->trial_ends_at) {
+            return $assinatura->trial_ends_at->endOfDay()->isPast();
         }
 
         return false;

@@ -49,14 +49,14 @@ Route::post('/cliente/documentos/{token}', [DocumentoClienteController::class, '
 
 Route::post('/webhooks/asaas', [AsaasWebhookController::class, 'handle']);
 
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth', 'usuario.ativo'])->group(function () {
     Route::get('/assinatura', [AssinaturaController::class, 'bloqueada'])->name('assinatura.bloqueada');
     Route::post('/assinatura/assinar', [AssinaturaController::class, 'assinar'])->name('assinatura.assinar');
 });
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth', 'admin.sistema'])
+    ->middleware(['auth', 'usuario.ativo', 'admin.sistema'])
     ->group(function () {
         Route::get('/', [AdminSistemaController::class, 'dashboard'])->name('dashboard');
 
@@ -71,7 +71,7 @@ Route::prefix('admin')
         Route::get('/auditoria', [AdminSistemaController::class, 'auditoria'])->name('auditoria.index');
     });
 
-Route::middleware(['auth', 'assinatura.ativa'])->group(function () {
+Route::middleware(['auth', 'usuario.ativo', 'assinatura.ativa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/busca', BuscaGlobalController::class)->name('busca.index');
     Route::post('/assinatura/reativar', [AssinaturaController::class, 'reativar'])->name('assinatura.reativar');

@@ -12,14 +12,26 @@ class AsaasWebhookController extends Controller
 {
     public function handle(Request $request)
     {
+        if (! $this->webhookAutenticado($request)) {
+            Log::warning('Webhook Asaas rejeitado por token invalido', [
+                'ip' => $request->ip(),
+                'event' => $request->input('event'),
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Webhook nao autorizado.',
+            ], 401);
+        }
+
         Log::info('Webhook Asaas recebido', [
             'event' => $request->input('event'),
-            'payload' => $request->all(),
         ]);
 
         $event = $request->input('event');
         $payment = $request->input('payment', []);
         $subscription = $request->input('subscription', []);
+        $payloadSeguro = $this->sanitizarPayload($request->all());
 
         $asaasSubscriptionId = data_get($subscription, 'id')
             ?? data_get($payment, 'subscription');
@@ -27,7 +39,6 @@ class AsaasWebhookController extends Controller
         if (! $asaasSubscriptionId) {
             Log::warning('Webhook Asaas sem subscription ID', [
                 'event' => $event,
-                'payload' => $request->all(),
             ]);
 
             return response()->json([
@@ -50,9 +61,22 @@ class AsaasWebhookController extends Controller
             ], 404);
         }
 
+        if (! $this->assinaturaConfereComPayload($assinatura, $payment, $subscription)) {
+            Log::warning('Webhook Asaas com vinculo financeiro divergente', [
+                'event' => $event,
+                'assinatura_id' => $assinatura->id,
+                'asaas_subscription_id' => $asaasSubscriptionId,
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Vinculo da assinatura nao confere.',
+            ], 422);
+        }
+
         match ($event) {
             'PAYMENT_RECEIVED',
-            'PAYMENT_CONFIRMED' => $this->marcarComoAtiva($assinatura, $payment, $request->all()),
+            'PAYMENT_CONFIRMED' => $this->marcarComoAtiva($assinatura, $payment, $payloadSeguro),
 
             'PAYMENT_OVERDUE',
             'PAYMENT_DUNNING_RECEIVED',
@@ -62,13 +86,13 @@ class AsaasWebhookController extends Controller
             'PAYMENT_CHARGEBACK_REQUESTED',
             'PAYMENT_CHARGEBACK_DISPUTE',
             'PAYMENT_AWAITING_CHARGEBACK_REVERSAL',
-            'PAYMENT_DUNNING_REQUESTED' => $this->marcarComoVencida($assinatura, $payment, $request->all()),
+            'PAYMENT_DUNNING_REQUESTED' => $this->marcarComoVencida($assinatura, $payment, $payloadSeguro),
 
-            'PAYMENT_DELETED' => $this->marcarComoBloqueada($assinatura, $payment, $request->all()),
+            'PAYMENT_DELETED' => $this->marcarComoBloqueada($assinatura, $payment, $payloadSeguro),
 
-            'SUBSCRIPTION_DELETED' => $this->marcarComoCancelada($assinatura, $request->all()),
+            'SUBSCRIPTION_DELETED' => $this->marcarComoCancelada($assinatura, $payloadSeguro),
 
-            default => $this->registrarEventoNaoMapeado($assinatura, $event, $request->all()),
+            default => $this->registrarEventoNaoMapeado($assinatura, $event, $payloadSeguro),
         };
 
         return response()->json([
@@ -197,5 +221,64 @@ class AsaasWebhookController extends Controller
         $assinatura->update([
             'gateway_payload' => $payload,
         ]);
+    }
+
+    private function webhookAutenticado(Request $request): bool
+    {
+        $tokenEsperado = config('services.asaas.webhook_token');
+
+        if (! $tokenEsperado) {
+            return ! app()->environment('production');
+        }
+
+        $tokenRecebido = $request->header('asaas-access-token')
+            ?: $request->header('access_token')
+            ?: $request->header('x-asaas-webhook-token');
+
+        return is_string($tokenRecebido) && hash_equals($tokenEsperado, $tokenRecebido);
+    }
+
+    private function assinaturaConfereComPayload(Assinatura $assinatura, array $payment, array $subscription): bool
+    {
+        $customerPayload = data_get($subscription, 'customer') ?: data_get($payment, 'customer');
+        $customerLocal = $assinatura->asaas_customer_id ?: $assinatura->user?->asaas_customer_id;
+
+        if ($customerPayload && $customerLocal && $customerPayload !== $customerLocal) {
+            return false;
+        }
+
+        $subscriptionPayload = data_get($subscription, 'id') ?: data_get($payment, 'subscription');
+
+        return ! $subscriptionPayload || $subscriptionPayload === $assinatura->asaas_subscription_id;
+    }
+
+    private function sanitizarPayload(array $payload): array
+    {
+        $sensitivos = [
+            'creditcard',
+            'creditcardholderinfo',
+            'creditcardnumber',
+            'creditcardtoken',
+            'card_number',
+            'card_ccv',
+            'ccv',
+            'cvv',
+            'token',
+        ];
+
+        foreach ($payload as $chave => $valor) {
+            $normalizada = strtolower((string) $chave);
+
+            if (in_array($normalizada, $sensitivos, true)) {
+                $payload[$chave] = '[redacted]';
+                continue;
+            }
+
+            if (is_array($valor)) {
+                $payload[$chave] = $this->sanitizarPayload($valor);
+            }
+        }
+
+        return $payload;
     }
 }

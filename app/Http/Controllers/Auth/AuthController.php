@@ -174,6 +174,16 @@ class AuthController extends Controller
 
             $user = $request->user();
 
+            if ($user->blocked_at) {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Sua conta esta bloqueada. Entre em contato com o suporte.',
+                ]);
+            }
+
             $sessoes->registrarAcesso($user, $request);
 
             if ($this->usuarioAdministrador($user)) {
