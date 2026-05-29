@@ -3,12 +3,25 @@
     $isAdmin = (bool) ($user?->is_admin || $user?->perfil === 'admin');
     $userRole = $isAdmin ? 'Administrador' : 'Corretor';
     $homeRoute = $isAdmin ? route('admin.dashboard') : route('dashboard');
+    $adminSearchRoute = request()->routeIs('admin.auditoria.*') ? route('admin.auditoria.index') : route('admin.usuarios.index');
+    $adminSearchPlaceholder = request()->routeIs('admin.auditoria.*')
+        ? 'Buscar auditorias, ações, administradores...'
+        : 'Buscar usuários, perfis e assinaturas...';
 
     $iniciais = collect(explode(' ', trim($user?->name ?? 'Usuário')))
         ->filter()
         ->take(2)
         ->map(fn($parte) => mb_substr($parte, 0, 1))
         ->implode('');
+
+    $compromissosHoje = $cabecalho['compromissosHoje'] ?? collect();
+    $tarefasPendentes = $cabecalho['tarefasPendentes'] ?? collect();
+    $alertasNaoLidos = $cabecalho['alertasNaoLidos'] ?? collect();
+
+    $quantidadeCompromissosHoje = $cabecalho['quantidadeCompromissosHoje'] ?? 0;
+    $quantidadeTarefasPendentes = $cabecalho['quantidadeTarefasPendentes'] ?? 0;
+    $quantidadeAlertasNaoLidos = $cabecalho['quantidadeAlertasNaoLidos'] ?? 0;
+    $quantidadePreCadastrosPendentes = $cabecalho['quantidadePreCadastrosPendentes'] ?? 0;
 
     $menu = $isAdmin
         ? [
@@ -23,6 +36,12 @@
                 'icon' => 'bi-people-fill',
                 'url' => route('admin.usuarios.index'),
                 'active' => request()->routeIs('admin.usuarios.*'),
+            ],
+            [
+                'label' => 'Auditoria',
+                'icon' => 'bi-shield-check',
+                'url' => route('admin.auditoria.index'),
+                'active' => request()->routeIs('admin.auditoria.*'),
             ],
         ]
         : [
@@ -49,6 +68,7 @@
                 'icon' => 'bi-clipboard2-check',
                 'url' => route('paginas.simples', 'pre-cadastros'),
                 'active' => request()->routeIs('pre-cadastros.*') || request('pagina') === 'pre-cadastros',
+                'badge' => $quantidadePreCadastrosPendentes,
             ],
             [
                 'label' => 'Implantações',
@@ -79,36 +99,125 @@
                     <img src="{{ asset('assets/nexo-logo-topo.png') }}" alt="Nexo Saúde">
                 </a>
 
-                @if (!$isAdmin)
-                    <form class="nexo-search" role="search" method="GET" action="{{ route('busca.index') }}"
-                        data-global-search-form>
+                @if(!$isAdmin)
+                    <form class="nexo-search" role="search" method="GET" action="{{ route('busca.index') }}" data-global-search-form>
                         <i class="bi bi-search nexo-search-icon" aria-hidden="true"></i>
-                        <input type="search" name="q" value="{{ request('q') }}"
+                        <input
+                            type="search"
+                            name="q"
+                            value="{{ request('q') }}"
                             placeholder="Buscar por leads, clientes, propostas..."
-                            aria-label="Buscar por leads, clientes, propostas" autocomplete="off"
-                            data-global-search-input>
+                            aria-label="Buscar por leads, clientes, propostas"
+                            autocomplete="off"
+                            data-global-search-input
+                        >
                     </form>
                 @else
-                    <form class="nexo-search" role="search" method="GET"
-                        action="{{ route('admin.usuarios.index') }}">
+                    <form class="nexo-search" role="search" method="GET" action="{{ $adminSearchRoute }}">
                         <i class="bi bi-search nexo-search-icon" aria-hidden="true"></i>
-                        <input type="search" name="q" value="{{ request('q') }}"
-                            placeholder="Buscar usuários, perfis e assinaturas..."
-                            aria-label="Buscar usuários, perfis e assinaturas" autocomplete="off">
+                        <input
+                            type="search"
+                            name="q"
+                            value="{{ request('q') }}"
+                            placeholder="{{ $adminSearchPlaceholder }}"
+                            aria-label="{{ $adminSearchPlaceholder }}"
+                            autocomplete="off"
+                        >
                     </form>
                 @endif
 
                 <div class="nexo-header-actions">
+                    @if(!$isAdmin)
+                        <div class="dropdown nexo-action-dropdown">
+                            <button class="nexo-action-icon btn p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Calendário">
+                                <i class="bi bi-calendar3" aria-hidden="true"></i>
+
+                                @if($quantidadeCompromissosHoje > 0)
+                                    <span class="nexo-badge">{{ $quantidadeCompromissosHoje }}</span>
+                                @endif
+                            </button>
+
+                            <div class="dropdown-menu dropdown-menu-end nexo-header-panel">
+                                <div class="nexo-panel-title">Compromissos de hoje</div>
+
+                                <div class="nexo-panel-list">
+                                    @forelse($compromissosHoje as $compromisso)
+                                        <a class="nexo-panel-item" href="{{ route('agenda.index') }}">
+                                            <strong>{{ $compromisso->titulo }}</strong>
+                                            <span>{{ $compromisso->vencimento ? $compromisso->vencimento->format('d/m/Y') : 'Sem vencimento' }}</span>
+                                        </a>
+                                    @empty
+                                        <div class="nexo-panel-empty">Nenhum compromisso para hoje.</div>
+                                    @endforelse
+                                </div>
+
+                                <a class="nexo-panel-footer" href="{{ route('agenda.index') }}">Ver agenda completa</a>
+                            </div>
+                        </div>
+
+                        <div class="dropdown nexo-action-dropdown">
+                            <button class="nexo-action-icon btn p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Tarefas">
+                                <i class="bi bi-clipboard-check" aria-hidden="true"></i>
+
+                                @if($quantidadeTarefasPendentes > 0)
+                                    <span class="nexo-badge">{{ $quantidadeTarefasPendentes }}</span>
+                                @endif
+                            </button>
+
+                            <div class="dropdown-menu dropdown-menu-end nexo-header-panel">
+                                <div class="nexo-panel-title">Tarefas pendentes</div>
+
+                                <div class="nexo-panel-list">
+                                    @forelse($tarefasPendentes as $tarefa)
+                                        <a class="nexo-panel-item" href="{{ route('tarefas.index') }}">
+                                            <strong>{{ $tarefa->titulo }}</strong>
+                                            <span>{{ ucfirst($tarefa->status) }}{{ $tarefa->vencimento ? ' · '.$tarefa->vencimento->format('d/m/Y') : '' }}</span>
+                                        </a>
+                                    @empty
+                                        <div class="nexo-panel-empty">Nenhuma tarefa pendente.</div>
+                                    @endforelse
+                                </div>
+
+                                <a class="nexo-panel-footer" href="{{ route('tarefas.index') }}">Ver todas as tarefas</a>
+                            </div>
+                        </div>
+
+                        <div class="dropdown nexo-action-dropdown">
+                            <button class="nexo-action-icon btn p-0" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="Notificações">
+                                <i class="bi bi-bell" aria-hidden="true"></i>
+
+                                @if($quantidadeAlertasNaoLidos > 0)
+                                    <span class="nexo-badge">{{ $quantidadeAlertasNaoLidos }}</span>
+                                @endif
+                            </button>
+
+                            <div class="dropdown-menu dropdown-menu-end nexo-header-panel">
+                                <div class="nexo-panel-title">Alertas do sistema</div>
+
+                                <div class="nexo-panel-list">
+                                    @forelse($alertasNaoLidos as $alerta)
+                                        <a class="nexo-panel-item" href="{{ route('alertas.abrir', $alerta) }}">
+                                            <strong>{{ $alerta->titulo }}</strong>
+                                            <span>{{ $alerta->mensagem ?: ucfirst($alerta->tipo) }}</span>
+                                        </a>
+                                    @empty
+                                        <div class="nexo-panel-empty">Nenhum alerta no momento.</div>
+                                    @endforelse
+                                </div>
+
+                                <a class="nexo-panel-footer" href="{{ route('alertas.index') }}">Ver todos os alertas</a>
+                            </div>
+                        </div>
+                    @endif
+
                     <div class="dropdown nexo-user-menu">
-                        <button class="btn p-0 border-0 d-flex align-items-center gap-3 text-start" type="button"
-                            data-bs-toggle="dropdown" aria-expanded="false">
-                            @if ($isAdmin)
+                        <button class="btn p-0 border-0 d-flex align-items-center gap-3 text-start" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            @if($isAdmin)
                                 <span class="nexo-avatar-placeholder nexo-avatar-admin">
                                     <i class="bi bi-shield-lock-fill"></i>
                                 </span>
                             @elseif($user?->avatar_path)
-                                <img class="nexo-avatar" src="{{ asset('storage/' . $user->avatar_path) }}"
-                                    alt="Avatar do usuário">
+                                <img class="nexo-avatar" src="{{ asset('storage/' . $user->avatar_path) }}" alt="Avatar do usuário">
                             @else
                                 <span class="nexo-avatar-placeholder">
                                     {{ $iniciais ?: 'U' }}
@@ -124,23 +233,17 @@
                         </button>
 
                         <ul class="dropdown-menu dropdown-menu-end">
-                            @if ($isAdmin)
-                                <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}">Painel
-                                        administrativo</a></li>
-                                <li><a class="dropdown-item" href="{{ route('admin.usuarios.index') }}">Gerenciar
-                                        usuários</a></li>
+                            @if($isAdmin)
+                                <li><a class="dropdown-item" href="{{ route('admin.dashboard') }}">Painel administrativo</a></li>
+                                <li><a class="dropdown-item" href="{{ route('admin.usuarios.index') }}">Gerenciar usuários</a></li>
+                                <li><a class="dropdown-item" href="{{ route('admin.auditoria.index') }}">Auditoria</a></li>
                             @else
-                                <li><a class="dropdown-item" href="{{ route('configuracoes.perfil') }}">Configurações
-                                        da Conta</a></li>
-                                <li><a class="dropdown-item" href="{{ route('perfil-publico.edit') }}">Perfil
-                                        público</a></li>
-                                <li><a class="dropdown-item"
-                                        href="{{ route('configuracoes.assinatura') }}">Assinatura</a></li>
+                                <li><a class="dropdown-item" href="{{ route('configuracoes.perfil') }}">Configurações da Conta</a></li>
+                                <li><a class="dropdown-item" href="{{ route('perfil-publico.edit') }}">Perfil público</a></li>
+                                <li><a class="dropdown-item" href="{{ route('configuracoes.assinatura') }}">Assinatura</a></li>
                             @endif
 
-                            <li>
-                                <hr class="dropdown-divider">
-                            </li>
+                            <li><hr class="dropdown-divider"></li>
 
                             <li>
                                 <form method="post" action="{{ route('logout') }}">
@@ -158,16 +261,19 @@
     <nav class="nexo-header-nav" aria-label="Navegação principal">
         <div class="nexo-header-container">
             <div class="nexo-nav-links">
-                @foreach ($menu as $item)
-                    <a class="nexo-nav-item {{ $item['active'] ? 'nexo-nav-active' : '' }}"
-                        href="{{ $item['url'] }}">
+                @foreach($menu as $item)
+                    <a class="nexo-nav-item {{ $item['active'] ? 'nexo-nav-active' : '' }}" href="{{ $item['url'] }}">
                         <i class="bi {{ $item['icon'] }}" aria-hidden="true"></i>
                         {{ $item['label'] }}
+
+                        @if(($item['badge'] ?? 0) > 0)
+                            <span class="nexo-nav-badge">{{ $item['badge'] }}</span>
+                        @endif
                     </a>
                 @endforeach
             </div>
 
-            @if (!$isAdmin)
+            @if(!$isAdmin)
                 <a class="nexo-btn-primary" href="{{ route('indicacoes.create') }}">
                     <i class="bi bi-plus-lg fs-4" aria-hidden="true"></i>
                     Nova Lead
@@ -205,3 +311,77 @@
         }
     </style>
 </header>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const form = document.querySelector('[data-global-search-form]');
+
+        if (!form) {
+            return;
+        }
+
+        const input = form.querySelector('[data-global-search-input]');
+        const searchUrl = form.getAttribute('action');
+        const debounceTime = 500;
+        let timeout = null;
+        let lastSubmittedValue = input ? input.value.trim() : '';
+
+        if (!input || !searchUrl) {
+            return;
+        }
+
+        const isSearchPage = function () {
+            return window.location.pathname.replace(/\/$/, '') === new URL(searchUrl, window.location.origin).pathname.replace(/\/$/, '');
+        };
+
+        const redirectToSearch = function (value) {
+            const normalizedValue = value.trim();
+
+            if (normalizedValue === lastSubmittedValue && isSearchPage()) {
+                return;
+            }
+
+            lastSubmittedValue = normalizedValue;
+
+            if (normalizedValue.length === 0) {
+                window.location.href = searchUrl;
+                return;
+            }
+
+            const url = new URL(searchUrl, window.location.origin);
+            url.searchParams.set('q', normalizedValue);
+            window.location.href = url.toString();
+        };
+
+        input.addEventListener('input', function () {
+            const value = input.value.trim();
+
+            window.clearTimeout(timeout);
+
+            timeout = window.setTimeout(function () {
+                if (value.length >= 3) {
+                    redirectToSearch(value);
+                    return;
+                }
+
+                if (value.length === 0 && isSearchPage()) {
+                    redirectToSearch('');
+                }
+            }, debounceTime);
+        });
+
+        form.addEventListener('submit', function (event) {
+            const value = input.value.trim();
+
+            if (value.length >= 3) {
+                return;
+            }
+
+            event.preventDefault();
+
+            if (value.length === 0) {
+                redirectToSearch('');
+            }
+        });
+    });
+</script>

@@ -36,6 +36,70 @@ class AssinaturaController extends Controller
         return redirect()->route('dashboard')->with('status', 'Assinatura ativada por R$ 49,90/mês.');
     }
 
+    public function regularizar(Request $request, AsaasSubscriptionService $asaasSubscriptionService)
+    {
+        if (auth()->user()?->is_admin || auth()->user()?->perfil === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $dados = $request->validate([
+            'billing_cpf_cnpj' => ['required', 'string', 'max:20'],
+            'holder_phone' => ['required', 'string', 'max:30'],
+            'card_holder_name' => ['required', 'string', 'max:255'],
+            'card_number' => ['required', 'string', 'max:30'],
+            'card_expiry_month' => ['required', 'string', 'size:2'],
+            'card_expiry_year' => ['required', 'string', 'size:4'],
+            'card_ccv' => ['required', 'string', 'min:3', 'max:4'],
+            'holder_postal_code' => ['nullable', 'string', 'max:20'],
+            'holder_address_number' => ['nullable', 'string', 'max:20'],
+        ]);
+
+        $user = auth()->user();
+        $assinatura = $user->assinatura;
+
+        if (! $assinatura || ! $assinatura->asaas_subscription_id) {
+            return back()->withErrors([
+                'assinatura' => 'Não encontramos uma assinatura válida para regularizar.',
+            ]);
+        }
+
+        $response = $asaasSubscriptionService->updateCreditCard($assinatura->asaas_subscription_id, [
+            'card_holder_name' => $dados['card_holder_name'],
+            'card_number' => $dados['card_number'],
+            'card_expiry_month' => $dados['card_expiry_month'],
+            'card_expiry_year' => $dados['card_expiry_year'],
+            'card_ccv' => $dados['card_ccv'],
+
+            'holder_name' => $user->name,
+            'holder_email' => $user->email,
+            'holder_cpf_cnpj' => $dados['billing_cpf_cnpj'],
+            'holder_phone' => $dados['holder_phone'],
+            'holder_postal_code' => $dados['holder_postal_code'] ?? '01001000',
+            'holder_address_number' => $dados['holder_address_number'] ?? '100',
+            'remote_ip' => $request->ip(),
+        ]);
+
+        if (! ($response['success'] ?? false)) {
+            return back()
+                ->withInput($request->except(['card_number', 'card_ccv']))
+                ->withErrors([
+                    'assinatura' => 'Não foi possível atualizar o cartão. Verifique os dados informados e tente novamente.',
+                ]);
+        }
+
+        $asaasData = $response['data'] ?? [];
+        $creditCard = $asaasData['creditCard'] ?? [];
+
+        $assinatura->update([
+            'card_brand' => $creditCard['creditCardBrand'] ?? $assinatura->card_brand,
+            'card_last_four' => $creditCard['creditCardNumber'] ?? substr(preg_replace('/\D/', '', $dados['card_number']), -4),
+            'card_token' => $creditCard['creditCardToken'] ?? $assinatura->card_token,
+            'gateway_payload' => $asaasData,
+        ]);
+
+        return back()->with('status', 'Cartão atualizado com sucesso. Aguarde a confirmação da cobrança para liberar o acesso.');
+    }
+
     public function reativar(Request $request, AsaasSubscriptionService $asaasSubscriptionService)
     {
         if (auth()->user()?->is_admin || auth()->user()?->perfil === 'admin') {
@@ -114,7 +178,7 @@ class AssinaturaController extends Controller
             'valor' => 49.90,
             'valor_assinatura' => 49.90,
             'status' => $asaasStatus === 'active' ? 'active' : 'pending',
-            'status_assinatura' => $asaasStatus === 'active' ? 'ativa' : 'em_analise',
+            'status_assinatura' => $asaasStatus === 'active' ? 'ativa' : 'bloqueada',
             'next_payment_at' => $nextDueDate->copy()->addMonth(),
             'vencimento_assinatura' => $nextDueDate->copy()->addMonth()->toDateString(),
             'last_payment_at' => now(),
@@ -127,7 +191,7 @@ class AssinaturaController extends Controller
         ]);
 
         $user->update([
-            'billing_status' => $asaasStatus === 'active' ? 'active' : 'pending',
+            'billing_status' => $asaasStatus === 'active' ? 'active' : 'blocked',
             'billing_payment_method' => 'CREDIT_CARD',
             'billing_amount' => 49.90,
             'asaas_customer_id' => $asaasCustomerId,

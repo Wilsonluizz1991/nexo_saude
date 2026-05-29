@@ -68,12 +68,14 @@ Route::prefix('admin')
         Route::post('/usuarios/{usuario}/bloquear', [AdminSistemaController::class, 'bloquearUsuario'])->name('usuarios.bloquear');
         Route::post('/usuarios/{usuario}/desbloquear', [AdminSistemaController::class, 'desbloquearUsuario'])->name('usuarios.desbloquear');
         Route::delete('/usuarios/{usuario}', [AdminSistemaController::class, 'excluirUsuario'])->name('usuarios.destroy');
+        Route::get('/auditoria', [AdminSistemaController::class, 'auditoria'])->name('auditoria.index');
     });
 
 Route::middleware(['auth', 'assinatura.ativa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/busca', BuscaGlobalController::class)->name('busca.index');
-     Route::post('/assinatura/reativar', [AssinaturaController::class, 'reativar'])->name('assinatura.reativar');
+    Route::post('/assinatura/reativar', [AssinaturaController::class, 'reativar'])->name('assinatura.reativar');
+    Route::post('/assinatura/regularizar', [AssinaturaController::class, 'regularizar'])->name('assinatura.regularizar');
 
     Route::get('/indicacoes', [IndicacaoController::class, 'index'])->name('indicacoes.index');
     Route::get('/indicacoes/nova', [IndicacaoController::class, 'create'])->name('indicacoes.create');

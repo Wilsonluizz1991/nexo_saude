@@ -13,6 +13,7 @@ class AsaasWebhookController extends Controller
     public function handle(Request $request)
     {
         Log::info('Webhook Asaas recebido', [
+            'event' => $request->input('event'),
             'payload' => $request->all(),
         ]);
 
@@ -20,10 +21,8 @@ class AsaasWebhookController extends Controller
         $payment = $request->input('payment', []);
         $subscription = $request->input('subscription', []);
 
-        $asaasSubscriptionId =
-            data_get($subscription, 'id')
-            ?? data_get($payment, 'subscription')
-            ?? null;
+        $asaasSubscriptionId = data_get($subscription, 'id')
+            ?? data_get($payment, 'subscription');
 
         if (! $asaasSubscriptionId) {
             Log::warning('Webhook Asaas sem subscription ID', [
@@ -55,11 +54,18 @@ class AsaasWebhookController extends Controller
             'PAYMENT_RECEIVED',
             'PAYMENT_CONFIRMED' => $this->marcarComoAtiva($assinatura, $payment, $request->all()),
 
-            'PAYMENT_DUNNING_RECEIVED',
             'PAYMENT_OVERDUE',
-            'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED' => $this->marcarComoInadimplente($assinatura, $request->all()),
+            'PAYMENT_DUNNING_RECEIVED',
+            'PAYMENT_CREDIT_CARD_CAPTURE_REFUSED',
+            'PAYMENT_REFUNDED',
+            'PAYMENT_REFUND_IN_PROGRESS',
+            'PAYMENT_CHARGEBACK_REQUESTED',
+            'PAYMENT_CHARGEBACK_DISPUTE',
+            'PAYMENT_AWAITING_CHARGEBACK_REVERSAL',
+            'PAYMENT_DUNNING_REQUESTED' => $this->marcarComoVencida($assinatura, $payment, $request->all()),
 
-            'PAYMENT_DELETED',
+            'PAYMENT_DELETED' => $this->marcarComoBloqueada($assinatura, $payment, $request->all()),
+
             'SUBSCRIPTION_DELETED' => $this->marcarComoCancelada($assinatura, $request->all()),
 
             default => $this->registrarEventoNaoMapeado($assinatura, $event, $request->all()),
@@ -72,33 +78,53 @@ class AsaasWebhookController extends Controller
 
     private function marcarComoAtiva(Assinatura $assinatura, array $payment, array $payload): void
     {
-        $nextPaymentAt = data_get($payment, 'dueDate')
-            ? Carbon::parse(data_get($payment, 'dueDate'))->addMonth()
+        $dueDate = data_get($payment, 'dueDate');
+        $paymentDate = data_get($payment, 'paymentDate') ?: data_get($payment, 'clientPaymentDate');
+
+        $nextPaymentAt = $dueDate
+            ? Carbon::parse($dueDate)->addMonth()
             : now()->addMonth();
+
+        $lastPaymentAt = $paymentDate
+            ? Carbon::parse($paymentDate)
+            : now();
 
         $assinatura->update([
             'status' => 'active',
             'status_assinatura' => 'ativa',
-            'last_payment_at' => now(),
+            'last_payment_at' => $lastPaymentAt,
             'next_payment_at' => $nextPaymentAt,
             'vencimento_assinatura' => $nextPaymentAt->toDateString(),
+            'canceled_at' => null,
+            'expired_at' => null,
             'gateway_payload' => $payload,
         ]);
 
         if ($assinatura->user) {
             $assinatura->user->update([
                 'billing_status' => 'active',
-                'billing_amount' => $assinatura->valor ?: 49.90,
+                'billing_amount' => $assinatura->valor ?: $assinatura->valor_assinatura ?: 49.90,
                 'next_billing_at' => $nextPaymentAt,
+                'billing_suspended_at' => null,
+                'subscription_canceled_at' => null,
             ]);
         }
+
+        Log::info('Assinatura marcada como ativa via webhook Asaas', [
+            'assinatura_id' => $assinatura->id,
+            'asaas_subscription_id' => $assinatura->asaas_subscription_id,
+        ]);
     }
 
-    private function marcarComoInadimplente(Assinatura $assinatura, array $payload): void
+    private function marcarComoVencida(Assinatura $assinatura, array $payment, array $payload): void
     {
+        $dueDate = data_get($payment, 'dueDate');
+
         $assinatura->update([
             'status' => 'overdue',
-            'status_assinatura' => 'inadimplente',
+            'status_assinatura' => 'vencida',
+            'next_payment_at' => $dueDate ? Carbon::parse($dueDate) : $assinatura->next_payment_at,
+            'vencimento_assinatura' => $dueDate ? Carbon::parse($dueDate)->toDateString() : $assinatura->vencimento_assinatura,
             'gateway_payload' => $payload,
         ]);
 
@@ -108,6 +134,33 @@ class AsaasWebhookController extends Controller
                 'billing_suspended_at' => now(),
             ]);
         }
+
+        Log::warning('Assinatura marcada como vencida via webhook Asaas', [
+            'assinatura_id' => $assinatura->id,
+            'asaas_subscription_id' => $assinatura->asaas_subscription_id,
+            'event' => data_get($payload, 'event'),
+        ]);
+    }
+
+    private function marcarComoBloqueada(Assinatura $assinatura, array $payment, array $payload): void
+    {
+        $assinatura->update([
+            'status' => 'pending',
+            'status_assinatura' => 'bloqueada',
+            'gateway_payload' => $payload,
+        ]);
+
+        if ($assinatura->user) {
+            $assinatura->user->update([
+                'billing_status' => 'blocked',
+                'billing_suspended_at' => now(),
+            ]);
+        }
+
+        Log::warning('Assinatura marcada como bloqueada via webhook Asaas', [
+            'assinatura_id' => $assinatura->id,
+            'asaas_subscription_id' => $assinatura->asaas_subscription_id,
+        ]);
     }
 
     private function marcarComoCancelada(Assinatura $assinatura, array $payload): void
@@ -123,8 +176,14 @@ class AsaasWebhookController extends Controller
             $assinatura->user->update([
                 'billing_status' => 'canceled',
                 'subscription_canceled_at' => now(),
+                'billing_suspended_at' => now(),
             ]);
         }
+
+        Log::warning('Assinatura cancelada via webhook Asaas', [
+            'assinatura_id' => $assinatura->id,
+            'asaas_subscription_id' => $assinatura->asaas_subscription_id,
+        ]);
     }
 
     private function registrarEventoNaoMapeado(Assinatura $assinatura, ?string $event, array $payload): void
@@ -132,6 +191,7 @@ class AsaasWebhookController extends Controller
         Log::info('Webhook Asaas ignorado sem ação local', [
             'event' => $event,
             'assinatura_id' => $assinatura->id,
+            'asaas_subscription_id' => $assinatura->asaas_subscription_id,
         ]);
 
         $assinatura->update([

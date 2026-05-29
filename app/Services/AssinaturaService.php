@@ -41,7 +41,7 @@ class AssinaturaService
             return false;
         }
 
-        if ($this->estaInadimplente($assinatura)) {
+        if ($this->estaVencidaOuBloqueada($assinatura)) {
             return false;
         }
 
@@ -62,7 +62,7 @@ class AssinaturaService
             return false;
         }
 
-        if ($this->estaCancelada($assinatura) || $this->estaInadimplente($assinatura)) {
+        if ($this->estaCancelada($assinatura) || $this->estaVencidaOuBloqueada($assinatura)) {
             return false;
         }
 
@@ -75,7 +75,7 @@ class AssinaturaService
             && $assinatura->data_fim_teste_gratis->endOfDay()->isFuture();
     }
 
-    public function estaInadimplente(?Assinatura $assinatura): bool
+    public function estaVencidaOuBloqueada(?Assinatura $assinatura): bool
     {
         if (! $assinatura) {
             return true;
@@ -87,11 +87,12 @@ class AssinaturaService
             'dunning',
             'suspended',
             'expired',
+            'refunded',
+            'chargeback',
+            'pending',
         ], true) || in_array($assinatura->status_assinatura, [
-            'inadimplente',
-            'suspensa',
+            'vencida',
             'bloqueada',
-            'expirada',
         ], true);
     }
 
@@ -149,12 +150,12 @@ class AssinaturaService
             return 'cancelada';
         }
 
-        if ($this->estaInadimplente($assinatura)) {
-            return 'inadimplente';
+        if ($this->estaVencidaOuBloqueada($assinatura)) {
+            return 'vencida';
         }
 
         if ($this->estaExpirada($assinatura)) {
-            return 'expirada';
+            return 'vencida';
         }
 
         if ($this->estaEmTeste($assinatura)) {
@@ -179,6 +180,8 @@ class AssinaturaService
             'valor' => self::VALOR_MENSAL,
             'last_payment_at' => now(),
             'next_payment_at' => now()->addMonth(),
+            'canceled_at' => null,
+            'expired_at' => null,
         ]);
 
         if ($assinatura->user) {
@@ -187,6 +190,7 @@ class AssinaturaService
                 'billing_amount' => self::VALOR_MENSAL,
                 'next_billing_at' => now()->addMonth(),
                 'billing_suspended_at' => null,
+                'subscription_canceled_at' => null,
             ]);
         }
 

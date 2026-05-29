@@ -1,43 +1,29 @@
-<x-layouts.app title="Usuários | Admin Nexo">
-    <div class="container-fluid py-4 admin-users-page">
-        <div class="admin-users-hero">
+<x-layouts.app title="Auditoria | Admin Nexo">
+    <div class="container-fluid py-4 admin-audit-page">
+        <div class="admin-audit-hero">
             <div>
-                <span>Administração</span>
-                <h1>Usuários do sistema</h1>
-                <p>Gerencie contas, perfis, administradores, bloqueios e assinaturas.</p>
+                <span>Rastreabilidade</span>
+                <h1>Auditoria administrativa</h1>
+                <p>Acompanhe ações executadas por administradores dentro da plataforma.</p>
             </div>
 
-            <a href="{{ route('admin.usuarios.create') }}" class="admin-primary-btn">
-                <i class="bi bi-person-plus-fill"></i>
-                Novo usuário
+            <a href="{{ route('admin.dashboard') }}" class="admin-primary-btn">
+                <i class="bi bi-arrow-left"></i>
+                Voltar ao painel
             </a>
         </div>
-
-        @if(session('status'))
-            <div class="admin-alert is-success">
-                <i class="bi bi-check-circle-fill"></i>
-                {{ session('status') }}
-            </div>
-        @endif
-
-        @if($errors->any())
-            <div class="admin-alert is-danger">
-                <i class="bi bi-exclamation-triangle-fill"></i>
-                {{ $errors->first() }}
-            </div>
-        @endif
-        <div id="admin-users-table-wrapper">
-            @include('admin.usuarios.partials.table', ['usuarios' => $usuarios])
+        <div id="admin-audit-table-wrapper">
+            @include('admin.auditoria.partials.table', ['logs' => $logs])
         </div>
     </div>
 
     <style>
-        .admin-users-page {
+        .admin-audit-page {
             display: grid;
             gap: 20px;
         }
 
-        .admin-users-hero {
+        .admin-audit-hero {
             display: flex;
             justify-content: space-between;
             gap: 24px;
@@ -48,7 +34,7 @@
             box-shadow: 0 18px 45px rgba(6, 28, 63, 0.16);
         }
 
-        .admin-users-hero span {
+        .admin-audit-hero span {
             display: block;
             color: #BBD7FF;
             font-size: 0.78rem;
@@ -58,14 +44,14 @@
             margin-bottom: 8px;
         }
 
-        .admin-users-hero h1 {
+        .admin-audit-hero h1 {
             margin: 0 0 8px;
             font-size: clamp(2rem, 3vw, 3rem);
             font-weight: 950;
             letter-spacing: -0.06em;
         }
 
-        .admin-users-hero p {
+        .admin-audit-hero p {
             margin: 0;
             color: rgba(255, 255, 255, 0.75);
             line-height: 1.5;
@@ -91,31 +77,9 @@
         .admin-primary-btn:hover {
             color: #FFFFFF;
             transform: translateY(-2px);
-            box-shadow: 0 24px 42px rgba(47, 128, 237, 0.34);
         }
 
-        .admin-alert {
-            min-height: 52px;
-            padding: 14px 16px;
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            font-size: 0.9rem;
-            font-weight: 850;
-        }
-
-        .admin-alert.is-success {
-            background: #ECFDF5;
-            color: #166534;
-        }
-
-        .admin-alert.is-danger {
-            background: #FEF2F2;
-            color: #B91C1C;
-        }
-
-        .admin-users-table-card {
+        .admin-audit-table-card {
             border-radius: 24px;
             background: #FFFFFF;
             border: 1px solid #DDE8F5;
@@ -123,11 +87,11 @@
             overflow: hidden;
         }
 
-        .admin-users-table {
+        .admin-audit-table {
             margin-bottom: 0;
         }
 
-        .admin-users-table thead th {
+        .admin-audit-table thead th {
             padding: 16px 18px;
             color: #64748B;
             font-size: 0.76rem;
@@ -139,7 +103,7 @@
             white-space: nowrap;
         }
 
-        .admin-users-table tbody td {
+        .admin-audit-table tbody td {
             padding: 16px 18px;
             color: #061C3F;
             font-weight: 750;
@@ -147,105 +111,35 @@
             border-bottom: 1px solid #EEF2F7;
         }
 
-        .admin-users-table tbody tr:last-child td {
-            border-bottom: 0;
-        }
-
-        .admin-user-name {
-            display: block;
-            font-weight: 950;
-            color: #061C3F;
-        }
-
-        .admin-user-email {
-            display: block;
-            color: #64748B;
-            font-size: 0.82rem;
-            font-weight: 700;
-            margin-top: 2px;
-        }
-
-        .admin-badge {
+        .admin-audit-action {
             display: inline-flex;
             align-items: center;
-            justify-content: center;
-            min-height: 28px;
+            min-height: 30px;
             padding: 0 10px;
             border-radius: 999px;
             font-size: 0.74rem;
             font-weight: 950;
-            white-space: nowrap;
-        }
-
-        .admin-badge.is-success {
-            background: #ECFDF5;
-            color: #166534;
-        }
-
-        .admin-badge.is-danger {
-            background: #FEF2F2;
-            color: #B91C1C;
-        }
-
-        .admin-badge.is-info {
-            background: #EAF3FF;
             color: #1D4ED8;
-        }
-
-        .admin-badge.is-warning {
-            background: #FFFBEB;
-            color: #B45309;
-        }
-
-        .admin-actions {
-            display: flex;
-            justify-content: flex-end;
-            gap: 8px;
-            flex-wrap: wrap;
-        }
-
-        .admin-action-btn {
-            min-height: 36px;
-            padding: 0 12px;
-            border-radius: 12px;
-            font-size: 0.78rem;
-            font-weight: 950;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 6px;
-            border: 1px solid transparent;
-            text-decoration: none;
-            background: #FFFFFF;
-            transition: 0.2s ease;
-        }
-
-        .admin-action-btn.is-primary {
-            color: #2F80ED;
-            border-color: #CFE2FF;
             background: #EAF3FF;
         }
 
-        .admin-action-btn.is-warning {
-            color: #B45309;
-            border-color: #FDE68A;
-            background: #FFFBEB;
+        .admin-audit-user strong {
+            display: block;
+            color: #061C3F;
+            font-weight: 950;
         }
 
-        .admin-action-btn.is-success {
-            color: #166534;
-            border-color: #BBF7D0;
-            background: #ECFDF5;
+        .admin-audit-user span {
+            display: block;
+            color: #64748B;
+            font-size: 0.8rem;
+            font-weight: 700;
         }
 
-        .admin-action-btn.is-danger {
-            color: #B91C1C;
-            border-color: #FCA5A5;
-            background: #FEF2F2;
-        }
-
-        .admin-action-btn:hover {
-            transform: translateY(-1px);
+        .admin-audit-description {
+            color: #475569;
+            font-weight: 750;
+            line-height: 1.45;
         }
 
         .admin-pagination {
@@ -262,7 +156,7 @@
         }
 
         @media (max-width: 900px) {
-            .admin-users-hero {
+            .admin-audit-hero {
                 flex-direction: column;
             }
 
@@ -274,7 +168,7 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const wrapper = document.getElementById('admin-users-table-wrapper');
+            const wrapper = document.getElementById('admin-audit-table-wrapper');
 
             if (!wrapper) {
                 return;
@@ -282,7 +176,7 @@
 
             let controller = null;
 
-            const fetchAdminUsersPage = function (url) {
+            const fetchAuditPage = function (url) {
                 if (controller) {
                     controller.abort();
                 }
@@ -313,18 +207,18 @@
             };
 
             document.addEventListener('click', function (event) {
-                const link = event.target.closest('#admin-users-table-wrapper .pagination a');
+                const link = event.target.closest('#admin-audit-table-wrapper .pagination a');
 
                 if (!link) {
                     return;
                 }
 
                 event.preventDefault();
-                fetchAdminUsersPage(link.href);
+                fetchAuditPage(link.href);
             });
 
             window.addEventListener('popstate', function () {
-                fetchAdminUsersPage(window.location.href);
+                fetchAuditPage(window.location.href);
             });
         });
     </script>

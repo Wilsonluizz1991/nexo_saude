@@ -5,6 +5,10 @@
         $nextPaymentAt = $assinatura?->next_payment_at ?? $assinatura?->vencimento_assinatura;
         $canceledAt = $assinatura?->canceled_at;
         $statusAssinatura = $assinatura?->status ?? $assinatura?->status_assinatura;
+
+        $isCancelada = $statusComercial === 'cancelada';
+        $isVencida = $statusComercial === 'vencida';
+        $isBloqueada = $statusComercial === 'bloqueada';
     @endphp
 
     <main class="nexo-subscription-lock-page">
@@ -73,15 +77,15 @@
                         <p>
                             Ainda restam {{ $diasRestantesTeste }} dia(s) do seu teste gratuito.
                         </p>
-                    @elseif($statusComercial === 'inadimplente')
+                    @elseif($isVencida)
                         <strong class="is-danger">
                             Pagamento pendente
                         </strong>
 
                         <p>
-                            Identificamos uma pendência na sua assinatura. Assim que o pagamento for confirmado, o acesso será restaurado automaticamente.
+                            Identificamos uma pendência na sua assinatura. Atualize o cartão para tentar regularizar sua cobrança.
                         </p>
-                    @elseif($statusComercial === 'cancelada')
+                    @elseif($isCancelada)
                         <strong class="is-danger">
                             Assinatura cancelada
                         </strong>
@@ -119,7 +123,7 @@
                         <strong>R$ {{ number_format($valor, 2, ',', '.') }}/mês</strong>
                     </div>
 
-                    @if($statusComercial === 'cancelada')
+                    @if($isCancelada)
                         <div>
                             <span>Cancelada em</span>
                             <strong>{{ optional($canceledAt)->format('d/m/Y') ?? '-' }}</strong>
@@ -128,6 +132,16 @@
                         <div>
                             <span>Situação</span>
                             <strong>Reativação disponível</strong>
+                        </div>
+                    @elseif($isVencida || $isBloqueada)
+                        <div>
+                            <span>Pagamento em atraso desde</span>
+                            <strong>{{ optional($nextPaymentAt)->format('d/m/Y') ?? '-' }}</strong>
+                        </div>
+
+                        <div>
+                            <span>Situação</span>
+                            <strong>Regularização necessária</strong>
                         </div>
                     @else
                         <div>
@@ -164,17 +178,20 @@
 
                                 @case('OVERDUE')
                                 @case('overdue')
+                                @case('vencida')
                                     Pagamento pendente
                                     @break
 
                                 @case('PENDING')
                                 @case('pending')
-                                    Pagamento aguardando confirmação
+                                @case('bloqueada')
+                                    Regularização necessária
                                     @break
 
                                 @case('CANCELED')
                                 @case('cancelled')
                                 @case('canceled')
+                                @case('cancelada')
                                     Assinatura cancelada
                                     @break
 
@@ -197,9 +214,14 @@
                 </div>
 
                 <div class="nexo-subscription-actions">
-                    @if($statusComercial === 'cancelada')
+                    @if($isCancelada)
                         <button type="button" class="nexo-subscription-primary-action" data-nexo-modal-open="reactivate">
                             Reativar assinatura
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    @elseif($isVencida || $isBloqueada)
+                        <button type="button" class="nexo-subscription-primary-action" data-nexo-modal-open="regularize">
+                            Regularizar pagamento
                             <i class="bi bi-arrow-right"></i>
                         </button>
                     @else
@@ -218,12 +240,20 @@
                     </form>
                 </div>
 
-                @if($statusComercial === 'cancelada')
+                @if($isCancelada)
                     <div class="nexo-subscription-note is-warning">
                         <i class="bi bi-shield-check"></i>
 
                         <span>
                             Seus dados continuam preservados. Reative sua assinatura para voltar a acessar leads, clientes, propostas e pré-cadastros.
+                        </span>
+                    </div>
+                @elseif($isVencida || $isBloqueada)
+                    <div class="nexo-subscription-note is-warning">
+                        <i class="bi bi-credit-card-2-front-fill"></i>
+
+                        <span>
+                            Atualize seu método de pagamento para tentar regularizar sua cobrança e restaurar o acesso à plataforma.
                         </span>
                     </div>
                 @else
@@ -238,7 +268,7 @@
             </div>
         </section>
 
-        @if($statusComercial === 'cancelada')
+        @if($isCancelada)
             <div class="nexo-modal-backdrop" id="nexo-reactivate-modal" aria-hidden="true">
                 <div class="nexo-modal-card">
                     <div class="nexo-modal-header">
@@ -318,6 +348,92 @@
 
                         <button class="nexo-modal-submit">
                             Reativar agora
+                        </button>
+                    </form>
+                </div>
+            </div>
+        @endif
+
+        @if($isVencida || $isBloqueada)
+            <div class="nexo-modal-backdrop" id="nexo-regularize-modal" aria-hidden="true">
+                <div class="nexo-modal-card">
+                    <div class="nexo-modal-header">
+                        <div>
+                            <span>Regularização</span>
+                            <h3>Atualizar cartão</h3>
+                        </div>
+
+                        <button type="button" data-nexo-modal-close>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="nexo-reactivate-info">
+                        <i class="bi bi-credit-card-2-front-fill"></i>
+
+                        <div>
+                            <strong>Atualize o método de pagamento</strong>
+                            <p>O novo cartão será salvo na assinatura. Assim que a cobrança for confirmada pelo Asaas, o acesso será liberado automaticamente.</p>
+                        </div>
+                    </div>
+
+                    <form method="post" action="{{ route('assinatura.regularizar') }}">
+                        @csrf
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">CPF/CNPJ do titular</label>
+                                <input name="billing_cpf_cnpj" class="form-control" placeholder="Digite o CPF ou CNPJ" value="{{ old('billing_cpf_cnpj') }}" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Telefone do titular</label>
+                                <input name="holder_phone" class="form-control" placeholder="(11) 99999-9999" value="{{ old('holder_phone', auth()->user()?->telefone) }}" required>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Nome impresso no cartão</label>
+                                <input name="card_holder_name" class="form-control" placeholder="Nome como aparece no cartão" value="{{ old('card_holder_name', auth()->user()?->name) }}" required>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Número do cartão</label>
+                                <input name="card_number" class="form-control" placeholder="0000 0000 0000 0000" inputmode="numeric" autocomplete="cc-number" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Mês</label>
+                                <input name="card_expiry_month" class="form-control" placeholder="MM" inputmode="numeric" maxlength="2" value="{{ old('card_expiry_month') }}" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Ano</label>
+                                <input name="card_expiry_year" class="form-control" placeholder="AAAA" inputmode="numeric" maxlength="4" value="{{ old('card_expiry_year') }}" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">CVV</label>
+                                <input name="card_ccv" class="form-control" placeholder="123" inputmode="numeric" maxlength="4" required>
+                            </div>
+
+                            <div class="col-md-8">
+                                <label class="form-label">CEP do titular</label>
+                                <input name="holder_postal_code" class="form-control" placeholder="01001-000" value="{{ old('holder_postal_code') }}">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Número</label>
+                                <input name="holder_address_number" class="form-control" placeholder="100" value="{{ old('holder_address_number') }}">
+                            </div>
+                        </div>
+
+                        <div class="nexo-modal-warning">
+                            <i class="bi bi-shield-lock-fill"></i>
+                            <span>Após atualizar o cartão, aguarde a confirmação da cobrança para liberação automática do acesso.</span>
+                        </div>
+
+                        <button class="nexo-modal-submit">
+                            Atualizar cartão
                         </button>
                     </form>
                 </div>
