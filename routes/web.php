@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Controllers\Admin\AdminSistemaController;
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Interno\AssinaturaController;
 use App\Http\Controllers\Interno\BuscaGlobalController;
@@ -53,9 +54,26 @@ Route::middleware(['auth'])->group(function () {
     Route::post('/assinatura/assinar', [AssinaturaController::class, 'assinar'])->name('assinatura.assinar');
 });
 
+Route::prefix('admin')
+    ->name('admin.')
+    ->middleware(['auth', 'admin.sistema'])
+    ->group(function () {
+        Route::get('/', [AdminSistemaController::class, 'dashboard'])->name('dashboard');
+
+        Route::get('/usuarios', [AdminSistemaController::class, 'usuarios'])->name('usuarios.index');
+        Route::get('/usuarios/novo', [AdminSistemaController::class, 'criarUsuario'])->name('usuarios.create');
+        Route::post('/usuarios', [AdminSistemaController::class, 'salvarUsuario'])->name('usuarios.store');
+        Route::get('/usuarios/{usuario}/editar', [AdminSistemaController::class, 'editarUsuario'])->name('usuarios.edit');
+        Route::put('/usuarios/{usuario}', [AdminSistemaController::class, 'atualizarUsuario'])->name('usuarios.update');
+        Route::post('/usuarios/{usuario}/bloquear', [AdminSistemaController::class, 'bloquearUsuario'])->name('usuarios.bloquear');
+        Route::post('/usuarios/{usuario}/desbloquear', [AdminSistemaController::class, 'desbloquearUsuario'])->name('usuarios.desbloquear');
+        Route::delete('/usuarios/{usuario}', [AdminSistemaController::class, 'excluirUsuario'])->name('usuarios.destroy');
+    });
+
 Route::middleware(['auth', 'assinatura.ativa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/busca', BuscaGlobalController::class)->name('busca.index');
+     Route::post('/assinatura/reativar', [AssinaturaController::class, 'reativar'])->name('assinatura.reativar');
 
     Route::get('/indicacoes', [IndicacaoController::class, 'index'])->name('indicacoes.index');
     Route::get('/indicacoes/nova', [IndicacaoController::class, 'create'])->name('indicacoes.create');
@@ -89,6 +107,7 @@ Route::middleware(['auth', 'assinatura.ativa'])->group(function () {
         Route::get('/assinatura', [ConfiguracoesController::class, 'assinatura'])->name('assinatura');
         Route::post('/assinatura/cartao', [ConfiguracoesController::class, 'atualizarCartaoAssinatura'])->name('assinatura.cartao.update');
         Route::post('/assinatura/cancelar', [ConfiguracoesController::class, 'cancelarAssinatura'])->name('assinatura.cancelar');
+       
 
         Route::get('/preferencias', [ConfiguracoesController::class, 'preferencias'])->name('preferencias');
         Route::post('/preferencias', [ConfiguracoesController::class, 'atualizarPreferencias'])->name('preferencias.update');

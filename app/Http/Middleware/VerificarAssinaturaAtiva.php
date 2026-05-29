@@ -17,6 +17,10 @@ class VerificarAssinaturaAtiva
             return $next($request);
         }
 
+        if ($user->is_admin || $user->perfil === 'admin') {
+            return redirect()->route('admin.dashboard');
+        }
+
         $assinatura = $user->assinatura;
 
         if (app(AssinaturaService::class)->estaAtiva($assinatura)) {

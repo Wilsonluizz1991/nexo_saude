@@ -49,18 +49,17 @@
                     Acompanhe Leads, pré-cadastros, implantações e carteira em uma visão rápida.
                 </p>
             </div>
-
-            <a
-                href="{{ route('publico.corretor', auth()->user()->corretorPerfil->slug) }}"
-                class="nexo-dashboard-public-link"
-            >
-                <i class="bi bi-box-arrow-up-right"></i>
-                Abrir página pública
-            </a>
+            @if (auth()->user()->corretorPerfil)
+                <a href="{{ route('publico.corretor', auth()->user()->corretorPerfil->slug) }}"
+                    class="nexo-dashboard-public-link">
+                    <i class="bi bi-box-arrow-up-right"></i>
+                    Abrir página pública
+                </a>
+            @endif
         </div>
 
         <div class="nexo-dashboard-grid mb-4">
-            @foreach($totais as $label => $total)
+            @foreach ($totais as $label => $total)
                 <div class="nexo-dashboard-metric">
                     <div class="nexo-dashboard-metric-icon">
                         <i class="bi {{ $iconesTotais[$label] ?? 'bi-bar-chart' }}"></i>
@@ -92,7 +91,7 @@
         </div>
 
         <div class="nexo-dashboard-grid nexo-dashboard-attention-grid mb-4">
-            @foreach($operacaoHoje as $label => $total)
+            @foreach ($operacaoHoje as $label => $total)
                 <div class="nexo-dashboard-attention">
                     <div class="nexo-dashboard-attention-icon">
                         <i class="bi {{ $iconesOperacao[$label] ?? 'bi-exclamation-circle' }}"></i>
@@ -178,10 +177,8 @@
                                         </td>
 
                                         <td class="text-end">
-                                            <a
-                                                href="{{ route('indicacoes.show', $indicacao) }}"
-                                                class="nexo-dashboard-open"
-                                            >
+                                            <a href="{{ route('indicacoes.show', $indicacao) }}"
+                                                class="nexo-dashboard-open">
                                                 Abrir
                                             </a>
                                         </td>
@@ -192,7 +189,8 @@
                                             <div class="nexo-dashboard-table-empty">
                                                 <i class="bi bi-check-circle"></i>
                                                 <strong>Nenhuma lead nova nas últimas 24 horas.</strong>
-                                                <span>Quando uma nova lead entrar, ela aparecerá aqui automaticamente.</span>
+                                                <span>Quando uma nova lead entrar, ela aparecerá aqui
+                                                    automaticamente.</span>
                                             </div>
                                         </td>
                                     </tr>
@@ -201,7 +199,7 @@
                         </table>
                     </div>
 
-                    @if($indicacoes->hasPages())
+                    @if ($indicacoes->hasPages())
                         <div class="nexo-dashboard-pagination">
                             {{ $indicacoes->links('vendor.pagination.nexo') }}
                         </div>
@@ -483,7 +481,7 @@
             gap: 13px;
         }
 
-        .nexo-dashboard-lead > span {
+        .nexo-dashboard-lead>span {
             width: 42px;
             height: 42px;
             border-radius: 14px;

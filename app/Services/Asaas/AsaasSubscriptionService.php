@@ -8,7 +8,8 @@ use Illuminate\Support\Facades\Log;
 
 class AsaasSubscriptionService
 {
-   :contentReference[oaicite:0]{index=0}string $apiKey;
+    protected string $baseUrl;
+    protected string $apiKey;
 
     public function __construct()
     {
@@ -48,6 +49,7 @@ class AsaasSubscriptionService
                         'addressNumber' => $data['holder_address_number'] ?? '100',
                         'phone' => preg_replace('/\D/', '', $data['holder_phone']),
                     ],
+                    'remoteIp' => $data['remote_ip'] ?? request()->ip(),
                 ]);
 
             if ($response->successful()) {

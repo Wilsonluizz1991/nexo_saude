@@ -1,4 +1,12 @@
 <x-layouts.app title="Assinatura | Nexo Saúde">
+    @php
+        $valor = $assinatura?->valor ?? $assinatura?->valor_assinatura ?? 49.90;
+        $trialEndsAt = $assinatura?->trial_ends_at ?? $assinatura?->data_fim_teste_gratis;
+        $nextPaymentAt = $assinatura?->next_payment_at ?? $assinatura?->vencimento_assinatura;
+        $canceledAt = $assinatura?->canceled_at;
+        $statusAssinatura = $assinatura?->status ?? $assinatura?->status_assinatura;
+    @endphp
+
     <main class="nexo-subscription-lock-page">
         <section class="nexo-subscription-lock-card">
             <div class="nexo-subscription-lock-hero">
@@ -16,7 +24,7 @@
                 </h1>
 
                 <p>
-                    Para continuar usando a Nexo Saúde, regularize sua assinatura ou aguarde a confirmação automática do pagamento.
+                    Para continuar usando a Nexo Saúde, regularize sua assinatura ou reative seu plano.
                 </p>
 
                 <div class="nexo-subscription-lock-benefits">
@@ -38,6 +46,20 @@
             </div>
 
             <div class="nexo-subscription-lock-content">
+                @if(session('status'))
+                    <div class="nexo-subscription-alert is-success">
+                        <i class="bi bi-check-circle-fill"></i>
+                        <span>{{ session('status') }}</span>
+                    </div>
+                @endif
+
+                @if($errors->any())
+                    <div class="nexo-subscription-alert is-danger">
+                        <i class="bi bi-exclamation-triangle-fill"></i>
+                        <span>{{ $errors->first() }}</span>
+                    </div>
+                @endif
+
                 <div class="nexo-subscription-status-panel">
                     <span class="nexo-subscription-status-label">
                         Status atual
@@ -65,7 +87,7 @@
                         </strong>
 
                         <p>
-                            Sua assinatura foi cancelada. Para voltar a usar a plataforma, será necessário reativar sua assinatura.
+                            Sua conta continua preservada. Para voltar a usar a plataforma, reative sua assinatura com um novo cartão.
                         </p>
                     @elseif($statusComercial === 'sem_assinatura')
                         <strong class="is-danger">
@@ -94,22 +116,30 @@
 
                     <div>
                         <span>Valor</span>
-                        <strong>R$ {{ number_format($assinatura?->valor ?? $assinatura?->valor_assinatura ?? 49.90, 2, ',', '.') }}/mês</strong>
+                        <strong>R$ {{ number_format($valor, 2, ',', '.') }}/mês</strong>
                     </div>
 
-                    <div>
-                        <span>Fim do teste</span>
-                        <strong>
-                            {{ optional($assinatura?->trial_ends_at ?? $assinatura?->data_fim_teste_gratis)->format('d/m/Y') ?? '-' }}
-                        </strong>
-                    </div>
+                    @if($statusComercial === 'cancelada')
+                        <div>
+                            <span>Cancelada em</span>
+                            <strong>{{ optional($canceledAt)->format('d/m/Y') ?? '-' }}</strong>
+                        </div>
 
-                    <div>
-                        <span>Próxima cobrança</span>
-                        <strong>
-                            {{ optional($assinatura?->next_payment_at ?? $assinatura?->vencimento_assinatura)->format('d/m/Y') ?? '-' }}
-                        </strong>
-                    </div>
+                        <div>
+                            <span>Situação</span>
+                            <strong>Reativação disponível</strong>
+                        </div>
+                    @else
+                        <div>
+                            <span>Fim do teste</span>
+                            <strong>{{ optional($trialEndsAt)->format('d/m/Y') ?? '-' }}</strong>
+                        </div>
+
+                        <div>
+                            <span>Próxima cobrança</span>
+                            <strong>{{ optional($nextPaymentAt)->format('d/m/Y') ?? '-' }}</strong>
+                        </div>
+                    @endif
 
                     <div>
                         <span>Cartão</span>
@@ -123,57 +153,61 @@
                     </div>
 
                     <div>
-    <span>Status da assinatura</span>
+                        <span>Status da assinatura</span>
 
-    <strong>
-        @php
-            $statusAssinatura = $assinatura?->status ?? $assinatura?->status_assinatura;
-        @endphp
+                        <strong>
+                            @switch($statusAssinatura)
+                                @case('ACTIVE')
+                                @case('active')
+                                    Assinatura ativa
+                                    @break
 
-        @switch($statusAssinatura)
-            @case('ACTIVE')
-            @case('active')
-                Assinatura ativa
-                @break
+                                @case('OVERDUE')
+                                @case('overdue')
+                                    Pagamento pendente
+                                    @break
 
-            @case('OVERDUE')
-            @case('overdue')
-                Pagamento pendente
-                @break
+                                @case('PENDING')
+                                @case('pending')
+                                    Pagamento aguardando confirmação
+                                    @break
 
-            @case('PENDING')
-            @case('pending')
-                Pagamento aguardando confirmação
-                @break
+                                @case('CANCELED')
+                                @case('cancelled')
+                                @case('canceled')
+                                    Assinatura cancelada
+                                    @break
 
-            @case('CANCELED')
-            @case('cancelled')
-            @case('canceled')
-                Assinatura cancelada
-                @break
+                                @case('EXPIRED')
+                                @case('expired')
+                                    Assinatura expirada
+                                    @break
 
-            @case('EXPIRED')
-            @case('expired')
-                Assinatura expirada
-                @break
+                                @case('TRIAL')
+                                @case('trialing')
+                                @case('teste_gratis')
+                                    Teste gratuito
+                                    @break
 
-            @case('TRIAL')
-            @case('trialing')
-                Teste gratuito
-                @break
-
-            @default
-                Em análise
-        @endswitch
-    </strong>
-</div>
+                                @default
+                                    Em análise
+                            @endswitch
+                        </strong>
+                    </div>
                 </div>
 
                 <div class="nexo-subscription-actions">
-                    <a href="{{ route('configuracoes.assinatura') }}" class="nexo-subscription-primary-action">
-                        Ver minha assinatura
-                        <i class="bi bi-arrow-right"></i>
-                    </a>
+                    @if($statusComercial === 'cancelada')
+                        <button type="button" class="nexo-subscription-primary-action" data-nexo-modal-open="reactivate">
+                            Reativar assinatura
+                            <i class="bi bi-arrow-right"></i>
+                        </button>
+                    @else
+                        <a href="{{ route('configuracoes.assinatura') }}" class="nexo-subscription-primary-action">
+                            Ver minha assinatura
+                            <i class="bi bi-arrow-right"></i>
+                        </a>
+                    @endif
 
                     <form method="post" action="{{ route('logout') }}">
                         @csrf
@@ -184,15 +218,111 @@
                     </form>
                 </div>
 
-                <div class="nexo-subscription-note">
-                    <i class="bi bi-info-circle-fill"></i>
+                @if($statusComercial === 'cancelada')
+                    <div class="nexo-subscription-note is-warning">
+                        <i class="bi bi-shield-check"></i>
 
-                    <span>
-                        Assim que o pagamento for confirmado, seu acesso será liberado automaticamente.
-                    </span>
-                </div>
+                        <span>
+                            Seus dados continuam preservados. Reative sua assinatura para voltar a acessar leads, clientes, propostas e pré-cadastros.
+                        </span>
+                    </div>
+                @else
+                    <div class="nexo-subscription-note">
+                        <i class="bi bi-info-circle-fill"></i>
+
+                        <span>
+                            Assim que o pagamento for confirmado, seu acesso será liberado automaticamente.
+                        </span>
+                    </div>
+                @endif
             </div>
         </section>
+
+        @if($statusComercial === 'cancelada')
+            <div class="nexo-modal-backdrop" id="nexo-reactivate-modal" aria-hidden="true">
+                <div class="nexo-modal-card">
+                    <div class="nexo-modal-header">
+                        <div>
+                            <span>Reativação</span>
+                            <h3>Reativar assinatura</h3>
+                        </div>
+
+                        <button type="button" data-nexo-modal-close>
+                            <i class="bi bi-x-lg"></i>
+                        </button>
+                    </div>
+
+                    <div class="nexo-reactivate-info">
+                        <i class="bi bi-shield-check"></i>
+
+                        <div>
+                            <strong>Sua conta será preservada</strong>
+                            <p>Seus leads, clientes, propostas, pré-cadastros e histórico continuarão disponíveis após a reativação.</p>
+                        </div>
+                    </div>
+
+                    <form method="post" action="{{ route('assinatura.reativar') }}">
+                        @csrf
+
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">CPF/CNPJ do titular</label>
+                                <input name="billing_cpf_cnpj" class="form-control" placeholder="Digite o CPF ou CNPJ" value="{{ old('billing_cpf_cnpj') }}" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Telefone do titular</label>
+                                <input name="holder_phone" class="form-control" placeholder="(11) 99999-9999" value="{{ old('holder_phone', auth()->user()?->telefone) }}" required>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Nome impresso no cartão</label>
+                                <input name="card_holder_name" class="form-control" placeholder="Nome como aparece no cartão" value="{{ old('card_holder_name', auth()->user()?->name) }}" required>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Número do cartão</label>
+                                <input name="card_number" class="form-control" placeholder="0000 0000 0000 0000" inputmode="numeric" autocomplete="cc-number" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Mês</label>
+                                <input name="card_expiry_month" class="form-control" placeholder="MM" inputmode="numeric" maxlength="2" value="{{ old('card_expiry_month') }}" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Ano</label>
+                                <input name="card_expiry_year" class="form-control" placeholder="AAAA" inputmode="numeric" maxlength="4" value="{{ old('card_expiry_year') }}" required>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">CVV</label>
+                                <input name="card_ccv" class="form-control" placeholder="123" inputmode="numeric" maxlength="4" required>
+                            </div>
+
+                            <div class="col-md-8">
+                                <label class="form-label">CEP do titular</label>
+                                <input name="holder_postal_code" class="form-control" placeholder="01001-000" value="{{ old('holder_postal_code') }}">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Número</label>
+                                <input name="holder_address_number" class="form-control" placeholder="100" value="{{ old('holder_address_number') }}">
+                            </div>
+                        </div>
+
+                        <div class="nexo-modal-warning">
+                            <i class="bi bi-lock-fill"></i>
+                            <span>A cobrança de R$ 49,90 será processada para reativar sua assinatura mensal.</span>
+                        </div>
+
+                        <button class="nexo-modal-submit">
+                            Reativar agora
+                        </button>
+                    </form>
+                </div>
+            </div>
+        @endif
     </main>
 
     <style>
@@ -312,6 +442,28 @@
             background:
                 radial-gradient(circle at top right, rgba(47, 128, 237, 0.07), transparent 26%),
                 #FFFFFF;
+        }
+
+        .nexo-subscription-alert {
+            min-height: 52px;
+            padding: 14px 16px;
+            border-radius: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            font-size: 0.9rem;
+            font-weight: 850;
+            margin-bottom: 16px;
+        }
+
+        .nexo-subscription-alert.is-success {
+            background: #ECFDF5;
+            color: #166534;
+        }
+
+        .nexo-subscription-alert.is-danger {
+            background: #FEF2F2;
+            color: #B91C1C;
         }
 
         .nexo-subscription-status-panel {
@@ -436,6 +588,124 @@
             line-height: 1.45;
         }
 
+        .nexo-subscription-note.is-warning {
+            background: #EAF3FF;
+            color: #1D4ED8;
+        }
+
+        .nexo-modal-backdrop {
+            position: fixed;
+            inset: 0;
+            z-index: 9999;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            background: rgba(6, 28, 63, 0.56);
+            backdrop-filter: blur(6px);
+        }
+
+        .nexo-modal-backdrop.is-open {
+            display: flex;
+        }
+
+        .nexo-modal-card {
+            width: min(640px, 100%);
+            max-height: 92vh;
+            overflow-y: auto;
+            padding: 26px;
+            border-radius: 28px;
+            background: #FFFFFF;
+            box-shadow: 0 30px 80px rgba(6, 28, 63, 0.26);
+        }
+
+        .nexo-modal-header {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .nexo-modal-header span {
+            display: block;
+            color: #64748B;
+            font-size: 0.76rem;
+            font-weight: 900;
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+            margin-bottom: 5px;
+        }
+
+        .nexo-modal-header h3 {
+            color: #061C3F;
+            font-size: 1.6rem;
+            font-weight: 950;
+            letter-spacing: -0.05em;
+            margin: 0;
+        }
+
+        .nexo-modal-header button {
+            width: 38px;
+            height: 38px;
+            border: 0;
+            border-radius: 12px;
+            background: #F1F5F9;
+            color: #061C3F;
+        }
+
+        .nexo-reactivate-info {
+            margin-bottom: 18px;
+            padding: 16px;
+            border-radius: 18px;
+            background: #EAF3FF;
+            color: #1D4ED8;
+            display: flex;
+            gap: 12px;
+        }
+
+        .nexo-reactivate-info i {
+            font-size: 1.4rem;
+        }
+
+        .nexo-reactivate-info strong {
+            display: block;
+            color: #061C3F;
+            font-weight: 950;
+            margin-bottom: 4px;
+        }
+
+        .nexo-reactivate-info p {
+            margin: 0;
+            color: #475569;
+            line-height: 1.45;
+        }
+
+        .nexo-modal-warning {
+            margin-top: 18px;
+            padding: 14px;
+            border-radius: 16px;
+            display: flex;
+            gap: 10px;
+            line-height: 1.45;
+            font-size: 0.86rem;
+            font-weight: 750;
+            background: #ECFDF5;
+            color: #166534;
+        }
+
+        .nexo-modal-submit {
+            width: 100%;
+            min-height: 52px;
+            margin-top: 18px;
+            border: 0;
+            border-radius: 16px;
+            color: #FFFFFF;
+            background: linear-gradient(135deg, #2F80ED 0%, #1B6DFF 100%);
+            font-weight: 950;
+            box-shadow: 0 14px 30px rgba(47, 128, 237, 0.22);
+        }
+
         @media (max-width: 992px) {
             .nexo-subscription-lock-card {
                 grid-template-columns: 1fr;
@@ -459,6 +729,50 @@
             .nexo-subscription-details-grid {
                 grid-template-columns: 1fr;
             }
+
+            .nexo-subscription-primary-action,
+            .nexo-subscription-secondary-action {
+                width: 100%;
+            }
         }
     </style>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const openButtons = document.querySelectorAll('[data-nexo-modal-open]');
+            const closeButtons = document.querySelectorAll('[data-nexo-modal-close]');
+
+            openButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const modalType = button.getAttribute('data-nexo-modal-open');
+                    const modal = document.getElementById('nexo-' + modalType + '-modal');
+
+                    if (modal) {
+                        modal.classList.add('is-open');
+                        modal.setAttribute('aria-hidden', 'false');
+                    }
+                });
+            });
+
+            closeButtons.forEach(function (button) {
+                button.addEventListener('click', function () {
+                    const modal = button.closest('.nexo-modal-backdrop');
+
+                    if (modal) {
+                        modal.classList.remove('is-open');
+                        modal.setAttribute('aria-hidden', 'true');
+                    }
+                });
+            });
+
+            document.querySelectorAll('.nexo-modal-backdrop').forEach(function (modal) {
+                modal.addEventListener('click', function (event) {
+                    if (event.target === modal) {
+                        modal.classList.remove('is-open');
+                        modal.setAttribute('aria-hidden', 'true');
+                    }
+                });
+            });
+        });
+    </script>
 </x-layouts.app>

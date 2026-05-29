@@ -46,6 +46,7 @@ class AuthController extends Controller
                     'email' => $request->email,
                     'telefone' => $request->telefone,
                     'password' => Hash::make($request->password),
+                    'perfil' => 'corretor',
 
                     'billing_status' => 'trial',
                     'billing_payment_method' => 'CREDIT_CARD',
@@ -170,12 +171,21 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, true)) {
             $request->session()->regenerate();
-            $sessoes->registrarAcesso($request->user(), $request);
+
+            $user = $request->user();
+
+            $sessoes->registrarAcesso($user, $request);
+
+            if ($this->usuarioAdministrador($user)) {
+                return redirect()->route('admin.dashboard');
+            }
 
             return redirect()->intended(route('dashboard'));
         }
 
-        return back()->withErrors(['email' => 'E-mail ou senha inválidos.']);
+        return back()->withErrors([
+            'email' => 'E-mail ou senha inválidos.',
+        ]);
     }
 
     public function logout(Request $request)
@@ -186,5 +196,10 @@ class AuthController extends Controller
         $request->session()->regenerateToken();
 
         return redirect()->route('login');
+    }
+
+    private function usuarioAdministrador(?User $user): bool
+    {
+        return (bool) ($user?->is_admin || $user?->perfil === 'admin');
     }
 }

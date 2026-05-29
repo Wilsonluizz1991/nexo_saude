@@ -27,6 +27,9 @@ use Illuminate\Notifications\Notifiable;
     'receber_notificacoes_aniversario',
     'receber_notificacoes_renovacao',
     'receber_notificacoes_tarefas',
+    'is_admin', 
+    'admin_since',
+    'blocked_at',
 
     // Billing / Asaas
     'asaas_customer_id',
@@ -57,6 +60,9 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'ultimo_login_em' => 'datetime',
             'password' => 'hashed',
+            'is_admin' => 'boolean',
+            'admin_since' => 'datetime',
+            'blocked_at' => 'datetime',
 
             'receber_alertas_email' => 'boolean',
             'receber_notificacoes_aniversario' => 'boolean',
