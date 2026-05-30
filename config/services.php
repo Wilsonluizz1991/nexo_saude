@@ -46,6 +46,8 @@ return [
         'base_url' => env('ASAAS_BASE_URL', 'https://sandbox.asaas.com/api/v3'),
         'api_key' => env('ASAAS_API_KEY'),
         'webhook_token' => env('ASAAS_WEBHOOK_TOKEN'),
+        'verify_ssl' => env('ASAAS_VERIFY_SSL', true),
+        'ca_bundle' => env('ASAAS_CA_BUNDLE'),
     ],
 
 ];

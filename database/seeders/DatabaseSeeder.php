@@ -55,8 +55,13 @@ class DatabaseSeeder extends Seeder
             'name' => 'Carlos Oliveira',
             'telefone' => '(11) 99999-0000',
             'perfil' => 'Corretor',
+            'email_verified_at' => now(),
             'password' => Hash::make('password'),
         ]);
+
+        if (! $corretor->email_verified_at) {
+            $corretor->forceFill(['email_verified_at' => now()])->save();
+        }
 
         if (! $corretor->assinatura) {
             app(AssinaturaService::class)->iniciarTesteGratis($corretor);

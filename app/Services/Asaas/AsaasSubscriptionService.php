@@ -11,11 +11,13 @@ class AsaasSubscriptionService
 {
     protected string $baseUrl;
     protected string $apiKey;
+    protected bool|string $sslVerification;
 
     public function __construct()
     {
         $this->baseUrl = config('services.asaas.base_url');
         $this->apiKey = config('services.asaas.api_key');
+        $this->sslVerification = $this->sslVerification();
     }
 
     public function create(array $data): array
@@ -26,6 +28,9 @@ class AsaasSubscriptionService
                     'accept' => 'application/json',
                     'content-type' => 'application/json',
                     'access_token' => $this->apiKey,
+                ])
+                ->withOptions([
+                    'verify' => $this->sslVerification,
                 ])
                 ->post($this->baseUrl . '/subscriptions', [
                     'customer' => $data['customer'],
@@ -91,6 +96,9 @@ class AsaasSubscriptionService
                     'content-type' => 'application/json',
                     'access_token' => $this->apiKey,
                 ])
+                ->withOptions([
+                    'verify' => $this->sslVerification,
+                ])
                 ->put($this->baseUrl . '/subscriptions/' . $subscriptionId . '/creditCard', [
                     'creditCard' => [
                         'holderName' => $data['card_holder_name'],
@@ -150,6 +158,9 @@ class AsaasSubscriptionService
                     'content-type' => 'application/json',
                     'access_token' => $this->apiKey,
                 ])
+                ->withOptions([
+                    'verify' => $this->sslVerification,
+                ])
                 ->get($this->baseUrl . '/subscriptions/' . $subscriptionId);
 
             if ($response->successful()) {
@@ -185,6 +196,9 @@ class AsaasSubscriptionService
                     'content-type' => 'application/json',
                     'access_token' => $this->apiKey,
                 ])
+                ->withOptions([
+                    'verify' => $this->sslVerification,
+                ])
                 ->delete($this->baseUrl . '/subscriptions/' . $subscriptionId);
 
             if ($response->successful()) {
@@ -210,5 +224,16 @@ class AsaasSubscriptionService
                 'message' => $e->getMessage(),
             ];
         }
+    }
+
+    private function sslVerification(): bool|string
+    {
+        $caBundle = config('services.asaas.ca_bundle');
+
+        if (is_string($caBundle) && $caBundle !== '') {
+            return $caBundle;
+        }
+
+        return filter_var(config('services.asaas.verify_ssl', true), FILTER_VALIDATE_BOOLEAN);
     }
 }

@@ -2,6 +2,7 @@
 
 use App\Http\Middleware\VerificarAdministradorSistema;
 use App\Http\Middleware\VerificarAssinaturaAtiva;
+use App\Http\Middleware\VerificarEmailConfirmado;
 use App\Http\Middleware\VerificarUsuarioAtivo;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
@@ -23,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
             'assinatura.ativa' => VerificarAssinaturaAtiva::class,
             'admin.sistema' => VerificarAdministradorSistema::class,
             'usuario.ativo' => VerificarUsuarioAtivo::class,
+            'email.confirmado' => VerificarEmailConfirmado::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

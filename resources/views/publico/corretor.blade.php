@@ -14,7 +14,7 @@
                     <div class="nexo-broker-photo-wrap">
                         <img
                             class="nexo-broker-photo"
-                            src="{{ $perfil->foto_path ? asset('storage/'.$perfil->foto_path) : 'https://i.pravatar.cc/240?img=12' }}"
+                            src="{{ $perfil->foto_path ? asset('storage/'.$perfil->foto_path) : asset('assets/nexo-logo-topo.png') }}"
                             alt="Foto do corretor {{ $perfil->nome_publico }}"
                         >
                     </div>
@@ -417,11 +417,13 @@
             width: 132px;
             height: 132px;
             border-radius: 999px;
-            padding: 5px;
-            background: linear-gradient(135deg, #FFFFFF, #2F80ED);
+            padding: 2px;
+            background: rgba(125, 181, 255, 0.65);
             margin-bottom: 24px;
             position: relative;
             z-index: 1;
+            overflow: hidden;
+            box-shadow: 0 16px 36px rgba(6, 28, 63, 0.22);
         }
 
         .nexo-premium-floating-badge {
@@ -444,11 +446,14 @@
         }
 
         .nexo-broker-profile-premium .nexo-broker-photo {
-            width: 122px;
-            height: 122px;
-            object-fit: cover;
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            object-position: center center;
             border-radius: 999px;
-            border: 4px solid #061C3F;
+            border: 1px solid rgba(255, 255, 255, 0.28);
+            background: #0B2448;
+            display: block;
         }
 
         .nexo-broker-label {
@@ -872,9 +877,7 @@
             margin: 0;
             font-weight: 700;
         }
-
     </style>
-
 
     @if(($reputacao['total'] ?? 0) > 0)
         <div class="modal fade nexo-public-reviews-modal" id="avaliacoesClientesModal" tabindex="-1" aria-hidden="true">
@@ -904,6 +907,7 @@
             </div>
         </div>
     @endif
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const preferencesToggle = document.querySelector('[data-preferences-toggle]');

@@ -10,7 +10,9 @@ use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Facades\Storage;
+use App\Notifications\Auth\VerifyEmailNotification;
 use Tests\TestCase;
 
 class EndToEndQaTest extends TestCase
@@ -27,6 +29,8 @@ class EndToEndQaTest extends TestCase
 
     public function test_cadastro_corretor_cria_cliente_asaas_assinatura_trial_e_perfil_sem_foto_falsa(): void
     {
+        Notification::fake();
+
         Http::fake([
             '*/customers' => Http::response([
                 'id' => 'cus_qa_123',
@@ -58,11 +62,12 @@ class EndToEndQaTest extends TestCase
             'card_expiry_year' => '2030',
             'card_ccv' => '123',
             'accepted_terms' => '1',
-        ])->assertRedirect(route('perfil-publico.edit'));
+        ])->assertRedirect(route('verification.notice'));
 
         Http::assertSentCount(2);
 
         $user = User::where('email', 'qa-corretor@example.com')->firstOrFail();
+        $this->assertNull($user->email_verified_at);
         $this->assertSame('corretor', $user->perfil);
         $this->assertSame('cus_qa_123', $user->asaas_customer_id);
         $this->assertSame('sub_qa_123', $user->asaas_subscription_id);
@@ -78,6 +83,8 @@ class EndToEndQaTest extends TestCase
 
         $perfil = CorretorPerfil::where('user_id', $user->id)->firstOrFail();
         $this->assertNull($perfil->foto_path);
+
+        Notification::assertSentTo($user, VerifyEmailNotification::class);
     }
 
     public function test_login_e_bloqueios_por_status_de_assinatura(): void

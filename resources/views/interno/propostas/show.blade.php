@@ -69,7 +69,7 @@
 
                         <div class="col-12">
                             <label class="form-label">PDF da proposta</label>
-                            <input class="form-control" name="arquivo_pdf" type="file" accept="application/pdf" required>
+                            <x-file-input name="arquivo_pdf" accept="application/pdf" :required="true" />
                         </div>
 
                         <div class="col-12">

@@ -135,9 +135,12 @@ class AuthController extends Controller
                 return $user;
             });
 
-            Auth::login($user);
+            $user->sendEmailVerificationNotification();
 
-            return redirect()->route('perfil-publico.edit');
+            Auth::login($user);
+            session(['email_verification_after' => route('perfil-publico.edit')]);
+
+            return redirect()->route('verification.notice');
         } catch (\Throwable $e) {
             Log::error('Erro ao criar conta com assinatura Asaas', [
                 'message' => $e->getMessage(),
@@ -185,6 +188,10 @@ class AuthController extends Controller
             }
 
             $sessoes->registrarAcesso($user, $request);
+
+            if (! $user->hasVerifiedEmail()) {
+                return redirect()->intended(route('verification.notice'));
+            }
 
             if ($this->usuarioAdministrador($user)) {
                 return redirect()->route('admin.dashboard');

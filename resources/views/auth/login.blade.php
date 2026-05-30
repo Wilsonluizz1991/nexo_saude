@@ -93,7 +93,7 @@
                 </form>
 
                 <div class="nexo-login-footer">
-                    <a href="#">
+                    <a href="{{ route('password.request') }}">
                         Esqueci minha senha
                     </a>
 

@@ -4,7 +4,7 @@
         @csrf
         <div class="col-md-4">
             <img class="nexo-avatar-preview" src="{{ $user->avatar_path ? asset('storage/'.$user->avatar_path) : 'https://i.pravatar.cc/160?img=12' }}" alt="Preview da foto">
-            <input name="foto" type="file" class="form-control mt-3" accept="image/*">
+            <x-file-input name="foto" accept="image/*" class="mt-3" />
             <label class="form-check mt-2"><input name="remover_foto" value="1" type="checkbox" class="form-check-input"> Remover foto</label>
         </div>
         <div class="col-md-8 row g-3">

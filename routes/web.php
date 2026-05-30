@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Admin\AdminSistemaController;
 use App\Http\Controllers\Auth\AuthController;
+use App\Http\Controllers\Auth\EmailVerificationController;
+use App\Http\Controllers\Auth\PasswordResetController;
 use App\Http\Controllers\Interno\AssinaturaController;
 use App\Http\Controllers\Interno\BuscaGlobalController;
 use App\Http\Controllers\Interno\ClienteController;
@@ -18,19 +20,34 @@ use App\Http\Controllers\Publico\DocumentoClienteController;
 use App\Http\Controllers\Publico\PaginaCorretorController;
 use App\Http\Controllers\Webhook\AsaasWebhookController;
 use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Mail;
 
 Route::get('/', function () {
-    return redirect()->route('login');
-});
+    return view('publico.landing');
+})->name('landing');
 
 Route::middleware('guest')->group(function () {
     Route::get('/criar-conta', [AuthController::class, 'showRegister'])->name('register');
     Route::post('/criar-conta', [AuthController::class, 'register'])->name('register.store');
     Route::get('/entrar', [AuthController::class, 'showLogin'])->name('login');
     Route::post('/entrar', [AuthController::class, 'login'])->name('login.store');
+    Route::get('/esqueci-minha-senha', [PasswordResetController::class, 'create'])->name('password.request');
+    Route::post('/esqueci-minha-senha', [PasswordResetController::class, 'store'])->middleware('throttle:6,1')->name('password.email');
+    Route::get('/redefinir-senha/{token}', [PasswordResetController::class, 'edit'])->name('password.reset');
+    Route::post('/redefinir-senha', [PasswordResetController::class, 'update'])->middleware('throttle:6,1')->name('password.update');
 });
 
 Route::post('/sair', [AuthController::class, 'logout'])->middleware('auth')->name('logout');
+
+Route::middleware(['auth', 'usuario.ativo'])->group(function () {
+    Route::get('/confirmar-email', [EmailVerificationController::class, 'notice'])->name('verification.notice');
+    Route::get('/confirmar-email/{id}/{hash}', [EmailVerificationController::class, 'verify'])
+        ->middleware(['signed', 'throttle:6,1'])
+        ->name('verification.verify');
+    Route::post('/confirmar-email/reenviar', [EmailVerificationController::class, 'resend'])
+        ->middleware('throttle:6,1')
+        ->name('verification.send');
+});
 
 Route::get('/perfil/{slug}', [PaginaCorretorController::class, 'show'])->name('publico.corretor');
 Route::post('/perfil/{slug}/solicitacao', [PaginaCorretorController::class, 'store'])->name('publico.indicacoes.store');
@@ -49,14 +66,14 @@ Route::post('/cliente/documentos/{token}', [DocumentoClienteController::class, '
 
 Route::post('/webhooks/asaas', [AsaasWebhookController::class, 'handle']);
 
-Route::middleware(['auth', 'usuario.ativo'])->group(function () {
+Route::middleware(['auth', 'usuario.ativo', 'email.confirmado'])->group(function () {
     Route::get('/assinatura', [AssinaturaController::class, 'bloqueada'])->name('assinatura.bloqueada');
     Route::post('/assinatura/assinar', [AssinaturaController::class, 'assinar'])->name('assinatura.assinar');
 });
 
 Route::prefix('admin')
     ->name('admin.')
-    ->middleware(['auth', 'usuario.ativo', 'admin.sistema'])
+    ->middleware(['auth', 'usuario.ativo', 'email.confirmado', 'admin.sistema'])
     ->group(function () {
         Route::get('/', [AdminSistemaController::class, 'dashboard'])->name('dashboard');
 
@@ -71,7 +88,7 @@ Route::prefix('admin')
         Route::get('/auditoria', [AdminSistemaController::class, 'auditoria'])->name('auditoria.index');
     });
 
-Route::middleware(['auth', 'usuario.ativo', 'assinatura.ativa'])->group(function () {
+Route::middleware(['auth', 'usuario.ativo', 'email.confirmado', 'assinatura.ativa'])->group(function () {
     Route::get('/dashboard', DashboardController::class)->name('dashboard');
     Route::get('/busca', BuscaGlobalController::class)->name('busca.index');
     Route::post('/assinatura/reativar', [AssinaturaController::class, 'reativar'])->name('assinatura.reativar');
@@ -148,3 +165,6 @@ Route::middleware(['auth', 'usuario.ativo', 'assinatura.ativa'])->group(function
         ->whereIn('pagina', ['propostas', 'pre-cadastros', 'implantacoes', 'clientes', 'carteira'])
         ->name('paginas.simples');
 });
+
+
+

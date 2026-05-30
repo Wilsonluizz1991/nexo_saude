@@ -3,13 +3,23 @@
     $isAdmin = (bool) ($user?->is_admin || $user?->perfil === 'admin');
     $userRole = $isAdmin ? 'Administrador' : 'Corretor';
     $homeRoute = $isAdmin ? route('admin.dashboard') : route('dashboard');
+
+    $avatarPath = $user?->avatar_path ?: $user?->corretorPerfil?->foto_path;
     $adminSearchRoute = request()->routeIs('admin.auditoria.*') ? route('admin.auditoria.index') : route('admin.usuarios.index');
     $adminSearchPlaceholder = request()->routeIs('admin.auditoria.*')
         ? 'Buscar auditorias, ações, administradores...'
         : 'Buscar usuários, perfis e assinaturas...';
 
-    $iniciais = collect(explode(' ', trim($user?->name ?? 'Usuário')))
+    $nomeCompletoUsuario = trim($user?->name ?? 'Usuário');
+    $partesNomeUsuario = collect(preg_split('/\s+/', $nomeCompletoUsuario))
         ->filter()
+        ->values();
+
+    $nomeExibicaoUsuario = $partesNomeUsuario->count() > 1
+        ? $partesNomeUsuario->first() . ' ' . $partesNomeUsuario->last()
+        : ($partesNomeUsuario->first() ?: 'Usuário');
+
+    $iniciais = $partesNomeUsuario
         ->take(2)
         ->map(fn($parte) => mb_substr($parte, 0, 1))
         ->implode('');
@@ -216,8 +226,8 @@
                                 <span class="nexo-avatar-placeholder nexo-avatar-admin">
                                     <i class="bi bi-shield-lock-fill"></i>
                                 </span>
-                            @elseif($user?->avatar_path)
-                                <img class="nexo-avatar" src="{{ asset('storage/' . $user->avatar_path) }}" alt="Avatar do usuário">
+                            @elseif($avatarPath)
+                                <img class="nexo-avatar" src="{{ asset('storage/' . $avatarPath) }}" alt="Avatar do usuário">
                             @else
                                 <span class="nexo-avatar-placeholder">
                                     {{ $iniciais ?: 'U' }}
@@ -225,7 +235,7 @@
                             @endif
 
                             <span class="nexo-user-text">
-                                <span class="nexo-user-name">{{ $user->name }}</span>
+                                <span class="nexo-user-name" title="{{ $nomeCompletoUsuario }}">{{ $nomeExibicaoUsuario }}</span>
                                 <span class="nexo-user-role">{{ $userRole }}</span>
                             </span>
 
@@ -288,6 +298,19 @@
     </nav>
 
     <style>
+
+
+        .nexo-avatar {
+            width: 68px;
+            height: 68px;
+            border-radius: 50%;
+            flex: none;
+            object-fit: cover;
+            object-position: center 18%;
+            border: 2px solid rgba(255, 255, 255, 0.92);
+            box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        }
+
         .nexo-avatar-placeholder {
             width: 58px;
             height: 58px;
