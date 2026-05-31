@@ -74,6 +74,15 @@
                         </span>
                     </div>
 
+                    @if($documento->dispensado_por_ia)
+                        <div class="nexo-document-ia">
+                            <i class="bi bi-stars"></i>
+                            <span>
+                                IA: {{ $documento->motivo_dispensa ?: 'Documento dispensado automaticamente pela IA.' }}
+                            </span>
+                        </div>
+                    @endif
+
                     @if($documento->envio)
                         <a
                             class="nexo-document-link"
@@ -84,6 +93,15 @@
                             <i class="bi bi-box-arrow-up-right"></i>
                             Visualizar documento enviado
                         </a>
+
+                        @if($documento->envio->iaValidacao)
+                            <div class="nexo-document-ia">
+                                <i class="bi bi-stars"></i>
+                                <span>
+                                    IA: {{ $documento->envio->iaValidacao->mensagem_corretor ?: $documento->envio->iaValidacao->mensagem_cliente }}
+                                </span>
+                            </div>
+                        @endif
                     @else
                         <div class="nexo-document-muted">
                             <i class="bi bi-hourglass-split"></i>
@@ -299,6 +317,26 @@
         }
 
         .nexo-document-observacao i {
+            color: #2F80ED;
+            margin-top: 2px;
+            flex-shrink: 0;
+        }
+
+        .nexo-document-ia {
+            display: flex;
+            align-items: flex-start;
+            gap: 8px;
+            margin-top: 12px;
+            color: #475569;
+            font-size: 0.84rem;
+            line-height: 1.42;
+            padding: 12px;
+            border-radius: 14px;
+            background: #F3F8FF;
+            border: 1px solid #D7E7FF;
+        }
+
+        .nexo-document-ia i {
             color: #2F80ED;
             margin-top: 2px;
             flex-shrink: 0;

@@ -25,6 +25,8 @@ class StoreDocumentoClienteRequest extends FormRequest
             'vidas.*.gestante' => ['nullable', 'boolean'],
             'documentos' => ['required', 'array'],
             'documentos.*' => ['file', 'mimes:pdf,jpg,jpeg,png', 'max:10240'],
+            'ia_validacoes' => ['nullable', 'array'],
+            'ia_validacoes.*' => ['nullable', 'integer', 'min:1'],
             'observacao_cliente' => ['nullable', 'string', 'max:1000'],
         ];
     }

@@ -404,8 +404,8 @@ class FluxoOperacionalNexoTest extends TestCase
                 'tipo_proposta' => 'familiar',
                 'pessoa' => 'PF',
                 'vidas' => [
-                    ['tipo' => 'titular', 'nome' => 'Titular Teste', 'sexo' => 'masculino', 'data_nascimento' => '1980-01-01', 'documentos_solicitados' => $this->documentosPorSlug(['rg', 'cpf', 'comprovante-de-residencia'])],
-                    ['tipo' => 'dependente', 'nome' => 'Cônjuge Teste', 'parentesco' => 'conjuge', 'sexo' => 'feminino', 'data_nascimento' => '1982-02-02', 'documentos_solicitados' => $this->documentosPorSlug(['rg', 'cpf', 'certidao-de-casamento', 'declaracao-de-uniao-estavel'])],
+                    ['tipo' => 'titular', 'nome' => 'Titular Teste', 'sexo' => 'masculino', 'data_nascimento' => '1980-01-01', 'documentos_solicitados' => $this->documentosPorSlug(['documento-de-identidade-com-foto', 'cpf', 'comprovante-de-residencia'])],
+                    ['tipo' => 'dependente', 'nome' => 'Cônjuge Teste', 'parentesco' => 'conjuge', 'sexo' => 'feminino', 'data_nascimento' => '1982-02-02', 'documentos_solicitados' => $this->documentosPorSlug(['documento-de-identidade-com-foto', 'cpf', 'certidao-de-casamento', 'declaracao-de-uniao-estavel'])],
                     ['tipo' => 'dependente', 'nome' => 'Filho Um', 'parentesco' => 'filho', 'sexo' => 'masculino', 'data_nascimento' => '2015-03-03', 'documentos_solicitados' => $this->documentosPorSlug(['certidao-de-nascimento'])],
                     ['tipo' => 'dependente', 'nome' => 'Filha Dois', 'parentesco' => 'filho', 'sexo' => 'feminino', 'data_nascimento' => '2018-04-04', 'documentos_solicitados' => $this->documentosPorSlug(['certidao-de-nascimento'])],
                 ],
@@ -417,10 +417,10 @@ class FluxoOperacionalNexoTest extends TestCase
         $this->assertSame('aguardando_envio', $lead->status);
 
         $titulos = $lead->preCadastro->documentosObrigatorios->pluck('titulo')->all();
-        $this->assertContains('RG - Beneficiário 1', $titulos);
+        $this->assertContains('Documento de identidade com foto - Beneficiário 1', $titulos);
         $this->assertContains('CPF - Beneficiário 1', $titulos);
         $this->assertContains('Comprovante de Residência - Beneficiário 1', $titulos);
-        $this->assertContains('RG - Beneficiário 2', $titulos);
+        $this->assertContains('Documento de identidade com foto - Beneficiário 2', $titulos);
         $this->assertContains('CPF - Beneficiário 2', $titulos);
         $this->assertContains('Certidão de Casamento - Beneficiário 2', $titulos);
         $this->assertContains('Declaração de União Estável - Beneficiário 2', $titulos);
@@ -995,9 +995,9 @@ class FluxoOperacionalNexoTest extends TestCase
                 'tipo_proposta' => 'familiar',
                 'pessoa' => 'PF',
                 'vidas' => [
-                    ['tipo' => 'titular', 'nome' => 'Titular 1', 'sexo' => 'masculino', 'data_nascimento' => '1980-01-01', 'documentos_solicitados' => $this->documentosPorSlug(['rg'])],
-                    ['tipo' => 'titular', 'nome' => 'Titular 2', 'sexo' => 'feminino', 'data_nascimento' => '1982-02-02', 'gestante' => 1, 'documentos_solicitados' => $this->documentosPorSlug(['rg'])],
-                    ['tipo' => 'dependente', 'nome' => 'Dependente sem parentesco', 'sexo' => 'masculino', 'data_nascimento' => '2010-01-01', 'gestante' => 1, 'documentos_solicitados' => $this->documentosPorSlug(['rg'])],
+                    ['tipo' => 'titular', 'nome' => 'Titular 1', 'sexo' => 'masculino', 'data_nascimento' => '1980-01-01', 'documentos_solicitados' => $this->documentosPorSlug(['documento-de-identidade-com-foto'])],
+                    ['tipo' => 'titular', 'nome' => 'Titular 2', 'sexo' => 'feminino', 'data_nascimento' => '1982-02-02', 'gestante' => 1, 'documentos_solicitados' => $this->documentosPorSlug(['documento-de-identidade-com-foto'])],
+                    ['tipo' => 'dependente', 'nome' => 'Dependente sem parentesco', 'sexo' => 'masculino', 'data_nascimento' => '2010-01-01', 'gestante' => 1, 'documentos_solicitados' => $this->documentosPorSlug(['documento-de-identidade-com-foto'])],
                 ],
             ])
             ->assertRedirect(route('pre-cadastros.create', $lead))
@@ -1025,8 +1025,8 @@ class FluxoOperacionalNexoTest extends TestCase
                 'tipo_proposta' => 'empresarial',
                 'pessoa' => 'PJ',
                 'vidas' => [
-                    ['tipo' => 'socio', 'nome' => 'Sócia QA', 'sexo' => 'feminino', 'data_nascimento' => '1985-05-05', 'gestante' => 1, 'cpf' => '11122233344', 'documentos_solicitados' => $this->documentosPorSlug(['rg', 'cpf'])],
-                    ['tipo' => 'colaborador', 'nome' => 'Colaborador QA', 'sexo' => 'masculino', 'data_nascimento' => '1990-06-06', 'cargo' => 'Analista', 'documentos_solicitados' => $this->documentosPorSlug(['rg', 'cpf'])],
+                    ['tipo' => 'socio', 'nome' => 'Sócia QA', 'sexo' => 'feminino', 'data_nascimento' => '1985-05-05', 'gestante' => 1, 'cpf' => '11122233344', 'documentos_solicitados' => $this->documentosPorSlug(['documento-de-identidade-com-foto', 'cpf'])],
+                    ['tipo' => 'colaborador', 'nome' => 'Colaborador QA', 'sexo' => 'masculino', 'data_nascimento' => '1990-06-06', 'cargo' => 'Analista', 'documentos_solicitados' => $this->documentosPorSlug(['documento-de-identidade-com-foto', 'cpf'])],
                     ['tipo' => 'dependente_colaborador', 'vinculo_beneficiario_id' => 1, 'nome' => 'Filho Colaborador', 'parentesco' => 'filho', 'sexo' => 'masculino', 'data_nascimento' => '2018-07-07', 'documentos_solicitados' => $this->documentosPorSlug(['certidao-de-nascimento'])],
                 ],
             ])
@@ -1045,9 +1045,9 @@ class FluxoOperacionalNexoTest extends TestCase
         $this->assertSame($vidas[1]->id, $vidas[2]->vinculo_beneficiario_id);
 
         $titulos = $lead->preCadastro->documentosObrigatorios->pluck('titulo')->all();
-        $this->assertContains('RG - Beneficiário 1', $titulos);
+        $this->assertContains('Documento de identidade com foto - Beneficiário 1', $titulos);
         $this->assertContains('CPF - Beneficiário 1', $titulos);
-        $this->assertContains('RG - Beneficiário 2', $titulos);
+        $this->assertContains('Documento de identidade com foto - Beneficiário 2', $titulos);
         $this->assertContains('CPF - Beneficiário 2', $titulos);
         $this->assertContains('Certidão de Nascimento - Beneficiário 3', $titulos);
     }
@@ -1075,7 +1075,7 @@ class FluxoOperacionalNexoTest extends TestCase
                 'tipo_proposta' => 'individual',
                 'pessoa' => 'PF',
                 'vidas' => [
-                    ['tipo' => 'titular', 'nome' => 'Cliente Link', 'sexo' => 'feminino', 'data_nascimento' => '1991-01-01', 'documentos_solicitados' => $this->documentosPorSlug(['rg', 'cpf'])],
+                    ['tipo' => 'titular', 'nome' => 'Cliente Link', 'sexo' => 'feminino', 'data_nascimento' => '1991-01-01', 'documentos_solicitados' => $this->documentosPorSlug(['documento-de-identidade-com-foto', 'cpf'])],
                 ],
             ])
             ->assertRedirect();
@@ -1148,11 +1148,11 @@ class FluxoOperacionalNexoTest extends TestCase
         $documento = $lead->preCadastro->documentosObrigatorios()->firstOrFail();
         $this->actingAs($this->corretor)->post(route('indicacoes.documentos.update', [$lead, $documento]), [
             'status' => 'corrigir',
-            'observacoes' => 'RG do titular ilegível.',
+            'observacoes' => 'Documento de identidade com foto do titular ilegível.',
         ])->assertRedirect();
 
         $this->actingAs($this->corretor)->post(route('indicacoes.pre-cadastro.correcao', $lead), [
-            'motivos_correcao' => 'Revise o RG do titular.',
+            'motivos_correcao' => 'Revise o documento de identidade com foto do titular.',
         ])->assertRedirect();
 
         $lead->refresh()->load('preCadastro');
@@ -1163,8 +1163,8 @@ class FluxoOperacionalNexoTest extends TestCase
         $this->get($rotaPublica)
             ->assertOk()
             ->assertSee('Seu pré-cadastro precisa de correções')
-            ->assertSee('Revise o RG do titular.')
-            ->assertSee('RG do titular ilegível.');
+            ->assertSee('Revise o documento de identidade com foto do titular.')
+            ->assertSee('Documento de identidade com foto do titular ilegível.');
     }
 
     private function documentosPorSlug(array $slugs): array

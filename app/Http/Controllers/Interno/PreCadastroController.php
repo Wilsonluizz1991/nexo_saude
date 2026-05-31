@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Interno;
 
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StorePreCadastroRequest;
+use App\Mail\PreCadastroLinkClienteMail;
 use App\Models\Indicacao;
 use App\Models\PreCadastro;
 use App\Models\TipoDocumento;
 use App\Services\PreCadastroService;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class PreCadastroController extends Controller
 {
@@ -28,6 +31,7 @@ class PreCadastroController extends Controller
         $preCadastro = $service->iniciar($indicacao, $request->validated());
         $link = $this->linkPublico($preCadastro);
         $preCadastro = $service->enviarSmsComLink($preCadastro, $link);
+        $this->enviarEmailLinkCliente($preCadastro, $link);
 
         return redirect()->route('pre-cadastros.show', $preCadastro)
             ->with('status', 'Pré-cadastro criado e link preparado.')
@@ -46,7 +50,7 @@ class PreCadastroController extends Controller
             'indicacao.tarefas',
             'vidas',
             'documentosObrigatorios.tipoDocumento',
-            'documentosObrigatorios.envio',
+            'documentosObrigatorios.envio.iaValidacao',
         ]);
 
         abort_unless($preCadastro->indicacao?->user_id === auth()->id(), 403);
@@ -67,5 +71,38 @@ class PreCadastroController extends Controller
             'slug' => $slug,
             'token' => $preCadastro->token,
         ]);
+    }
+
+    private function enviarEmailLinkCliente(PreCadastro $preCadastro, string $link): void
+    {
+        $preCadastro->loadMissing('indicacao', 'indicacao.user');
+        $indicacao = $preCadastro->indicacao;
+        $corretor = $indicacao?->user;
+
+        if (! $indicacao?->email) {
+            Log::info('E-mail de pré-cadastro não enviado: cliente sem e-mail.', [
+                'pre_cadastro_id' => $preCadastro->id,
+                'indicacao_id' => $indicacao?->id,
+            ]);
+            return;
+        }
+
+        if (! $corretor) {
+            Log::warning('E-mail de pré-cadastro não enviado: corretor ausente.', [
+                'pre_cadastro_id' => $preCadastro->id,
+                'indicacao_id' => $indicacao->id,
+            ]);
+            return;
+        }
+
+        try {
+            Mail::to($indicacao->email)->send(new PreCadastroLinkClienteMail($indicacao, $preCadastro, $corretor, $link));
+        } catch (\Throwable $e) {
+            Log::warning('Falha ao enviar e-mail de link de pré-cadastro.', [
+                'pre_cadastro_id' => $preCadastro->id,
+                'indicacao_id' => $indicacao->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
     }
 }

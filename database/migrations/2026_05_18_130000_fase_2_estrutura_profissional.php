@@ -75,6 +75,10 @@ return new class extends Migration
             $table->enum('status', ['pendente', 'enviado', 'aprovado', 'recusado', 'corrigir', 'dispensado'])->default('pendente')->index();
             $table->string('grupo_alternativo')->nullable()->index();
             $table->text('observacoes')->nullable();
+            $table->boolean('dispensado_por_ia')->default(false);
+            $table->foreignId('dispensado_por_documento_id')->nullable();
+            $table->text('motivo_dispensa')->nullable();
+            $table->timestamp('dispensado_em')->nullable();
             $table->timestamps();
 
             $table->foreign('requisito_documental_id', 'doc_obrig_req_doc_fk')

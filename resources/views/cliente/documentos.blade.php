@@ -95,7 +95,7 @@
                         $documentos = $documentosPorVida->get($vida->id, collect());
                     @endphp
 
-                    <section class="nexo-beneficiary-card" data-public-beneficiario>
+                    <section class="nexo-beneficiary-card" data-public-beneficiario data-beneficiario-tipo="{{ $vida->tipo }}">
                         <div class="nexo-beneficiary-header">
                             <div class="nexo-beneficiary-title">
                                 <div class="nexo-beneficiary-avatar">
@@ -242,7 +242,7 @@
                         <div class="row g-3">
                             @foreach($documentos->sortBy('ordem') as $documento)
                                 @php
-                                    $documentoLiberado = ! $modoCorrecao || in_array($documento->status, ['pendente', 'corrigir', 'recusado'], true);
+                                    $documentoLiberado = (! $modoCorrecao || in_array($documento->status, ['pendente', 'corrigir', 'recusado'], true)) && ! $documento->dispensado_por_ia;
                                     $documentoObrigatorioInput = $documentoLiberado && $documento->obrigatorio && (! $documento->envio || $modoCorrecao);
                                     $statusLabel = $statusDocumentos[$documento->status] ?? ucfirst(str_replace('_', ' ', $documento->status));
                                 @endphp
@@ -259,7 +259,7 @@
                                                 </label>
                                             </div>
 
-                                            <span class="nexo-document-status">{{ $statusLabel }}</span>
+                                            <span class="nexo-document-status" data-document-status>{{ $statusLabel }}</span>
                                         </div>
 
                                         @if($documento->envio)
@@ -280,16 +280,25 @@
                                             </div>
                                         @endif
 
-                                        <div class="nexo-file-upload">
+                                        <div
+                                            class="nexo-file-upload"
+                                            data-documento-id="{{ $documento->id }}"
+                                            data-tipo-documento="{{ $documento->tipoDocumento?->nome }}"
+                                            data-dispensado-por="{{ $documento->dispensado_por_documento_id }}"
+                                        >
                                             <input
                                                 id="documento-{{ $documento->id }}"
                                                 name="documentos[{{ $documento->id }}]"
                                                 type="file"
                                                 class="nexo-file-input"
                                                 accept=".pdf,.jpg,.jpeg,.png"
+                                                data-ia-validation-url="{{ route('cliente.pre-cadastro.documentos.validar-ia', ['slug' => $slug, 'token' => $preCadastro->token, 'documento' => $documento]) }}"
+                                                data-tipo-documento-esperado="{{ $documento->tipoDocumento?->nome }}"
                                                 @disabled(! $documentoLiberado)
                                                 @required($documentoObrigatorioInput)
                                             >
+
+                                            <input type="hidden" name="ia_validacoes[{{ $documento->id }}]" data-ia-validation-id>
 
                                             <label
                                                 for="documento-{{ $documento->id }}"
@@ -308,6 +317,12 @@
                                                     Enviar
                                                 </div>
                                             </label>
+
+                                            <div class="nexo-ia-feedback" data-ia-feedback @if(! $documento->dispensado_por_ia) hidden @endif>
+                                                @if($documento->dispensado_por_ia)
+                                                    {{ $documento->motivo_dispensa ?: 'Envio separado de CPF não é necessário. O CPF já foi identificado no documento de identidade enviado.' }}
+                                                @endif
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
@@ -1058,6 +1073,31 @@
         .nexo-file-label:hover .nexo-file-action {
             background: #2F80ED;
             color: #FFFFFF;
+        }
+
+        .nexo-ia-feedback {
+            margin-top: 10px;
+            padding: 10px 12px;
+            border-radius: 14px;
+            font-size: 0.86rem;
+            font-weight: 750;
+            line-height: 1.35;
+        }
+
+        .nexo-ia-feedback.is-loading,
+        .nexo-ia-feedback.is-warning {
+            background: #FFF5E8;
+            color: #A45A13;
+        }
+
+        .nexo-ia-feedback.is-success {
+            background: #EAFBF1;
+            color: #16794E;
+        }
+
+        .nexo-ia-feedback.is-danger {
+            background: #FFECEC;
+            color: #B42318;
         }
 
         .nexo-final-card textarea {
@@ -1887,20 +1927,207 @@
                 sexo?.addEventListener('change', sync);
                 sync();
             });
-            document.querySelectorAll('.nexo-file-input').forEach((input) => {
-                input.addEventListener('change', () => {
+            const beneficiaryDataFor = (input) => {
+                const card = input.closest('[data-public-beneficiario]');
+                const name = card?.querySelector('input[name$="[nome]"]')?.value?.trim() || '';
+                const cpf = card?.querySelector('input[name$="[cpf]"]')?.value?.trim() || '';
+                const birth = card?.querySelector('input[name$="[data_nascimento]"]')?.value?.trim() || '';
+                const sexo = card?.querySelector('[data-public-sexo]')?.value || '';
+
+                return {
+                    card,
+                    complete: Boolean(name && cpf && birth),
+                    nome_beneficiario_atual: name,
+                    cpf_beneficiario_atual: cpf,
+                    data_nascimento_beneficiario_atual: birth,
+                    sexo_beneficiario_atual: sexo,
+                    tipo_beneficiario_atual: card?.dataset.beneficiarioTipo || '',
+                    tipo_documento_esperado: input.dataset.tipoDocumentoEsperado || '',
+                };
+            };
+
+            const appendBeneficiaryData = (formData, data) => {
+                Object.entries(data).forEach(([key, value]) => {
+                    if (key !== 'card' && key !== 'complete') {
+                        formData.append(key, value || '');
+                    }
+                });
+            };
+
+            const setCpfDispensaState = (documentoId, motivo, dispensado, identityInput = null) => {
+                const upload = document.querySelector(`.nexo-file-upload[data-documento-id="${documentoId}"]`);
+
+                if (!upload) return;
+
+                const fileInput = upload.querySelector('.nexo-file-input');
+                const label = upload.querySelector('.nexo-file-label');
+                const feedback = upload.querySelector('[data-ia-feedback]');
+                const validationId = upload.querySelector('[data-ia-validation-id]');
+                const status = upload.closest('.nexo-upload-box')?.querySelector('[data-document-status]');
+                const fileName = upload.querySelector('[data-file-name]');
+                const title = upload.querySelector('[data-file-title]');
+
+                if (dispensado) {
+                    if (fileInput) {
+                        fileInput.value = '';
+                        fileInput.disabled = true;
+                        fileInput.required = false;
+                    }
+                    if (validationId) validationId.value = '';
+                    if (label) label.classList.add('is-disabled');
+                    if (status) status.textContent = 'Dispensado';
+                    if (title) title.textContent = 'CPF dispensado';
+                    if (fileName) fileName.textContent = 'Atendido pela identidade';
+                    if (feedback) {
+                        feedback.hidden = false;
+                        feedback.className = 'nexo-ia-feedback is-success';
+                        feedback.textContent = motivo;
+                    }
+                    if (identityInput) upload.dataset.dispensadoPor = identityInput.closest('.nexo-file-upload')?.dataset.documentoId || '';
+                    return;
+                }
+
+                if (fileInput) {
+                    fileInput.disabled = false;
+                }
+                if (label) label.classList.remove('is-disabled');
+                if (status) status.textContent = 'Pendente';
+                if (title) title.textContent = 'Selecionar documento';
+                if (fileName) fileName.textContent = 'PDF, JPG ou PNG';
+                if (feedback) {
+                    feedback.hidden = true;
+                    feedback.textContent = '';
+                }
+                upload.dataset.dispensadoPor = '';
+            };
+
+            const clearDispensasFromIdentity = (input) => {
+                const identityDocumentId = input.closest('.nexo-file-upload')?.dataset.documentoId;
+                if (!identityDocumentId) return;
+
+                document.querySelectorAll(`.nexo-file-upload[data-dispensado-por="${identityDocumentId}"]`).forEach((upload) => {
+                    setCpfDispensaState(upload.dataset.documentoId, '', false);
+                });
+            };
+
+            const applyDispensas = (input, dispensas) => {
+                (dispensas || []).forEach((dispensa) => {
+                    if (dispensa.dispensado && dispensa.documento_obrigatorio_id) {
+                        setCpfDispensaState(String(dispensa.documento_obrigatorio_id), dispensa.motivo, true, input);
+                    }
+                });
+            };
+
+            const validateDocumentInput = async (input, phase, file = null) => {
                     const label = input.closest('.nexo-file-upload')?.querySelector('.nexo-file-label');
                     const title = label?.querySelector('[data-file-title]');
                     const fileName = label?.querySelector('[data-file-name]');
+                    const upload = input.closest('.nexo-file-upload');
+                    const feedback = upload?.querySelector('[data-ia-feedback]');
+                    const validationId = upload?.querySelector('[data-ia-validation-id]');
 
-                    if (!input.files || !input.files.length) {
+                    if (phase !== 'titularidade' && (!input.files || !input.files.length)) {
                         if (title) title.textContent = 'Selecionar documento';
                         if (fileName) fileName.textContent = 'PDF, JPG ou PNG';
+                        if (validationId) validationId.value = '';
+                        if (feedback) feedback.hidden = true;
+                        if (upload) upload.dataset.titularidadePendente = 'false';
                         return;
                     }
 
-                    if (title) title.textContent = 'Documento selecionado';
-                    if (fileName) fileName.textContent = input.files[0].name;
+                    if (phase !== 'titularidade') {
+                        if (title) title.textContent = 'Documento selecionado';
+                        if (fileName) fileName.textContent = input.files[0].name;
+                    }
+
+                    if (!input.dataset.iaValidationUrl || !feedback) {
+                        return;
+                    }
+
+                    feedback.hidden = false;
+                    feedback.className = 'nexo-ia-feedback is-loading';
+                    feedback.textContent = phase === 'titularidade' ? 'Conferindo dados pessoais...' : 'Analisando documento...';
+                    if (validationId && phase !== 'titularidade') validationId.value = '';
+                    if (phase !== 'titularidade' && input.dataset.tipoDocumentoEsperado === 'Documento de identidade com foto') {
+                        clearDispensasFromIdentity(input);
+                    }
+
+                    const formData = new FormData();
+                    formData.append('fase_validacao', phase);
+                    if (file) formData.append('arquivo', file);
+                    if (phase === 'titularidade' && validationId?.value) {
+                        formData.append('ia_validacao_id', validationId.value);
+                    }
+                    appendBeneficiaryData(formData, beneficiaryDataFor(input));
+                    formData.append('_token', document.querySelector('input[name="_token"]')?.value || '');
+
+                    try {
+                        const response = await fetch(input.dataset.iaValidationUrl, {
+                            method: 'POST',
+                            body: formData,
+                            headers: {
+                                'Accept': 'application/json',
+                                'X-Requested-With': 'XMLHttpRequest',
+                            },
+                        });
+
+                        if (!response.ok) {
+                            throw new Error('Falha temporaria na validacao.');
+                        }
+
+                        const data = await response.json();
+                        if (validationId) validationId.value = data.id || '';
+                        if (upload) upload.dataset.titularidadePendente = data.titularidade_pendente ? 'true' : 'false';
+                        applyDispensas(input, data.dispensas_documentais);
+
+                        if (data.status === 'reenviar') {
+                            input.value = '';
+                            if (validationId) validationId.value = '';
+                            if (upload) upload.dataset.titularidadePendente = 'false';
+                            if (title) title.textContent = 'Selecionar documento';
+                            if (fileName) fileName.textContent = 'PDF, JPG ou PNG';
+                            feedback.className = 'nexo-ia-feedback is-danger';
+                            feedback.textContent = data.mensagem_cliente || 'Envie novamente com o documento inteiro e legivel.';
+                            return;
+                        }
+
+                        feedback.className = data.status === 'aprovado_para_envio'
+                            ? 'nexo-ia-feedback is-success'
+                            : 'nexo-ia-feedback is-warning';
+                        feedback.textContent = data.mensagem_cliente || 'Documento mantido para analise do corretor.';
+                    } catch (error) {
+                        feedback.className = 'nexo-ia-feedback is-warning';
+                        feedback.textContent = 'Nao foi possivel validar automaticamente agora. Voce pode tentar novamente selecionando o arquivo outra vez.';
+                    }
+            };
+
+            document.querySelectorAll('.nexo-file-input').forEach((input) => {
+                input.addEventListener('change', async () => {
+                    const data = beneficiaryDataFor(input);
+                    await validateDocumentInput(input, data.complete ? 'completa' : 'documental', input.files?.[0] || null);
+                });
+            });
+
+            document.querySelectorAll('[data-public-beneficiario]').forEach((card) => {
+                let timeout = null;
+                const triggerTitularidade = () => {
+                    window.clearTimeout(timeout);
+                    timeout = window.setTimeout(() => {
+                        card.querySelectorAll('.nexo-file-input').forEach((input) => {
+                            const upload = input.closest('.nexo-file-upload');
+                            const validationId = upload?.querySelector('[data-ia-validation-id]');
+                            const data = beneficiaryDataFor(input);
+
+                            if (upload?.dataset.titularidadePendente === 'true' && validationId?.value && data.complete) {
+                                validateDocumentInput(input, 'titularidade');
+                            }
+                        });
+                    }, 650);
+                };
+
+                card.querySelectorAll('input[name$="[nome]"], input[name$="[cpf]"], input[name$="[data_nascimento]"]').forEach((field) => {
+                    field.addEventListener('input', triggerTitularidade);
+                    field.addEventListener('change', triggerTitularidade);
                 });
             });
         });

@@ -8,7 +8,16 @@ class DocumentoObrigatorioPreCadastro extends Model
 {
     protected $table = 'documentos_obrigatorios_pre_cadastro';
 
-    protected $fillable = ['pre_cadastro_id', 'vida_proposta_id', 'tipo_documento_id', 'requisito_documental_id', 'titulo', 'obrigatorio', 'ordem', 'status', 'grupo_alternativo', 'observacoes'];
+    protected $fillable = ['pre_cadastro_id', 'vida_proposta_id', 'tipo_documento_id', 'requisito_documental_id', 'titulo', 'obrigatorio', 'ordem', 'status', 'grupo_alternativo', 'observacoes', 'dispensado_por_ia', 'dispensado_por_documento_id', 'motivo_dispensa', 'dispensado_em'];
+
+    protected function casts(): array
+    {
+        return [
+            'obrigatorio' => 'boolean',
+            'dispensado_por_ia' => 'boolean',
+            'dispensado_em' => 'datetime',
+        ];
+    }
 
     public function tipoDocumento()
     {
@@ -28,5 +37,15 @@ class DocumentoObrigatorioPreCadastro extends Model
     public function envios()
     {
         return $this->hasMany(DocumentoEnviado::class, 'documento_obrigatorio_pre_cadastro_id');
+    }
+
+    public function iaValidacoes()
+    {
+        return $this->hasMany(DocumentoIaValidacao::class, 'documento_obrigatorio_pre_cadastro_id');
+    }
+
+    public function dispensadoPorDocumento()
+    {
+        return $this->belongsTo(self::class, 'dispensado_por_documento_id');
     }
 }

@@ -38,4 +38,9 @@ class DocumentoEnviado extends Model
             'analisado_em' => 'datetime',
         ];
     }
+
+    public function iaValidacao()
+    {
+        return $this->hasOne(DocumentoIaValidacao::class, 'documento_enviado_id');
+    }
 }

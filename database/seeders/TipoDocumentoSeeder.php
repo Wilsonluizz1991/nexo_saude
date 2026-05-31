@@ -11,25 +11,25 @@ class TipoDocumentoSeeder extends Seeder
     public function run(): void
     {
         foreach ([
-            'RG',
-            'CPF',
-            'Documento de identidade com foto',
-            'CNH',
-            'Certidão de Nascimento',
-            'Certidão de Casamento',
-            'Declaração de União Estável',
-            'Comprovante de Residência',
-            'Carta de Permanência',
-            'Cartão CNPJ',
-            'Contrato Social',
-            'Relação de Vidas',
-            'Documento do Responsável Legal',
-            'PDF da Proposta',
-            'Outro',
-        ] as $nome) {
-            TipoDocumento::firstOrCreate(
+            'RG' => false,
+            'CPF' => true,
+            'Documento de identidade com foto' => true,
+            'CNH' => false,
+            'Certidão de Nascimento' => true,
+            'Certidão de Casamento' => true,
+            'Declaração de União Estável' => true,
+            'Comprovante de Residência' => true,
+            'Carta de Permanência' => true,
+            'Cartão CNPJ' => true,
+            'Contrato Social' => true,
+            'Relação de Vidas' => true,
+            'Documento do Responsável Legal' => true,
+            'PDF da Proposta' => true,
+            'Outro' => true,
+        ] as $nome => $ativo) {
+            TipoDocumento::updateOrCreate(
                 ['slug' => Str::slug($nome)],
-                ['nome' => $nome, 'descricao' => $nome, 'ativo' => true]
+                ['nome' => $nome, 'descricao' => $nome, 'ativo' => $ativo]
             );
         }
     }

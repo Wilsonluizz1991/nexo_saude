@@ -317,7 +317,7 @@
 
                                 <label class="form-label">Motivos da correção</label>
 
-                                <textarea class="form-control mb-3" name="motivos_correcao" rows="3" placeholder="Ex.: RG do titular ilegível; comprovante de residência vencido.">{{ old('motivos_correcao', $preCadastro->motivos_correcao) }}</textarea>
+                                <textarea class="form-control mb-3" name="motivos_correcao" rows="3" placeholder="Ex.: documento de identidade com foto ilegível; comprovante de residência vencido.">{{ old('motivos_correcao', $preCadastro->motivos_correcao) }}</textarea>
 
                                 <button class="nexo-warning-btn">
                                     <i class="bi bi-pencil-square"></i>

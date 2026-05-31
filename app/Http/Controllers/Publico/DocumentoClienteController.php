@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Publico;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreDocumentoClienteRequest;
 use App\Models\Alerta;
+use App\Models\DocumentoIaValidacao;
 use App\Models\PreCadastro;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -96,6 +97,7 @@ class DocumentoClienteController extends Controller
 
         $emCorrecao = $this->emModoCorrecao($preCadastro);
         $arquivos = $request->file('documentos', []);
+        $validacoesIa = $request->validated('ia_validacoes', []);
         if (! $emCorrecao) {
             $this->atualizarDadosDasVidas($preCadastro, $request->validated('vidas', []));
         }
@@ -115,7 +117,9 @@ class DocumentoClienteController extends Controller
                 'status' => 'enviado',
                 'observacoes' => null,
             ]);
-            $documento->envios()->create([
+            $validacaoIa = $this->validacaoIaPermitida($preCadastro, $documento, $validacoesIa[$documentoId] ?? null);
+
+            $envio = $documento->envios()->create([
                 'pre_cadastro_id' => $preCadastro->id,
                 'beneficiario_id' => $documento->vida_proposta_id,
                 'documento_solicitado_id' => null,
@@ -124,8 +128,18 @@ class DocumentoClienteController extends Controller
                 'tipo_documento_detectado_id' => null,
                 'arquivo_path' => $file->store('documentos', 'public'),
                 'observacao_cliente' => $request->observacao_cliente,
-                'status_ia' => 'aguardando_analise',
+                'status_ia' => $this->statusIaDocumentoEnviado($validacaoIa),
+                'analise_ia' => $validacaoIa?->raw_response,
+                'documento_compativel' => $validacaoIa?->documento_corresponde_ao_tipo,
+                'legivel' => $validacaoIa?->legivel,
+                'cortado' => $validacaoIa?->cortado,
+                'tremido' => $validacaoIa?->desfocado,
+                'nome_detectado' => $validacaoIa?->nome_extraido,
+                'analisado_em' => $validacaoIa?->analisado_em,
+                'motivo_recusa' => $validacaoIa?->mensagem_corretor,
             ]);
+
+            $validacaoIa?->update(['documento_enviado_id' => $envio->id]);
         }
 
         $reenviado = in_array($preCadastro->status, ['documentacao_pendente', 'correcao_solicitada'], true);
@@ -190,7 +204,7 @@ class DocumentoClienteController extends Controller
                 'indicacao.cliente',
                 'vidas',
                 'documentosObrigatorios.tipoDocumento',
-                'documentosObrigatorios.envio',
+                'documentosObrigatorios.envio.iaValidacao',
             ])
             ->firstOrFail();
     }
@@ -249,6 +263,34 @@ class DocumentoClienteController extends Controller
         return $grupoFaltando
             ? 'Escolha pelo menos uma opcao valida em cada grupo documental alternativo.'
             : null;
+    }
+
+    private function validacaoIaPermitida(PreCadastro $preCadastro, $documento, mixed $validacaoId): ?DocumentoIaValidacao
+    {
+        if (! $validacaoId) {
+            return null;
+        }
+
+        $validacao = DocumentoIaValidacao::where('id', (int) $validacaoId)
+            ->where('pre_cadastro_id', $preCadastro->id)
+            ->where('documento_obrigatorio_pre_cadastro_id', $documento->id)
+            ->first();
+
+        if ($validacao?->status === 'reenviar') {
+            abort(422, 'Um dos documentos anexados precisa ser reenviado antes de finalizar.');
+        }
+
+        return $validacao;
+    }
+
+    private function statusIaDocumentoEnviado(?DocumentoIaValidacao $validacao): string
+    {
+        return match ($validacao?->status) {
+            'aprovado_para_envio' => 'aprovado',
+            'reenviar' => 'recusado',
+            'analise_inconclusiva' => 'alerta',
+            default => 'aguardando_analise',
+        };
     }
 
     private function documentosEditaveis(PreCadastro $preCadastro)

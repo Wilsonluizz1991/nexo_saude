@@ -50,4 +50,15 @@ return [
         'ca_bundle' => env('ASAAS_CA_BUNDLE'),
     ],
 
+    'openai' => [
+        'api_key' => env('OPENAI_API_KEY'),
+        'model' => env('OPENAI_MODEL', 'gpt-4.1-mini'),
+        'timeout' => (int) env('OPENAI_TIMEOUT', 60),
+        'document_validation_enabled' => env('OPENAI_DOCUMENT_VALIDATION_ENABLED', true),
+    ],
+
+    'poppler' => [
+        'bin_path' => env('POPPLER_BIN_PATH'),
+    ],
+
 ];

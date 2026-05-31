@@ -5,9 +5,11 @@ namespace App\Http\Controllers\Interno;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreLembreteRequest;
 use App\Http\Requests\StorePropostaRequest;
+use App\Mail\PreCadastroCorrecaoSolicitadaMail;
 use App\Models\Indicacao;
 use App\Models\DocumentoObrigatorioPreCadastro;
 use App\Models\Operadora;
+use App\Models\PreCadastro;
 use App\Services\ImplantacaoService;
 use App\Services\AvaliacaoAtendimentoService;
 use App\Services\WhatsAppLinkService;
@@ -16,6 +18,8 @@ use App\Services\ServicoLembrete;
 use App\Services\ServicoProposta;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Mail;
 
 class IndicacaoController extends Controller
 {
@@ -146,7 +150,7 @@ class IndicacaoController extends Controller
         }
 
         return view('interno.indicacoes.show', [
-            'indicacao' => $indicacao->load('propostas.operadora', 'preCadastro.vidas', 'preCadastro.documentosObrigatorios.tipoDocumento', 'preCadastro.documentosObrigatorios.envio', 'timelineEventos', 'tarefas', 'implantacao', 'cliente', 'user.corretorPerfil'),
+            'indicacao' => $indicacao->load('propostas.operadora', 'preCadastro.vidas', 'preCadastro.documentosObrigatorios.tipoDocumento', 'preCadastro.documentosObrigatorios.envio.iaValidacao', 'timelineEventos', 'tarefas', 'implantacao', 'cliente', 'user.corretorPerfil'),
             'operadoras' => Operadora::where('ativa', true)->orderBy('nome')->get(),
         ]);
     }
@@ -299,6 +303,7 @@ class IndicacaoController extends Controller
             'bloqueado_em' => null,
         ]);
         $indicacao->update(['status' => 'documentacao_pendente']);
+        $this->enviarEmailCorrecaoSolicitada($indicacao, $dados['motivos_correcao'] ?? null);
         $indicacao->timelineEventos()->create([
             'titulo' => 'Correção solicitada',
             'descricao' => 'O corretor solicitou correção de documentos do pré-cadastro.',
@@ -370,5 +375,66 @@ class IndicacaoController extends Controller
             ->every(fn ($grupo) => $grupo->contains(fn ($documento) => in_array($documento->status, ['aprovado', 'dispensado'], true)));
 
         return $documentosSemAlternativaOk && $gruposAlternativosOk;
+    }
+
+    private function enviarEmailCorrecaoSolicitada(Indicacao $indicacao, ?string $motivoCorrecao): void
+    {
+        $indicacao->loadMissing('user.corretorPerfil', 'preCadastro.documentosObrigatorios.tipoDocumento');
+        $preCadastro = $indicacao->preCadastro;
+        $corretor = $indicacao->user;
+
+        if (! $indicacao->email) {
+            Log::info('E-mail de correção de pré-cadastro não enviado: cliente sem e-mail.', [
+                'indicacao_id' => $indicacao->id,
+                'pre_cadastro_id' => $preCadastro?->id,
+            ]);
+            return;
+        }
+
+        if (! $preCadastro || ! $corretor) {
+            Log::warning('E-mail de correção de pré-cadastro não enviado: dados incompletos.', [
+                'indicacao_id' => $indicacao->id,
+                'pre_cadastro_id' => $preCadastro?->id,
+            ]);
+            return;
+        }
+
+        try {
+            Mail::to($indicacao->email)->send(new PreCadastroCorrecaoSolicitadaMail(
+                $indicacao,
+                $preCadastro,
+                $corretor,
+                $this->linkPublico($preCadastro),
+                $this->nomeDocumentoCorrecao($preCadastro),
+                $motivoCorrecao
+            ));
+        } catch (\Throwable $e) {
+            Log::warning('Falha ao enviar e-mail de correção de pré-cadastro.', [
+                'indicacao_id' => $indicacao->id,
+                'pre_cadastro_id' => $preCadastro->id,
+                'message' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    private function nomeDocumentoCorrecao(PreCadastro $preCadastro): string
+    {
+        $documento = $preCadastro->documentosObrigatorios
+            ->first(fn ($item) => in_array($item->status, ['corrigir', 'recusado'], true));
+
+        return $documento?->tipoDocumento?->nome
+            ?? $documento?->titulo
+            ?? 'Documentação do pré-cadastro';
+    }
+
+    private function linkPublico(PreCadastro $preCadastro): string
+    {
+        $slug = $preCadastro->indicacao?->user?->corretorPerfil?->slug
+            ?? str($preCadastro->indicacao?->user?->name ?? 'corretor')->slug()->toString();
+
+        return route('cliente.pre-cadastro.show', [
+            'slug' => $slug,
+            'token' => $preCadastro->token,
+        ]);
     }
 }

@@ -970,10 +970,10 @@
                 if (Array.from(select.selectedOptions).length > 0) return;
                 const tipo = card.querySelector('[data-beneficiary-type]').value;
                 const nomes = (() => {
-                    if (pessoa.value === 'PF' && tipo === 'titular') return ['RG', 'CPF', 'Comprovante de Residência'];
-                    if (pessoa.value === 'PF' && tipo === 'dependente') return ['RG', 'Certidão de Nascimento'];
-                    if (['socio', 'colaborador', 'responsavel_legal'].includes(tipo)) return ['RG', 'CPF'];
-                    if (['dependente_socio', 'dependente_colaborador'].includes(tipo)) return ['RG', 'Certidão de Nascimento'];
+                    if (pessoa.value === 'PF' && tipo === 'titular') return ['Documento de identidade com foto', 'CPF', 'Comprovante de Residência'];
+                    if (pessoa.value === 'PF' && tipo === 'dependente') return ['Documento de identidade com foto', 'Certidão de Nascimento'];
+                    if (['socio', 'colaborador', 'responsavel_legal'].includes(tipo)) return ['Documento de identidade com foto', 'CPF'];
+                    if (['dependente_socio', 'dependente_colaborador'].includes(tipo)) return ['Documento de identidade com foto', 'Certidão de Nascimento'];
                     return ['Outro'];
                 })();
                 Array.from(select.options).forEach((option) => {

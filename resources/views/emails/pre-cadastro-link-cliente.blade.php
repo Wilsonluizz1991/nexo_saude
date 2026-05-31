@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
     <meta charset="utf-8">
-    <title>Redefinir senha</title>
+    <title>Seu pré-cadastro foi solicitado</title>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
     <style>
@@ -22,13 +22,13 @@
 
             .nexo-left {
                 width: 45% !important;
-                min-height: 520px !important;
+                min-height: 680px !important;
                 border-radius: 24px 0 0 24px !important;
             }
 
             .nexo-right {
                 width: 55% !important;
-                min-height: 520px !important;
+                min-height: 680px !important;
                 border-radius: 0 24px 24px 0 !important;
             }
 
@@ -54,71 +54,99 @@
 
                 <div style="margin-top:32px;">
                     <span style="display:inline-block;background:rgba(255,255,255,0.10);border-radius:999px;padding:9px 15px;color:#D7E7FF;font-size:13px;font-weight:800;">
-                        🔒 Envio seguro
+                        📋 Pré-cadastro liberado
                     </span>
                 </div>
 
                 <h1 style="margin:26px 0 18px;font-size:30px;line-height:1.12;font-weight:900;color:#FFFFFF;">
-                    Solicitação de redefinição de senha
+                    Seu pré-cadastro está pronto para preenchimento
                 </h1>
 
                 <p style="margin:0;color:#D7E7FF;font-size:16px;line-height:1.65;">
-                    Use o link enviado para criar uma nova senha e continuar acessando sua conta com segurança.
+                    Seu corretor iniciou o processo e enviou o acesso para que você preencha seus dados e envie os documentos necessários.
                 </p>
 
                 <div style="height:1px;background:rgba(255,255,255,0.14);margin:28px 0 22px;"></div>
 
                 <p style="margin:0 0 13px;color:#FFFFFF;font-size:14px;font-weight:800;">
-                    ✓ Link seguro
+                    ✓ Acesso liberado
                 </p>
 
                 <p style="margin:0 0 13px;color:#FFFFFF;font-size:14px;font-weight:800;">
-                    ⏳ Expira em {{ $expiresIn }} minutos
+                    📎 Envio de documentos
                 </p>
 
                 <p style="margin:0;color:#FFFFFF;font-size:14px;font-weight:800;">
-                    🔒 Uso único
+                    🚀 Processo digital e seguro
                 </p>
             </div>
 
             <div class="nexo-panel nexo-right" style="display:block;width:100%;background:#FFFFFF;padding:32px 28px 34px;border-radius:0 0 24px 24px;font-size:16px;">
+
                 <div style="display:inline-block;background:#EAF3FF;color:#2F80ED;border-radius:999px;padding:8px 14px;font-size:12px;font-weight:900;margin-bottom:22px;">
-                    Recuperação de acesso
+                    Novo pré-cadastro
                 </div>
 
                 <h2 style="margin:0 0 18px;color:#071B3A;font-size:30px;line-height:1.12;font-weight:900;">
-                    Redefina sua senha
+                    Bem-vindo à Nexo Saúde
                 </h2>
 
                 <p style="margin:0 0 18px;color:#52657D;font-size:15px;line-height:1.7;">
-                    Olá, <strong style="color:#071B3A;">{{ $user->name }}</strong>.
+                    Olá, <strong style="color:#071B3A;">{{ $indicacao->nome_cliente }}</strong>.
                 </p>
 
-                <p style="margin:0 0 26px;color:#52657D;font-size:15px;line-height:1.7;">
-                    Recebemos uma solicitação para redefinir a senha da sua conta na Nexo Saúde. Para continuar, clique no botão abaixo.
+                <p style="margin:0 0 24px;color:#52657D;font-size:15px;line-height:1.7;">
+                    Seu corretor <strong>{{ $corretor->name }}</strong> enviou o acesso ao seu pré-cadastro. Clique no botão abaixo para iniciar o preenchimento.
                 </p>
 
-                <a href="{{ $url }}" style="display:block;width:100%;background:#066BFF;color:#FFFFFF;text-decoration:none;font-size:15px;font-weight:900;padding:16px 22px;border-radius:14px;text-align:center;box-shadow:0 14px 28px rgba(6,107,255,0.26);margin-bottom:26px;">
-                    Redefinir senha
+                <a href="{{ $linkPreCadastro }}" style="display:block;width:100%;background:#066BFF;color:#FFFFFF;text-decoration:none;font-size:15px;font-weight:900;padding:16px 22px;border-radius:14px;text-align:center;box-shadow:0 14px 28px rgba(6,107,255,0.26);margin-bottom:24px;">
+                    Acessar meu pré-cadastro
                 </a>
 
-                <div style="background:#F7FAFE;border:1px solid #DDEAFF;border-radius:18px;padding:17px 18px;margin:0 0 24px;">
-                    <p style="margin:0;color:#071B3A;font-size:15px;font-weight:900;line-height:1.5;">
-                        ⓘ Você não solicitou essa alteração?
+                <div style="background:#F7FAFE;border:1px solid #DDEAFF;border-radius:18px;padding:18px;margin-bottom:24px;">
+                    <p style="margin:0 0 8px;color:#7B8BA1;font-size:12px;font-weight:700;text-transform:uppercase;">
+                        Código de acesso
                     </p>
 
-                    <p style="margin:7px 0 0;color:#52657D;font-size:14px;line-height:1.6;">
-                        Ignore este e-mail. Sua senha atual permanecerá ativa.
+                    <p style="margin:0;font-size:24px;font-weight:900;color:#066BFF;letter-spacing:2px;">
+                        {{ $preCadastro->chave_acesso }}
+                    </p>
+                </div>
+
+                <div style="margin-bottom:24px;">
+                    <p style="margin:0 0 12px;color:#071B3A;font-size:16px;font-weight:900;">
+                        Como funciona:
+                    </p>
+
+                    <ol style="margin:0;padding-left:20px;color:#52657D;font-size:14px;line-height:1.8;">
+                        <li>Acesse o link enviado.</li>
+                        <li>Informe seu código de acesso.</li>
+                        <li>Preencha seus dados cadastrais.</li>
+                        <li>Envie os documentos solicitados.</li>
+                        <li>Finalize o envio para análise.</li>
+                    </ol>
+                </div>
+
+                <div style="background:#F7FAFE;border:1px solid #DDEAFF;border-radius:18px;padding:18px;margin-bottom:24px;">
+                    <p style="margin:0;color:#071B3A;font-size:15px;font-weight:900;">
+                        ℹ Importante
+                    </p>
+
+                    <p style="margin:8px 0 0;color:#52657D;font-size:14px;line-height:1.6;">
+                        Caso algum documento precise de ajustes, você será notificado automaticamente para realizar a correção.
                     </p>
                 </div>
 
                 <p style="margin:0 0 8px;color:#7B8BA1;font-size:13px;line-height:1.6;">
-                    Se o botão não funcionar, copie e cole este link no navegador:
+                    Link alternativo de acesso:
                 </p>
 
                 <p style="margin:0;word-break:break-all;overflow-wrap:break-word;font-size:12px;line-height:1.6;">
-                    <a href="{{ $url }}" style="color:#066BFF;text-decoration:none;font-weight:800;">{{ $url }}</a>
+                    <a href="{{ $linkPreCadastro }}" style="color:#066BFF;text-decoration:none;font-weight:800;">
+                        {{ $linkPreCadastro }}
+                    </a>
                 </p>
+
             </div>
         </div>
 

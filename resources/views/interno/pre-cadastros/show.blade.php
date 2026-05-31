@@ -183,7 +183,7 @@
                                     class="form-control"
                                     name="motivos_correcao"
                                     rows="4"
-                                    placeholder="Ex.: RG ilegível; comprovante vencido; reenviar certidão."
+                                    placeholder="Ex.: documento de identidade com foto ilegível; comprovante vencido; reenviar certidão."
                                 >{{ old('motivos_correcao', $preCadastro->motivos_correcao) }}</textarea>
                             </div>
 
