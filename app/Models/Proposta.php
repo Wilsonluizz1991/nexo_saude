@@ -8,11 +8,11 @@ class Proposta extends Model
 {
     protected $table = 'propostas';
 
-    protected $fillable = ['indicacao_id', 'operadora_id', 'cliente_id', 'titulo', 'arquivo_pdf_path', 'validade', 'quantidade_vidas', 'valor_mensal', 'observacoes', 'status'];
+    protected $fillable = ['indicacao_id', 'operadora_id', 'cliente_id', 'titulo', 'arquivo_pdf_path', 'public_token', 'public_group_token', 'validade', 'quantidade_vidas', 'valor_mensal', 'observacoes', 'status', 'enviado_email_em'];
 
     protected function casts(): array
     {
-        return ['validade' => 'date', 'valor_mensal' => 'decimal:2'];
+        return ['validade' => 'date', 'valor_mensal' => 'decimal:2', 'enviado_email_em' => 'datetime'];
     }
 
     public function operadora()

@@ -26,6 +26,7 @@
                     <div class="nexo-section-header">
                         <div>
                             <h2>Anexar nova proposta</h2>
+                            <p>Selecione uma ou mais propostas em PDF.</p>
                             <p>O registro permanece em Propostas e pode receber quantas alternativas forem necessárias.</p>
                         </div>
                     </div>
@@ -69,7 +70,14 @@
 
                         <div class="col-12">
                             <label class="form-label">PDF da proposta</label>
-                            <x-file-input name="arquivo_pdf" accept="application/pdf" :required="true" />
+                            <x-file-input
+                                name="arquivos_pdf[]"
+                                accept="application/pdf"
+                                :required="true"
+                                :multiple="true"
+                                button="Selecionar proposta em PDF"
+                                placeholder="Selecione uma ou mais propostas em PDF"
+                            />
                         </div>
 
                         <div class="col-12">
@@ -104,13 +112,16 @@
                                         @if($proposta->validade)
                                             · validade {{ $proposta->validade->format('d/m/Y') }}
                                         @endif
+                                        @if($proposta->quantidade_vidas)
+                                            · {{ $proposta->quantidade_vidas }} vida(s)
+                                        @endif
                                     </span>
                                 </div>
 
                                 <div class="nexo-proposta-meta">
                                     <span>{{ $proposta->valor_mensal ? 'R$ '.number_format((float) $proposta->valor_mensal, 2, ',', '.') : 'Sem valor' }}</span>
-                                    <a href="{{ asset('storage/'.$proposta->arquivo_pdf_path) }}" target="_blank" rel="noopener">
-                                        Ver PDF
+                                    <a href="{{ $proposta->public_group_token ? route('publico.propostas.download', ['token' => $proposta->public_group_token, 'proposta' => $proposta]) : asset('storage/'.$proposta->arquivo_pdf_path) }}" target="_blank" rel="noopener">
+                                        Visualizar
                                     </a>
                                 </div>
                             </article>
@@ -122,6 +133,7 @@
                         @endforelse
                     </div>
                     {{ $propostas->links('vendor.pagination.nexo') }}
+
                 </section>
             </div>
 

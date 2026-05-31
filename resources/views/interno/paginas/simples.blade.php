@@ -55,7 +55,6 @@
             </div>
         </div>
 
-
         <div class="nexo-page-panel">
             @if($pagina === 'relatorios')
                 <div class="nexo-summary-grid">
@@ -157,7 +156,7 @@
                                 <th>Cliente</th>
                                 <th>Contato</th>
                                 <th>Status</th>
-                                <th class="text-end">Ação</th>
+                                <th class="text-center">Ação</th>
                             </tr>
                         </thead>
 
@@ -470,7 +469,7 @@
                                     <th>Próxima renovação</th>
                                     <th>Próximo reajuste</th>
                                     <th>Status</th>
-                                    <th class="text-end">Ação</th>
+                                        
                                 </tr>
                             </thead>
 
@@ -740,6 +739,17 @@
     </main>
 
     <style>
+        .nexo-page-table th:last-child {
+    text-align: center !important;
+}
+
+.nexo-page-table td:last-child {
+    text-align: center !important;
+}
+
+.nexo-page-table td:last-child > .d-inline-flex {
+    justify-content: center !important;
+}
         .nexo-page-header {
             display: flex;
             align-items: center;

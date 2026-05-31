@@ -164,7 +164,7 @@
                             <h2>Propostas</h2>
 
                             <p>
-                                Anexe o PDF obtido externamente e registre os dados comerciais.
+                                Anexe uma ou mais propostas em PDF obtidas externamente e registre os dados comerciais.
                             </p>
                         </div>
                     </div>
@@ -218,19 +218,14 @@
 
                             <div class="col-12">
                                 <label class="form-label">PDF da proposta</label>
-
-                                <label class="nexo-file-upload">
-                                    <input class="nexo-file-input" name="arquivo_pdf" type="file" accept="application/pdf" required>
-
-                                    <span class="nexo-file-icon">
-                                        <i class="bi bi-cloud-arrow-up"></i>
-                                    </span>
-
-                                    <span class="nexo-file-content">
-                                        <strong class="nexo-file-title">Selecionar proposta em PDF</strong>
-                                        <small class="nexo-file-name">Clique para anexar o arquivo da proposta</small>
-                                    </span>
-                                </label>
+                                <x-file-input
+                                    name="arquivos_pdf[]"
+                                    accept="application/pdf"
+                                    :required="true"
+                                    :multiple="true"
+                                    button="Selecionar proposta em PDF"
+                                    placeholder="Selecione uma ou mais propostas em PDF"
+                                />
                             </div>
 
                             <div class="col-12">
@@ -259,10 +254,23 @@
                                         @if($proposta->valor_mensal)
                                             · R$ {{ number_format((float) $proposta->valor_mensal, 2, ',', '.') }}
                                         @endif
+                                        @if($proposta->quantidade_vidas)
+                                            · {{ $proposta->quantidade_vidas }} vida(s)
+                                        @endif
+
+                                        @if($proposta->validade)
+                                            · validade {{ $proposta->validade->format('d/m/Y') }}
+                                        @endif
                                     </p>
                                 </div>
 
-                                <span>{{ $proposta->status }}</span>
+                                <div class="d-flex align-items-center gap-3 flex-wrap justify-content-end">
+                                    <span>{{ $proposta->status }}</span>
+
+                                    <a href="{{ $proposta->public_group_token ? route('publico.propostas.download', ['token' => $proposta->public_group_token, 'proposta' => $proposta]) : asset('storage/'.$proposta->arquivo_pdf_path) }}" target="_blank" rel="noopener">
+                                        Visualizar
+                                    </a>
+                                </div>
                             </div>
                         @empty
                             <div class="nexo-empty-state">
@@ -1775,13 +1783,13 @@
                     }
 
                     if (input.files && input.files.length > 0) {
-                        fileTitle.textContent = 'Proposta selecionada';
-                        fileName.textContent = input.files[0].name;
+                        fileTitle.textContent = input.files.length === 1 ? 'Proposta selecionada' : 'Propostas selecionadas';
+                        fileName.textContent = Array.from(input.files).map((file) => file.name).join(', ');
                         return;
                     }
 
                     fileTitle.textContent = 'Selecionar proposta em PDF';
-                    fileName.textContent = 'Clique para anexar o arquivo da proposta';
+                    fileName.textContent = 'Selecione uma ou mais propostas em PDF';
                 });
             });
         });

@@ -129,10 +129,6 @@
             </div>
         </section>
 
-        <section class="mb-4">
-            @include('interno.indicacoes.partials.lembretes-card', ['indicacao' => $indicacao])
-        </section>
-
         <div class="row g-4">
             <div class="col-xl-8">
                 <section class="nexo-pre-panel" data-pre-cadastro-review-panel>
@@ -306,49 +302,53 @@
             </div>
 
             <div class="col-xl-4">
-                <section class="nexo-pre-panel h-100">
-                    <div class="nexo-pre-panel-header">
-                        <div>
-                            <h2>
-                                Timeline
-                            </h2>
+                <div class="nexo-pre-sidebar">
+                    @include('interno.indicacoes.partials.lembretes-card', ['indicacao' => $indicacao])
 
-                            <p>
-                                Histórico de movimentações do pré-cadastro.
-                            </p>
-                        </div>
-                    </div>
-
-                    <div class="nexo-timeline">
-                        @forelse($indicacao->timelineEventos->sortByDesc('created_at') as $evento)
-                            <div class="nexo-timeline-item">
-                                <div class="nexo-timeline-dot"></div>
-
-                                <div class="nexo-timeline-content">
-                                    <strong>
-                                        {{ $evento->titulo }}
-                                    </strong>
-
-                                    <p>
-                                        {{ $evento->descricao }}
-                                    </p>
-
-                                    <span>
-                                        {{ $evento->created_at?->format('d/m/Y H:i') }}
-                                    </span>
-                                </div>
-                            </div>
-                        @empty
-                            <div class="nexo-empty-state">
-                                <i class="bi bi-clock-history"></i>
+                    <section class="nexo-pre-panel">
+                        <div class="nexo-pre-panel-header">
+                            <div>
+                                <h2>
+                                    Timeline
+                                </h2>
 
                                 <p>
-                                    Nenhum evento registrado.
+                                    Histórico de movimentações do pré-cadastro.
                                 </p>
                             </div>
-                        @endforelse
-                    </div>
-                </section>
+                        </div>
+
+                        <div class="nexo-timeline">
+                            @forelse($indicacao->timelineEventos->sortByDesc('created_at') as $evento)
+                                <div class="nexo-timeline-item">
+                                    <div class="nexo-timeline-dot"></div>
+
+                                    <div class="nexo-timeline-content">
+                                        <strong>
+                                            {{ $evento->titulo }}
+                                        </strong>
+
+                                        <p>
+                                            {{ $evento->descricao }}
+                                        </p>
+
+                                        <span>
+                                            {{ $evento->created_at?->format('d/m/Y H:i') }}
+                                        </span>
+                                    </div>
+                                </div>
+                            @empty
+                                <div class="nexo-empty-state">
+                                    <i class="bi bi-clock-history"></i>
+
+                                    <p>
+                                        Nenhum evento registrado.
+                                    </p>
+                                </div>
+                            @endforelse
+                        </div>
+                    </section>
+                </div>
             </div>
         </div>
     </main>
@@ -772,12 +772,47 @@
             padding: 28px;
         }
 
+        .nexo-pre-sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 18px;
+        }
+
+        .nexo-pre-sidebar .nexo-pre-panel,
+        .nexo-pre-sidebar > * {
+            width: 100%;
+        }
+
+        .nexo-pre-sidebar .nexo-pre-panel {
+            padding: 22px;
+        }
+
+        .nexo-pre-sidebar textarea {
+            min-height: 86px;
+        }
+
+        .nexo-pre-sidebar .form-control,
+        .nexo-pre-sidebar .form-select {
+            min-height: 44px;
+        }
+
+        .nexo-pre-sidebar .nexo-primary-btn,
+        .nexo-pre-sidebar .nexo-secondary-btn {
+            min-height: 42px;
+            padding: 0 14px;
+            border-radius: 12px;
+        }
+
         .nexo-pre-panel-header {
             display: flex;
             align-items: flex-start;
             justify-content: space-between;
             gap: 20px;
             margin-bottom: 24px;
+        }
+
+        .nexo-pre-sidebar .nexo-pre-panel-header {
+            margin-bottom: 16px;
         }
 
         .nexo-pre-panel-header h2 {
@@ -787,9 +822,17 @@
             margin: 0 0 6px;
         }
 
+        .nexo-pre-sidebar .nexo-pre-panel-header h2 {
+            font-size: 1.15rem;
+        }
+
         .nexo-pre-panel-header p {
             color: #64748B;
             margin: 0;
+        }
+
+        .nexo-pre-sidebar .nexo-pre-panel-header p {
+            font-size: 0.86rem;
         }
 
         .nexo-approved-badge {
@@ -1048,6 +1091,10 @@
 
             .nexo-beneficiario-infos {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .nexo-pre-sidebar {
+                margin-top: 0;
             }
         }
 

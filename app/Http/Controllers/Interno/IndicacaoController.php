@@ -160,11 +160,11 @@ class IndicacaoController extends Controller
         abort_unless($indicacao->user_id === auth()->id(), 403);
         abort_unless(in_array($indicacao->etapa, ['lead', 'propostas', 'pre_cadastros', 'implantacoes'], true), 422);
 
-        $service->anexar($indicacao, $request->validated(), $request->file('arquivo_pdf'));
+        $propostas = $service->anexar($indicacao, $request->validated(), $request->file('arquivos_pdf') ?: $request->file('arquivo_pdf'));
 
         return redirect()
             ->route('paginas.simples', 'propostas')
-            ->with('status', 'Proposta em PDF anexada. O registro foi movido para Propostas.');
+            ->with('status', $propostas->count() > 1 ? 'Cotações em PDF anexadas. O registro foi movido para Propostas.' : 'Proposta em PDF anexada. O registro foi movido para Propostas.');
     }
 
     public function storeLembrete(StoreLembreteRequest $request, Indicacao $indicacao, ServicoLembrete $service)

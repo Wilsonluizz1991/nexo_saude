@@ -3,6 +3,7 @@
     'id' => null,
     'accept' => null,
     'required' => false,
+    'multiple' => false,
     'button' => 'Escolher arquivo',
     'placeholder' => 'Nenhum arquivo selecionado',
 ])
@@ -11,75 +12,86 @@
     $inputId = $id ?: 'nexo-file-'.str_replace(['[', ']'], '-', $name).'-'.uniqid();
 @endphp
 
-<div {{ $attributes->class('nexo-file-picker') }}>
+<label {{ $attributes->class('nexo-file-picker nexo-file-upload') }}>
     <input
         id="{{ $inputId }}"
         name="{{ $name }}"
         type="file"
-        class="nexo-file-picker-input"
+        class="nexo-file-picker-input nexo-file-input"
         @if($accept) accept="{{ $accept }}" @endif
         @if($required) required @endif
+        @if($multiple) multiple="multiple" @endif
     >
 
-    <label class="nexo-file-picker-button" for="{{ $inputId }}">
-        {{ $button }}
-    </label>
-
-    <span class="nexo-file-picker-name" data-nexo-file-name-for="{{ $inputId }}">
-        {{ $placeholder }}
+    <span class="nexo-file-picker-icon nexo-file-icon">
+        <i class="bi bi-cloud-arrow-up"></i>
     </span>
-</div>
+
+    <span class="nexo-file-picker-content nexo-file-content">
+        <strong class="nexo-file-picker-title nexo-file-title">{{ $button }}</strong>
+        <small class="nexo-file-picker-name nexo-file-name" data-nexo-file-name-for="{{ $inputId }}">
+            {{ $placeholder }}
+        </small>
+    </span>
+</label>
 
 @once
     <style>
         .nexo-file-picker {
-            position: relative;
-            min-height: 50px;
             display: flex;
-            align-items: stretch;
-            overflow: hidden;
-            border: 1px solid #D8E2EF;
-            border-radius: 13px;
-            background: #FFFFFF;
+            align-items: center;
+            gap: 14px;
+            min-height: 74px;
+            padding: 16px;
+            border-radius: 18px;
+            background: #F8FBFF;
+            border: 1px dashed #BFD7F8;
+            cursor: pointer;
+            transition: 0.2s ease;
         }
 
         .nexo-file-picker-input {
-            position: absolute;
-            width: 1px;
-            height: 1px;
-            opacity: 0;
-            pointer-events: none;
+            display: none;
         }
 
-        .nexo-file-picker-button {
+        .nexo-file-picker-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #2F80ED 0%, #1B6DFF 100%);
+            color: #FFFFFF;
             display: inline-flex;
             align-items: center;
             justify-content: center;
-            min-width: 168px;
-            padding: 0 16px;
-            margin: 0;
-            border-right: 1px solid #E4EBF5;
-            background: #F8FAFC;
-            color: #061C3F;
-            font-weight: 700;
-            cursor: pointer;
-            white-space: nowrap;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            box-shadow: 0 12px 26px rgba(47, 128, 237, 0.20);
         }
 
-        .nexo-file-picker-button:hover {
-            background: #EEF4FB;
+        .nexo-file-picker:hover {
+            background: #F1F7FF;
+            border-color: #2F80ED;
+        }
+
+        .nexo-file-picker-content {
+            min-width: 0;
+            display: grid;
+            gap: 2px;
+            flex: 1;
+        }
+
+        .nexo-file-picker-title {
+            color: #061C3F;
+            font-weight: 950;
         }
 
         .nexo-file-picker-name {
-            min-width: 0;
-            display: flex;
-            align-items: center;
-            flex: 1;
-            padding: 0 16px;
             color: #162033;
+            font-weight: 700;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
+            white-space: normal;
+            overflow-wrap: anywhere;
         }
 
         .nexo-file-picker:focus-within {
@@ -93,11 +105,53 @@
     (() => {
         const input = document.getElementById(@json($inputId));
         const fileName = document.querySelector('[data-nexo-file-name-for="' + @json($inputId) + '"]');
+        let selectedFiles = [];
+
+        const fileKey = (file) => [
+            file.name,
+            file.size,
+            file.type,
+            file.lastModified,
+        ].join(':');
+
+        const syncInputFiles = () => {
+            if (! input?.multiple || typeof DataTransfer === 'undefined') {
+                return;
+            }
+
+            const transfer = new DataTransfer();
+            selectedFiles.forEach((file) => transfer.items.add(file));
+            input.files = transfer.files;
+        };
+
+        const renderFileNames = () => {
+            if (! fileName) {
+                return;
+            }
+
+            const files = Array.from(input?.files || []);
+            fileName.textContent = files.length
+                ? files.map((file) => file.name).join(', ')
+                : @json($placeholder);
+        };
 
         input?.addEventListener('change', () => {
-            fileName.textContent = input.files && input.files.length
-                ? input.files[0].name
-                : @json($placeholder);
+            if (input.multiple && typeof DataTransfer !== 'undefined') {
+                const knownFiles = new Set(selectedFiles.map(fileKey));
+
+                Array.from(input.files || []).forEach((file) => {
+                    const key = fileKey(file);
+
+                    if (! knownFiles.has(key)) {
+                        selectedFiles.push(file);
+                        knownFiles.add(key);
+                    }
+                });
+
+                syncInputFiles();
+            }
+
+            renderFileNames();
         });
     })();
 </script>

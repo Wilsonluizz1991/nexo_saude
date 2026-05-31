@@ -1,523 +1,690 @@
-<x-layouts.app title="Implantação | Nexo Saúde">
+<x-layouts.app title="Lead | Nexo Saúde">
     @php
-        $statusLegiveis = [
+        $preCadastro = $indicacao->preCadastro;
+        $documentos = $preCadastro?->documentosObrigatorios ?? collect();
+        $documentosObrigatorios = $documentos->where('obrigatorio', true);
+
+        $documentosSemAlternativaOk = $documentosObrigatorios
+            ->filter(fn ($documento) => empty($documento->grupo_alternativo))
+            ->every(fn ($documento) => in_array($documento->status, ['aprovado', 'dispensado'], true));
+
+        $gruposAlternativosOk = $documentosObrigatorios
+            ->filter(fn ($documento) => ! empty($documento->grupo_alternativo))
+            ->groupBy(fn ($documento) => $documento->vida_proposta_id.'|'.$documento->grupo_alternativo)
+            ->every(fn ($grupo) => $grupo->contains(fn ($documento) => in_array($documento->status, ['aprovado', 'dispensado'], true)));
+
+        $documentosOk = $documentos->isNotEmpty() && $documentosSemAlternativaOk && $gruposAlternativosOk;
+        $podeProposta = in_array($indicacao->etapa, ['lead', 'propostas'], true);
+        $podePreCadastro = $indicacao->etapa === 'propostas';
+        $podeLembrete = in_array($indicacao->etapa, ['lead', 'propostas'], true);
+        $slugCorretor = $indicacao->user?->corretorPerfil?->slug ?? \Illuminate\Support\Str::slug($indicacao->user?->name ?? 'corretor');
+        $operadorasPorId = $operadoras->keyBy('id');
+        $operadorasPreferidas = collect($indicacao->operadoras_preferidas ?? [])
+            ->map(fn ($operadoraId) => $operadorasPorId->get((int) $operadoraId)?->nome)
+            ->filter()
+            ->values();
+        $hospitaisPreferidos = collect($indicacao->hospitais_preferidos ?? [])->filter()->values();
+        $temPreferencias = $indicacao->possui_preferencias
+            || $operadorasPreferidas->isNotEmpty()
+            || $hospitaisPreferidos->isNotEmpty()
+            || filled($indicacao->faixa_valor_mensal);
+
+        $statusLegivel = [
+            'nova' => 'Nova',
+            'proposta_enviada' => 'Proposta enviada',
+            'aguardando_envio' => 'Aguardando envio',
+            'documentacao_pendente' => 'Documentação pendente',
+            'documentacao_em_analise' => 'Documentação em análise',
+            'documentacao_aprovada' => 'Documentação aprovada',
+            'correcao_solicitada' => 'Correção solicitada',
             'contrato_em_analise' => 'Contrato em análise',
             'pendencia_na_operadora' => 'Pendência na operadora',
             'aguardando_vigencia' => 'Aguardando vigência',
             'contrato_vigente' => 'Contrato vigente',
             'contrato_recusado' => 'Contrato recusado',
-        ];
-
-        $statusClasses = [
-            'contrato_em_analise' => 'nexo-status-info',
-            'pendencia_na_operadora' => 'nexo-status-warning',
-            'aguardando_vigencia' => 'nexo-status-primary',
-            'contrato_vigente' => 'nexo-status-success',
-            'contrato_recusado' => 'nexo-status-danger',
-        ];
-
-        $proposta = $indicacao->propostas->sortByDesc('created_at')->first();
-        $vidas = $indicacao->preCadastro?->vidas ?? collect();
-        $statusAtual = $statusLegiveis[$indicacao->status] ?? ucfirst(str_replace('_', ' ', $indicacao->status));
-        $classeStatusAtual = $statusClasses[$indicacao->status] ?? 'nexo-status-primary';
-        $valorMensalFormatado = $proposta?->valor_mensal ? 'R$ '.number_format((float) $proposta->valor_mensal, 2, ',', '.') : '';
+        ][$indicacao->status] ?? str_replace('_', ' ', $indicacao->status);
     @endphp
 
-    <main class="nexo-main">
-        <div class="nexo-implantacao-header mb-4">
+    <main class="nexo-main nexo-lead-show-page">
+        <section class="nexo-lead-hero">
             <div>
                 <span class="nexo-page-label">
-                    <i class="bi bi-rocket-takeoff"></i>
-                    Implantação
+                    <i class="bi bi-person-lines-fill"></i>
+                    Lead
                 </span>
 
-                <h1>
-                    {{ $indicacao->nome_cliente }}
-                </h1>
+                <h1>{{ $indicacao->nome_cliente }}</h1>
 
-                <p>
-                    Controle da análise da operadora, pendências, vigência e conversão para carteira.
-                </p>
+                <div class="nexo-lead-meta">
+                    <span>
+                        <i class="bi bi-telephone"></i>
+                        {{ $indicacao->telefone }}
+                    </span>
+
+                    <span>
+                        <i class="bi bi-envelope"></i>
+                        {{ $indicacao->email ?: 'E-mail não informado' }}
+                    </span>
+
+                    <span>
+                        <i class="bi bi-geo-alt"></i>
+                        {{ $indicacao->cidade }}/{{ $indicacao->estado }}
+                    </span>
+                </div>
             </div>
 
-            <a
-                class="nexo-secondary-btn"
-                href="{{ route('paginas.simples', 'implantacoes') }}"
-            >
-                <i class="bi bi-arrow-left"></i>
-                Voltar para Implantações
-            </a>
-        </div>
+            <div class="nexo-lead-status-card">
+                <span>Status atual</span>
+                <strong>{{ $statusLegivel }}</strong>
+                <small>{{ $indicacao->tipo_plano }} · {{ $indicacao->quantidade_vidas }} vida(s)</small>
+            </div>
+        </section>
 
-        <div class="nexo-implantacao-summary mb-4">
-            <div class="nexo-implantacao-summary-card">
-                <div class="nexo-summary-icon">
-                    <i class="bi bi-activity"></i>
-                </div>
-
+        <section class="nexo-panel-card nexo-preferences-summary">
+            <div class="nexo-section-header">
                 <div>
-                    <span>Status</span>
-                    <strong>{{ $statusAtual }}</strong>
+                    <span class="nexo-section-kicker">
+                        <i class="bi bi-sliders"></i>
+                        Preferências
+                    </span>
+
+                    <h2>Preferências da lead</h2>
+
+                    <p>
+                        Informações recebidas no formulário público para orientar a proposta.
+                    </p>
                 </div>
             </div>
 
-            <div class="nexo-implantacao-summary-card">
-                <div class="nexo-summary-icon">
-                    <i class="bi bi-hospital"></i>
-                </div>
+            @if($temPreferencias)
+                <div class="nexo-preferences-grid">
+                    <div class="nexo-preference-block">
+                        <span>Operadoras preferidas</span>
 
-                <div>
-                    <span>Operadora</span>
-                    <strong>{{ $proposta?->operadora?->nome ?: 'Não informada' }}</strong>
-                </div>
-            </div>
-
-            <div class="nexo-implantacao-summary-card">
-                <div class="nexo-summary-icon">
-                    <i class="bi bi-people"></i>
-                </div>
-
-                <div>
-                    <span>Vidas</span>
-                    <strong>{{ $vidas->count() ?: $indicacao->quantidade_vidas }}</strong>
-                </div>
-            </div>
-
-            <div class="nexo-implantacao-summary-card">
-                <div class="nexo-summary-icon">
-                    <i class="bi bi-calendar-check"></i>
-                </div>
-
-                <div>
-                    <span>Início</span>
-                    <strong>{{ $implantacao->data_inicio?->format('d/m/Y') ?: 'Sem data' }}</strong>
-                </div>
-            </div>
-        </div>
-
-        <div class="row g-4">
-            <div class="col-xl-8">
-                <section class="nexo-implantacao-panel mb-4">
-                    <div class="nexo-panel-header">
-                        <div>
-                            <h2>Status da implantação</h2>
-                            <p>Atualize a situação operacional sem voltar para a ficha de Lead.</p>
+                        <div class="nexo-preference-tags">
+                            @forelse($operadorasPreferidas as $operadoraPreferida)
+                                <strong>{{ $operadoraPreferida }}</strong>
+                            @empty
+                                <em>Não informadas</em>
+                            @endforelse
                         </div>
-
-                        <span class="nexo-status-pill {{ $classeStatusAtual }}">
-                            {{ $statusAtual }}
-                        </span>
                     </div>
 
-                    <form method="post" action="{{ route('indicacoes.implantacao.status', $indicacao) }}" class="nexo-status-form mb-4">
-                        @csrf
+                    <div class="nexo-preference-block">
+                        <span>Hospitais preferidos</span>
 
-                        <div class="row g-3 align-items-end">
-                            <div class="col-lg-8">
-                                <label class="form-label">Status da implantação</label>
+                        <div class="nexo-preference-tags">
+                            @forelse($hospitaisPreferidos as $hospitalPreferido)
+                                <strong>{{ $hospitalPreferido }}</strong>
+                            @empty
+                                <em>Não informados</em>
+                            @endforelse
+                        </div>
+                    </div>
 
-                                <select class="form-select" name="status">
-                                    @foreach([
-                                        'contrato_em_analise' => 'Contrato em análise',
-                                        'pendencia_na_operadora' => 'Pendência na operadora',
-                                        'aguardando_vigencia' => 'Aguardando vigência',
-                                        'contrato_recusado' => 'Contrato recusado',
-                                    ] as $valor => $label)
-                                        <option value="{{ $valor }}" @selected($indicacao->status === $valor)>
-                                            {{ $label }}
+                    <div class="nexo-preference-block">
+                        <span>Faixa de valor mensal</span>
+                        <strong>{{ $indicacao->faixa_valor_mensal ?: 'Não informada' }}</strong>
+                    </div>
+                </div>
+            @else
+                <div class="nexo-empty-state">
+                    A lead não informou preferências no formulário público.
+                </div>
+            @endif
+        </section>
+
+        <div class="row g-4">
+            <div class="col-lg-7">
+                @if(filled($indicacao->observacoes))
+                    <section class="nexo-panel-card">
+                        <div class="nexo-section-header">
+                            <div>
+                                <span class="nexo-section-kicker">
+                                    <i class="bi bi-chat-left-text"></i>
+                                    Observação
+                                </span>
+
+                                <h2>Observações da lead</h2>
+
+                                <p>{{ $indicacao->observacoes }}</p>
+                            </div>
+                        </div>
+                    </section>
+                @endif
+
+                <section class="nexo-panel-card">
+                    <div class="nexo-section-header">
+                        <div>
+                            <span class="nexo-section-kicker">
+                                <i class="bi bi-file-earmark-pdf"></i>
+                                Comercial
+                            </span>
+
+                            <h2>Propostas</h2>
+
+                            <p>
+                                Anexe uma ou mais propostas em PDF obtidas externamente e registre os dados comerciais.
+                            </p>
+                        </div>
+                    </div>
+
+                    @if($podeProposta)
+                        <form method="post" action="{{ route('indicacoes.propostas.store', $indicacao) }}" enctype="multipart/form-data" class="row g-3 mb-4">
+                            @csrf
+
+                            <div class="col-md-6">
+                                <label class="form-label">Título da proposta</label>
+                                <input class="form-control" name="titulo" value="{{ old('titulo', 'Proposta comercial') }}" required>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Operadora</label>
+                                <select class="form-select" name="operadora_id">
+                                    <option value="">Selecione</option>
+
+                                    @foreach($operadoras as $operadora)
+                                        <option value="{{ $operadora->id }}" @selected(old('operadora_id') == $operadora->id)>
+                                            {{ $operadora->nome }}
                                         </option>
                                     @endforeach
                                 </select>
                             </div>
 
-                            <div class="col-lg-4">
-                                <div class="nexo-status-actions">
-                                    <button class="nexo-secondary-btn" type="submit">
-                                        <i class="bi bi-arrow-repeat"></i>
-                                        Atualizar status
+                            <div class="col-md-4">
+                                <label class="form-label">Valor mensal</label>
+                                <input class="form-control nexo-money-input" name="valor_mensal" type="text" inputmode="numeric" placeholder="R$ 0,00" value="{{ old('valor_mensal') }}">
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Quantidade de vidas</label>
+                                <input type="hidden" value="{{ $indicacao->tipo_plano }}" data-plan-type>
+                                <input class="form-control" name="quantidade_vidas" type="number" min="1" value="{{ old('quantidade_vidas', $indicacao->quantidade_vidas) }}" data-lives-count>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Validade</label>
+
+                                <div class="nexo-date-field" data-min-date="">
+                                    <i class="bi bi-calendar2-check"></i>
+                                    <input class="form-control nexo-date-display" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" value="{{ old('validade') ? \Carbon\Carbon::parse(old('validade'))->format('d/m/Y') : '' }}">
+                                    <input class="nexo-date-hidden" name="validade" type="hidden" value="{{ old('validade') }}">
+                                    <button class="nexo-date-button" type="button" aria-label="Abrir calendário">
+                                        <i class="bi bi-calendar3"></i>
                                     </button>
+                                    <div class="nexo-calendar"></div>
                                 </div>
                             </div>
-                        </div>
-                    </form>
 
-                    <div class="nexo-contract-grid">
-                        <div class="nexo-contract-card">
-                            <div class="nexo-contract-icon">
-                                <i class="bi bi-file-earmark-text"></i>
+                            <div class="col-12">
+                                <label class="form-label">PDF da proposta</label>
+                                <x-file-input
+                                    name="arquivos_pdf[]"
+                                    accept="application/pdf"
+                                    :required="true"
+                                    :multiple="true"
+                                    button="Selecionar propostas em PDF"
+                                    placeholder="Selecione uma ou mais propostas em PDF"
+                                />
                             </div>
 
-                            <div>
-                                <span>Proposta vinculada</span>
-                                <strong>{{ $proposta?->titulo ?: 'Sem proposta vinculada' }}</strong>
-
-                                @if($proposta?->valor_mensal)
-                                    <p>R$ {{ number_format((float) $proposta->valor_mensal, 2, ',', '.') }}</p>
-                                @endif
-                            </div>
-                        </div>
-
-                        <div class="nexo-contract-card">
-                            <div class="nexo-contract-icon">
-                                <i class="bi bi-card-text"></i>
+                            <div class="col-12">
+                                <label class="form-label">Observações</label>
+                                <textarea class="form-control" name="observacoes" rows="3">{{ old('observacoes') }}</textarea>
                             </div>
 
-                            <div>
-                                <span>Observações da implantação</span>
-                                <strong>{{ $implantacao->observacoes ?: 'Sem observações' }}</strong>
+                            <div class="col-12">
+                                <button class="nexo-primary-btn">
+                                    <i class="bi bi-upload"></i>
+                                    {{ $indicacao->propostas->isNotEmpty() ? 'Anexar nova proposta' : 'Anexar proposta' }}
+                                </button>
                             </div>
-                        </div>
-                    </div>
-                </section>
+                        </form>
+                    @endif
 
-                <section class="nexo-implantacao-panel">
-                    <div class="nexo-panel-header">
-                        <div>
-                            <h2>Beneficiários em implantação</h2>
-                            <p>Vidas vinculadas ao pré-cadastro aprovado.</p>
-                        </div>
-                    </div>
+                    <div class="nexo-proposal-list">
+                        @forelse($indicacao->propostas as $proposta)
+                            <div class="nexo-proposal-item">
+                                <div>
+                                    <strong>{{ $proposta->titulo }}</strong>
 
-                    <div class="table-responsive">
-                        <table class="table align-middle nexo-implantacao-table mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Beneficiário</th>
-                                    <th>Tipo</th>
-                                    <th>Documento</th>
-                                </tr>
-                            </thead>
+                                    <p>
+                                        {{ $proposta->operadora?->nome ?: 'Operadora não informada' }}
 
-                            <tbody>
-                                @forelse($vidas->sortBy('ordem') as $vida)
-                                    <tr>
-                                        <td>
-                                            <div class="nexo-beneficiario-user">
-                                                <div class="nexo-beneficiario-avatar">
-                                                    {{ strtoupper(substr($vida->nome ?: 'B', 0, 1)) }}
-                                                </div>
+                                        @if($proposta->valor_mensal)
+                                            · R$ {{ number_format((float) $proposta->valor_mensal, 2, ',', '.') }}
+                                        @endif
+                                        @if($proposta->quantidade_vidas)
+                                            · {{ $proposta->quantidade_vidas }} vida(s)
+                                        @endif
 
-                                                <div>
-                                                    <strong>{{ $vida->nome ?: 'Beneficiário '.$vida->ordem }}</strong>
-                                                    <small>Vida {{ $vida->ordem }}</small>
-                                                </div>
-                                            </div>
-                                        </td>
+                                        @if($proposta->validade)
+                                            · validade {{ $proposta->validade->format('d/m/Y') }}
+                                        @endif
+                                    </p>
+                                </div>
 
-                                        <td>
-                                            <span class="nexo-light-pill">
-                                                {{ ucfirst(str_replace('_', ' ', $vida->tipo)) }}
-                                            </span>
-                                        </td>
+                                <div class="d-flex align-items-center gap-3 flex-wrap justify-content-end">
+                                    <span>{{ $proposta->status }}</span>
 
-                                        <td>
-                                            {{ $vida->cpf ?: 'Não informado' }}
-                                        </td>
-                                    </tr>
-                                @empty
-                                    <tr>
-                                        <td colspan="3">
-                                            <div class="nexo-empty-state">
-                                                <i class="bi bi-people"></i>
-                                                <p>Nenhum beneficiário vinculado ao pré-cadastro.</p>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                @endforelse
-                            </tbody>
-                        </table>
-                    </div>
-
-                    <div class="nexo-final-action">
-                        <button
-                            class="nexo-primary-btn"
-                            type="button"
-                            data-bs-toggle="modal"
-                            data-bs-target="#contratoVigenteModal"
-                        >
-                            <i class="bi bi-check-circle"></i>
-                            Contrato vigente
-                        </button>
-                    </div>
-                </section>
-            </div>
-
-            <div class="col-xl-4">
-                <section class="nexo-implantacao-panel h-100">
-                    <div class="nexo-panel-header">
-                        <div>
-                            <h2>Timeline da implantação</h2>
-                            <p>Histórico de movimentações e atualizações.</p>
-                        </div>
-                    </div>
-
-                    <div class="nexo-timeline">
-                        @forelse($indicacao->timelineEventos->sortByDesc('created_at') as $evento)
-                            <div class="nexo-timeline-item">
-                                <div class="nexo-timeline-dot"></div>
-
-                                <div class="nexo-timeline-content">
-                                    <strong>{{ $evento->titulo }}</strong>
-                                    <p>{{ $evento->descricao }}</p>
-                                    <span>{{ $evento->created_at?->format('d/m/Y H:i') }}</span>
+                                    <a href="{{ $proposta->public_group_token ? route('publico.propostas.download', ['token' => $proposta->public_group_token, 'proposta' => $proposta]) : asset('storage/'.$proposta->arquivo_pdf_path) }}" target="_blank" rel="noopener">
+                                        Visualizar
+                                    </a>
                                 </div>
                             </div>
                         @empty
                             <div class="nexo-empty-state">
-                                <i class="bi bi-clock-history"></i>
-                                <p>Nenhum evento registrado.</p>
+                                Nenhuma proposta anexada ainda.
+                            </div>
+                        @endforelse
+                    </div>
+
+                    @if($indicacao->propostas->isNotEmpty() && $podePreCadastro)
+                        <form method="post" action="{{ route('indicacoes.aceitar', $indicacao) }}" class="mt-4">
+                            @csrf
+
+                            <button class="nexo-secondary-btn">
+                                <i class="bi bi-link-45deg"></i>
+                                Gerar link de pré-cadastro
+                            </button>
+                        </form>
+                    @endif
+                </section>
+
+                @if($preCadastro)
+                    <section class="nexo-panel-card">
+                        <div class="nexo-section-header nexo-section-header-action">
+                            <div>
+                                <span class="nexo-section-kicker">
+                                    <i class="bi bi-clipboard2-check"></i>
+                                    Documentação
+                                </span>
+
+                                <h2>Pré-cadastro</h2>
+
+                                <p>
+                                    Link tokenizado para envio de dados e documentos pelo cliente.
+                                </p>
+                            </div>
+
+                            <a class="nexo-secondary-btn" href="{{ route('cliente.pre-cadastro.show', ['slug' => $slugCorretor, 'token' => $preCadastro->token]) }}" target="_blank">
+                                <i class="bi bi-box-arrow-up-right"></i>
+                                Abrir link público
+                            </a>
+                        </div>
+
+                        @if(! $documentosOk && $indicacao->etapa === 'pre_cadastros')
+                            <div class="nexo-warning-box">
+                                Ainda existem documentos pendentes ou em correção.
+                            </div>
+                        @endif
+
+                        @if($indicacao->etapa === 'pre_cadastros' && in_array($indicacao->status, ['documentacao_em_analise', 'correcao_solicitada', 'documentacao_pendente'], true))
+                            <form method="post" action="{{ route('indicacoes.pre-cadastro.correcao', $indicacao) }}" class="nexo-correction-form">
+                                @csrf
+
+                                <label class="form-label">Motivos da correção</label>
+
+                                <textarea class="form-control mb-3" name="motivos_correcao" rows="3" placeholder="Ex.: documento de identidade com foto ilegível; comprovante de residência vencido.">{{ old('motivos_correcao', $preCadastro->motivos_correcao) }}</textarea>
+
+                                <button class="nexo-warning-btn">
+                                    <i class="bi bi-pencil-square"></i>
+                                    Solicitar correção
+                                </button>
+                            </form>
+                        @endif
+
+                        <div class="nexo-beneficiary-list">
+                            @foreach($preCadastro->vidas as $vida)
+                                <article class="nexo-beneficiary-review-card">
+                                    <div class="nexo-beneficiary-review-header">
+                                        <div class="nexo-beneficiary-avatar">
+                                            {{ $vida->ordem }}
+                                        </div>
+
+                                        <div>
+                                            <h3>
+                                                {{ $vida->nome ?: 'Beneficiário '.$vida->ordem }}
+                                            </h3>
+
+                                            <p>
+                                                {{ ucfirst(str_replace('_', ' ', $vida->tipo)) }}
+                                            </p>
+                                        </div>
+                                    </div>
+
+                                    @include('interno.indicacoes.partials.documentos-revisao', [
+                                        'indicacao' => $indicacao,
+                                        'documentos' => $documentos->where('vida_proposta_id', $vida->id),
+                                    ])
+                                </article>
+                            @endforeach
+                        </div>
+
+                        @if($documentos->whereNull('vida_proposta_id')->isNotEmpty())
+                            <article class="nexo-beneficiary-review-card">
+                                <div class="nexo-beneficiary-review-header">
+                                    <div class="nexo-beneficiary-avatar">
+                                        <i class="bi bi-files"></i>
+                                    </div>
+
+                                    <div>
+                                        <h3>Documentos da proposta</h3>
+                                        <p>Arquivos gerais vinculados ao pré-cadastro.</p>
+                                    </div>
+                                </div>
+
+                                @include('interno.indicacoes.partials.documentos-revisao', [
+                                    'indicacao' => $indicacao,
+                                    'documentos' => $documentos->whereNull('vida_proposta_id'),
+                                ])
+                            </article>
+                        @endif
+
+                        @if($indicacao->etapa === 'pre_cadastros' && $documentosOk)
+                            <form method="post" action="{{ route('indicacoes.implantacao.iniciar', $indicacao) }}" class="mt-3">
+                                @csrf
+
+                                <button class="nexo-primary-btn">
+                                    <i class="bi bi-check-circle"></i>
+                                    Aprovar documentação
+                                </button>
+                            </form>
+                        @endif
+
+                        @if($indicacao->etapa === 'implantacoes')
+                            <form method="post" action="{{ route('indicacoes.implantacao.status', $indicacao) }}" class="row g-3 mb-3 mt-4">
+                                @csrf
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Status da implantação</label>
+
+                                    <select class="form-select" name="status">
+                                        @foreach([
+                                            'contrato_em_analise' => 'Contrato em análise',
+                                            'pendencia_na_operadora' => 'Pendência na operadora',
+                                            'aguardando_vigencia' => 'Aguardando vigência',
+                                            'contrato_recusado' => 'Contrato recusado',
+                                        ] as $valor => $label)
+                                            <option value="{{ $valor }}" @selected($indicacao->status === $valor)>
+                                                {{ $label }}
+                                            </option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6 d-flex align-items-end">
+                                    <button class="nexo-secondary-btn w-100">
+                                        <i class="bi bi-arrow-repeat"></i>
+                                        Atualizar status
+                                    </button>
+                                </div>
+                            </form>
+
+                            <button class="nexo-primary-btn" data-bs-toggle="modal" data-bs-target="#contratoVigenteModal">
+                                <i class="bi bi-check2-circle"></i>
+                                Contrato vigente
+                            </button>
+                        @endif
+                    </section>
+                @endif
+            </div>
+
+            <div class="col-lg-5">
+                <section class="nexo-panel-card">
+                    <div class="nexo-section-header">
+                        <div>
+                            <span class="nexo-section-kicker">
+                                <i class="bi bi-bell"></i>
+                                Acompanhamento
+                            </span>
+
+                            <h2>Lembretes</h2>
+
+                            <p>
+                                Programe retornos, cobranças de documentos e acompanhamentos deste registro.
+                            </p>
+                        </div>
+                    </div>
+
+                    @if($podeLembrete)
+                        <form method="post" action="{{ route('indicacoes.lembretes.store', $indicacao) }}" class="row g-3 mb-4">
+                            @csrf
+
+                            <div class="col-12">
+                                <label class="form-label">Data do lembrete</label>
+
+                                <div class="nexo-date-field" data-min-date="{{ now()->toDateString() }}">
+                                    <i class="bi bi-calendar2-check"></i>
+                                    <input
+                                        class="form-control nexo-date-display @error('data_ocorrencia') is-invalid @enderror"
+                                        type="text"
+                                        inputmode="numeric"
+                                        placeholder="dd/mm/aaaa"
+                                        value="{{ old('data_ocorrencia') ? \Carbon\Carbon::parse(old('data_ocorrencia'))->format('d/m/Y') : '' }}"
+                                        required
+                                    >
+                                    <input
+                                        class="nexo-date-hidden"
+                                        name="data_ocorrencia"
+                                        type="hidden"
+                                        value="{{ old('data_ocorrencia') }}"
+                                        required
+                                    >
+                                    <button class="nexo-date-button" type="button" aria-label="Abrir calendário">
+                                        <i class="bi bi-calendar3"></i>
+                                    </button>
+                                    <div class="nexo-calendar"></div>
+                                </div>
+
+                                @error('data_ocorrencia')
+                                    <div class="invalid-feedback d-block">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Informações do lembrete</label>
+
+                                <textarea
+                                    class="form-control @error('descricao') is-invalid @enderror"
+                                    name="descricao"
+                                    rows="4"
+                                    maxlength="255"
+                                    placeholder="Ex.: Ligar daqui 20 dias; carta de permanência sai daqui a 60 dias, retornar contato."
+                                    required
+                                >{{ old('descricao') }}</textarea>
+
+                                @error('descricao')
+                                    <div class="invalid-feedback">{{ $message }}</div>
+                                @enderror
+                            </div>
+
+                            <div class="col-12">
+                                <button class="nexo-primary-btn w-100">
+                                    <i class="bi bi-plus-circle"></i>
+                                    Criar lembrete
+                                </button>
+                            </div>
+                        </form>
+                    @endif
+
+                    <div class="nexo-reminder-list">
+                        @forelse($indicacao->tarefas->where('tipo', 'lembrete')->sortBy('vencimento') as $lembrete)
+                            <div class="nexo-reminder-item">
+                                <div>
+                                    <strong>{{ $lembrete->titulo }}</strong>
+                                    <span>Programado para {{ $lembrete->vencimento?->format('d/m/Y') }}</span>
+                                </div>
+
+                                <small>{{ ucfirst($lembrete->status) }}</small>
+                            </div>
+                        @empty
+                            <div class="nexo-empty-state">
+                                Nenhum lembrete criado para este registro.
                             </div>
                         @endforelse
                     </div>
                 </section>
 
-                <div class="mt-4">
-                    @include('interno.indicacoes.partials.lembretes-card', ['indicacao' => $indicacao])
-                </div>
-            </div>
-        </div>
-    </main>
-
-    <div class="modal fade" id="contratoVigenteModal" tabindex="-1" aria-labelledby="contratoVigenteLabel" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <form method="post" action="{{ route('indicacoes.implantacao.aprovar', $indicacao) }}" class="modal-content nexo-modal-content">
-                @csrf
-
-                <div class="modal-header nexo-modal-header">
-                    <div class="nexo-modal-title-wrap">
-                        <div class="nexo-modal-icon">
-                            <i class="bi bi-shield-check"></i>
-                        </div>
-
+                <section class="nexo-panel-card">
+                    <div class="nexo-section-header">
                         <div>
-                            <span class="nexo-modal-kicker">
-                                Contrato vigente
+                            <span class="nexo-section-kicker">
+                                <i class="bi bi-clock-history"></i>
+                                Histórico
                             </span>
 
-                            <h2 class="modal-title" id="contratoVigenteLabel">
-                                Confirmar dados finais do contrato
-                            </h2>
+                            <h2>Timeline</h2>
 
                             <p>
-                                Revise as informações comerciais, defina datas importantes e confirme a entrada do cliente na carteira.
+                                Registro das movimentações deste atendimento.
                             </p>
                         </div>
                     </div>
 
-                    <button type="button" class="btn-close nexo-modal-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
-                </div>
+                    <div class="nexo-timeline-list">
+                        @forelse($indicacao->timelineEventos->sortByDesc('created_at') as $evento)
+                            <div class="nexo-timeline-item">
+                                <strong>{{ $evento->titulo }}</strong>
+                                <p>{{ $evento->descricao }}</p>
+                                <small>{{ $evento->created_at?->format('d/m/Y H:i') }}</small>
+                            </div>
+                        @empty
+                            <div class="nexo-empty-state">
+                                Nenhum evento registrado.
+                            </div>
+                        @endforelse
+                    </div>
+                </section>
+            </div>
+        </div>
+    </main>
 
-                <div class="modal-body nexo-modal-body">
-                    <div class="nexo-modal-summary-card">
+    @if($indicacao->etapa === 'implantacoes')
+        <div class="modal fade" id="contratoVigenteModal" tabindex="-1" aria-labelledby="contratoVigenteLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <form method="post" action="{{ route('indicacoes.implantacao.aprovar', $indicacao) }}" class="modal-content nexo-contract-modal">
+                    @csrf
+
+                    <div class="modal-header">
                         <div>
-                            <span>Cliente</span>
-                            <strong>{{ $indicacao->nome_cliente }}</strong>
+                            <span class="nexo-modal-label">Implantação</span>
+                            <h2 class="modal-title h5" id="contratoVigenteLabel">Contrato vigente</h2>
                         </div>
 
-                        <div>
-                            <span>Operadora sugerida</span>
-                            <strong>{{ $proposta?->operadora?->nome ?: 'Não informada' }}</strong>
-                        </div>
-
-                        <div>
-                            <span>Vidas</span>
-                            <strong>{{ $vidas->count() ?: $indicacao->quantidade_vidas }}</strong>
-                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Fechar"></button>
                     </div>
 
-                    <div class="row g-3">
-                        <div class="col-md-6">
-                            <label class="form-label">Operadora</label>
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">Operadora</label>
 
-                            <select class="form-select" name="operadora_id" required>
-                                <option value="">Selecione</option>
+                                <select class="form-select" name="operadora_id" required>
+                                    <option value="">Selecione</option>
 
-                                @foreach($operadoras as $operadora)
-                                    <option value="{{ $operadora->id }}" @selected($proposta?->operadora_id === $operadora->id)>
-                                        {{ $operadora->nome }}
-                                    </option>
-                                @endforeach
-                            </select>
-                        </div>
+                                    @foreach($operadoras as $operadora)
+                                        <option value="{{ $operadora->id }}">{{ $operadora->nome }}</option>
+                                    @endforeach
+                                </select>
+                            </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Tipo de contrato</label>
+                            <div class="col-md-6">
+                                <label class="form-label">Tipo de contrato</label>
 
                             <select class="form-select" name="tipo_contrato" data-plan-type required>
-                                <option value="individual">Individual</option>
-                                <option value="familiar">Familiar</option>
-                                <option value="pme">PME</option>
-                                <option value="empresarial">Empresarial</option>
-                            </select>
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Quantidade de vidas</label>
-
-                            <input
-                                class="form-control"
-                                name="quantidade_vidas"
-                                type="number"
-                                min="1"
-                                value="{{ $vidas->count() ?: $indicacao->quantidade_vidas }}"
-                                data-lives-count
-                                required
-                            >
-                        </div>
-
-                        <div class="col-md-4">
-                            <label class="form-label">Data de vigência</label>
-
-                            <div class="nexo-date-field">
-                                <i class="bi bi-calendar2-check"></i>
-
-                                <input
-                                    class="form-control nexo-date-display"
-                                    type="text"
-                                    inputmode="numeric"
-                                    placeholder="dd/mm/aaaa"
-                                    autocomplete="off"
-                                    required
-                                >
-
-                                <input
-                                    class="nexo-date-hidden"
-                                    name="data_vigencia"
-                                    type="hidden"
-                                    required
-                                >
-
-                                <button class="nexo-date-button" type="button" aria-label="Abrir calendário">
-                                    <i class="bi bi-calendar3"></i>
-                                </button>
-
-                                <div class="nexo-calendar"></div>
+                                    <option value="individual">Individual</option>
+                                    <option value="familiar">Familiar</option>
+                                    <option value="pme">PME</option>
+                                    <option value="empresarial">Empresarial</option>
+                                </select>
                             </div>
-                        </div>
 
-                        <div class="col-md-4">
-                            <label class="form-label">Valor mensal</label>
-
-                            <input
-                                class="form-control"
-                                name="valor_mensal_formatado"
-                                type="text"
-                                inputmode="numeric"
-                                value="{{ $valorMensalFormatado }}"
-                                placeholder="R$ 0,00"
-                                data-money-mask
-                                required
-                            >
-
-                            <input
-                                type="hidden"
-                                name="valor_mensal"
-                                value="{{ $proposta?->valor_mensal }}"
-                                data-money-hidden
-                            >
-                        </div>
-
-                        <div class="col-md-6">
-                            <label class="form-label">Renovação</label>
-
-                            <div class="nexo-date-field">
-                                <i class="bi bi-calendar2-check"></i>
-
-                                <input
-                                    class="form-control nexo-date-display"
-                                    type="text"
-                                    inputmode="numeric"
-                                    placeholder="dd/mm/aaaa"
-                                    autocomplete="off"
-                                    required
-                                >
-
-                                <input
-                                    class="nexo-date-hidden"
-                                    name="renovacao_em"
-                                    type="hidden"
-                                    required
-                                >
-
-                                <button class="nexo-date-button" type="button" aria-label="Abrir calendário">
-                                    <i class="bi bi-calendar3"></i>
-                                </button>
-
-                                <div class="nexo-calendar"></div>
+                            <div class="col-md-4">
+                                <label class="form-label">Quantidade de vidas</label>
+                                <input class="form-control" name="quantidade_vidas" type="number" min="1" value="{{ $indicacao->quantidade_vidas }}" data-lives-count required>
                             </div>
-                        </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Reajuste</label>
+                            <div class="col-md-4">
+                                <label class="form-label">Data de vigência</label>
 
-                            <div class="nexo-date-field">
-                                <i class="bi bi-calendar2-check"></i>
-
-                                <input
-                                    class="form-control nexo-date-display"
-                                    type="text"
-                                    inputmode="numeric"
-                                    placeholder="dd/mm/aaaa"
-                                    autocomplete="off"
-                                    required
-                                >
-
-                                <input
-                                    class="nexo-date-hidden"
-                                    name="reajuste_em"
-                                    type="hidden"
-                                    required
-                                >
-
-                                <button class="nexo-date-button" type="button" aria-label="Abrir calendário">
-                                    <i class="bi bi-calendar3"></i>
-                                </button>
-
-                                <div class="nexo-calendar"></div>
+                                <div class="nexo-date-field" data-min-date="">
+                                    <i class="bi bi-calendar2-check"></i>
+                                    <input class="form-control nexo-date-display" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" required>
+                                    <input class="nexo-date-hidden" name="data_vigencia" type="hidden" required>
+                                    <button class="nexo-date-button" type="button" aria-label="Abrir calendário">
+                                        <i class="bi bi-calendar3"></i>
+                                    </button>
+                                    <div class="nexo-calendar"></div>
+                                </div>
                             </div>
-                        </div>
 
-                        <div class="col-md-6">
-                            <label class="form-label">Número do contrato</label>
+                            <div class="col-md-4">
+                                <label class="form-label">Valor mensal</label>
+                                <input class="form-control nexo-money-input" name="valor_mensal" type="text" inputmode="numeric" placeholder="R$ 0,00" required>
+                            </div>
 
-                            <input class="form-control" name="numero_contrato">
-                        </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Renovação</label>
 
-                        <div class="col-12">
-                            <label class="form-label">Observações</label>
+                                <div class="nexo-date-field" data-min-date="">
+                                    <i class="bi bi-calendar2-check"></i>
+                                    <input class="form-control nexo-date-display" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" required>
+                                    <input class="nexo-date-hidden" name="renovacao_em" type="hidden" required>
+                                    <button class="nexo-date-button" type="button" aria-label="Abrir calendário">
+                                        <i class="bi bi-calendar3"></i>
+                                    </button>
+                                    <div class="nexo-calendar"></div>
+                                </div>
+                            </div>
 
-                            <textarea class="form-control" name="observacoes" rows="3">{{ $implantacao->observacoes }}</textarea>
-                        </div>
+                            <div class="col-md-6">
+                                <label class="form-label">Reajuste</label>
 
-                        <div class="col-md-6">
-                            <label class="nexo-check-card">
-                                <input class="form-check-input" type="checkbox" name="enviar_email" value="1">
-                                <span>
-                                    <strong>Enviar e-mail automático</strong>
-                                    <small>Notificar o cliente sobre o contrato vigente.</small>
-                                </span>
-                            </label>
-                        </div>
+                                <div class="nexo-date-field" data-min-date="">
+                                    <i class="bi bi-calendar2-check"></i>
+                                    <input class="form-control nexo-date-display" type="text" inputmode="numeric" placeholder="dd/mm/aaaa" required>
+                                    <input class="nexo-date-hidden" name="reajuste_em" type="hidden" required>
+                                    <button class="nexo-date-button" type="button" aria-label="Abrir calendário">
+                                        <i class="bi bi-calendar3"></i>
+                                    </button>
+                                    <div class="nexo-calendar"></div>
+                                </div>
+                            </div>
 
-                        <div class="col-md-6">
-                            <label class="nexo-check-card">
-                                <input class="form-check-input" type="checkbox" name="enviar_sms" value="1">
-                                <span>
-                                    <strong>Enviar SMS automático</strong>
-                                    <small>Enviar confirmação resumida ao cliente.</small>
-                                </span>
-                            </label>
+                            <div class="col-md-6">
+                                <label class="form-label">Número do contrato</label>
+                                <input class="form-control" name="numero_contrato">
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Observações</label>
+                                <textarea class="form-control" name="observacoes" rows="3"></textarea>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="nexo-check-card">
+                                    <input class="form-check-input" type="checkbox" name="enviar_email" value="1">
+                                    <span>
+                                        <strong>Enviar e-mail automático</strong>
+                                        <small>Notificar o cliente sobre o contrato vigente.</small>
+                                    </span>
+                                </label>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="nexo-check-card">
+                                    <input class="form-check-input" type="checkbox" name="enviar_sms" value="1">
+                                    <span>
+                                        <strong>Enviar SMS automático</strong>
+                                        <small>Enviar confirmação resumida ao cliente.</small>
+                                    </span>
+                                </label>
+                            </div>
                         </div>
                     </div>
-                </div>
 
-                <div class="modal-footer nexo-modal-footer">
-                    <div class="nexo-modal-footer-note">
-                        <i class="bi bi-info-circle"></i>
-                        Esta ação registra o contrato como vigente e move o cliente para a carteira.
-                    </div>
-
-                    <div class="nexo-modal-footer-actions">
+                    <div class="modal-footer">
                         <button type="button" class="nexo-secondary-btn" data-bs-dismiss="modal">
                             Cancelar
                         </button>
@@ -527,600 +694,218 @@
                             Confirmar contrato vigente
                         </button>
                     </div>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
-    </div>
+    @endif
 
     <style>
-        .nexo-implantacao-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            gap: 24px;
+        .nexo-lead-show-page {
+            display: block;
         }
 
-        .nexo-page-label {
+        .nexo-lead-hero {
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 18px;
+            margin-bottom: 24px;
+            padding: 24px 28px;
+            border-radius: 26px;
+            background:
+                radial-gradient(circle at top right, rgba(47, 128, 237, 0.22), transparent 32%),
+                linear-gradient(135deg, #061C3F 0%, #0F3A68 100%);
+            color: #FFFFFF;
+            box-shadow: 0 18px 44px rgba(6, 28, 63, 0.16);
+        }
+
+        .nexo-page-label,
+        .nexo-section-kicker,
+        .nexo-modal-label {
             display: inline-flex;
             align-items: center;
             gap: 8px;
+            width: fit-content;
+            min-height: 30px;
+            padding: 0 11px;
             border-radius: 999px;
             background: #EAF3FF;
             color: #2F80ED;
-            font-size: 0.78rem;
-            font-weight: 900;
-            padding: 6px 11px;
+            font-size: 0.76rem;
+            font-weight: 950;
             margin-bottom: 10px;
         }
 
-        .nexo-implantacao-header h1 {
-            color: #061C3F;
-            font-size: 2.35rem;
-            line-height: 1;
-            font-weight: 900;
-            letter-spacing: -0.05em;
-            margin: 0 0 8px;
+        .nexo-page-label {
+            background: rgba(255, 255, 255, 0.10);
+            color: #DDEBFF;
         }
 
-        .nexo-implantacao-header p {
-            color: #64748B;
-            margin: 0;
-            font-size: 1rem;
-        }
-
-        .nexo-primary-btn,
-        .nexo-secondary-btn {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            gap: 10px;
-            min-height: 48px;
-            padding: 0 18px;
-            border-radius: 14px;
-            font-weight: 900;
-            text-decoration: none;
-            transition: 0.2s ease;
-        }
-
-        .nexo-primary-btn {
-            background: linear-gradient(135deg, #2F80ED 0%, #1B6DFF 100%);
+        .nexo-lead-hero h1 {
             color: #FFFFFF;
-            border: none;
-            box-shadow: 0 18px 36px rgba(47, 128, 237, 0.22);
-        }
-
-        .nexo-primary-btn:hover {
-            color: #FFFFFF;
-            transform: translateY(-2px);
-        }
-
-        .nexo-secondary-btn {
-            background: #FFFFFF;
-            border: 1px solid #D7E7FF;
-            color: #2F80ED;
-        }
-
-        .nexo-secondary-btn:hover {
-            background: #2F80ED;
-            color: #FFFFFF;
-        }
-
-        .nexo-implantacao-summary {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 18px;
-        }
-
-        .nexo-implantacao-summary-card {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            min-height: 112px;
-            padding: 22px;
-            border-radius: 24px;
-            background: #FFFFFF;
-            border: 1px solid #E4EBF5;
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.05);
-            overflow: hidden;
-        }
-
-        .nexo-implantacao-summary-card::after {
-            content: "";
-            position: absolute;
-            width: 74px;
-            height: 74px;
-            right: -20px;
-            top: -20px;
-            border-radius: 999px;
-            background: rgba(47, 128, 237, 0.08);
-        }
-
-        .nexo-summary-icon {
-            width: 54px;
-            height: 54px;
-            border-radius: 18px;
-            background: linear-gradient(135deg, #EAF3FF 0%, #DCEEFF 100%);
-            color: #2F80ED;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.35rem;
-            flex-shrink: 0;
-        }
-
-        .nexo-implantacao-summary-card span {
-            display: block;
-            color: #64748B;
-            font-size: 0.9rem;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-
-        .nexo-implantacao-summary-card strong {
-            display: block;
-            color: #061C3F;
-            font-size: 1.45rem;
-            line-height: 1.12;
+            font-size: clamp(1.75rem, 2.6vw, 2.85rem);
+            line-height: 1.04;
             font-weight: 950;
-            letter-spacing: -0.04em;
+            letter-spacing: -0.055em;
+            margin: 0 0 12px;
         }
 
-        .nexo-implantacao-panel {
+        .nexo-lead-meta {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 9px;
+        }
+
+        .nexo-lead-meta span {
+            display: inline-flex;
+            align-items: center;
+            gap: 7px;
+            min-height: 32px;
+            padding: 0 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.09);
+            color: rgba(255, 255, 255, 0.84);
+            font-size: 0.82rem;
+            font-weight: 750;
+        }
+
+        .nexo-lead-status-card {
+            padding: 16px 18px;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.09);
+            border: 1px solid rgba(255, 255, 255, 0.13);
+            backdrop-filter: blur(10px);
+        }
+
+        .nexo-lead-status-card span,
+        .nexo-lead-status-card small {
+            display: block;
+            color: rgba(255, 255, 255, 0.72);
+            font-weight: 800;
+        }
+
+        .nexo-lead-status-card span {
+            font-size: 0.84rem;
+        }
+
+        .nexo-lead-status-card small {
+            font-size: 0.82rem;
+        }
+
+        .nexo-lead-status-card strong {
+            display: block;
+            color: #FFFFFF;
+            font-size: 1.16rem;
+            font-weight: 950;
+            margin: 3px 0;
+        }
+
+        .nexo-panel-card {
+            padding: 24px;
             border-radius: 28px;
             background: #FFFFFF;
             border: 1px solid #E4EBF5;
-            box-shadow: 0 20px 42px rgba(15, 23, 42, 0.05);
-            padding: 28px;
-        }
-
-        .nexo-panel-header {
-            display: flex;
-            align-items: flex-start;
-            justify-content: space-between;
-            gap: 20px;
+            box-shadow: 0 20px 42px rgba(15, 23, 42, 0.055);
             margin-bottom: 24px;
         }
 
-        .nexo-panel-header h2 {
-            color: #061C3F;
-            font-size: 1.35rem;
-            font-weight: 900;
-            margin: 0 0 6px;
+        .nexo-preferences-summary {
+            border-color: #D7E7FF;
+            background: linear-gradient(180deg, #FFFFFF 0%, #F8FBFF 100%);
         }
 
-        .nexo-panel-header p {
-            color: #64748B;
-            margin: 0;
-        }
-
-        .nexo-status-pill {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 38px;
-            padding: 0 14px;
-            border-radius: 999px;
-            font-size: 0.82rem;
-            font-weight: 900;
-            white-space: nowrap;
-        }
-
-        .nexo-status-primary {
-            background: #EAF3FF;
-            color: #2F80ED;
-        }
-
-        .nexo-status-success {
-            background: #EAFBF1;
-            color: #1E9E63;
-        }
-
-        .nexo-status-warning {
-            background: #FFF5E8;
-            color: #D9822B;
-        }
-
-        .nexo-status-danger {
-            background: #FFECEC;
-            color: #E14D4D;
-        }
-
-        .nexo-status-info {
-            background: #EEF7FF;
-            color: #3A8DDE;
-        }
-
-        .nexo-status-form {
-            padding: 22px;
-            border-radius: 24px;
-            background: #F8FBFF;
-            border: 1px solid #DCEBFF;
-        }
-
-        .nexo-status-form .form-label,
-        .nexo-modal-body .form-label {
-            color: #061C3F;
-            font-weight: 800;
-        }
-
-        .nexo-status-form .form-select,
-        .nexo-modal-body .form-select,
-        .nexo-modal-body .form-control {
-            min-height: 50px;
-            border-radius: 12px;
-            border: 1px solid #D8E2EF;
-        }
-
-        .nexo-status-actions {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .nexo-contract-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px;
-        }
-
-        .nexo-contract-card {
-            display: flex;
-            align-items: flex-start;
-            gap: 14px;
-            padding: 20px;
-            border-radius: 22px;
-            background: #FFFFFF;
-            border: 1px solid #E6EEF9;
-        }
-
-        .nexo-contract-icon {
-            width: 46px;
-            height: 46px;
-            border-radius: 16px;
-            background: rgba(47, 128, 237, 0.12);
-            color: #2F80ED;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            flex-shrink: 0;
-        }
-
-        .nexo-contract-card span {
-            display: block;
-            color: #64748B;
-            font-size: 0.82rem;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-
-        .nexo-contract-card strong {
-            display: block;
-            color: #061C3F;
-            font-weight: 900;
-        }
-
-        .nexo-contract-card p {
-            color: #64748B;
-            margin: 4px 0 0;
-        }
-
-        .nexo-implantacao-table thead th {
-            color: #64748B;
-            font-size: 0.8rem;
-            font-weight: 900;
-            text-transform: uppercase;
-            border-color: #E8EEF6;
-            padding-bottom: 16px;
-        }
-
-        .nexo-implantacao-table tbody td {
-            padding-top: 18px;
-            padding-bottom: 18px;
-            border-color: #EDF2F7;
-            vertical-align: middle;
-        }
-
-        .nexo-beneficiario-user {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-        }
-
-        .nexo-beneficiario-avatar {
-            width: 46px;
-            height: 46px;
-            border-radius: 16px;
-            background: linear-gradient(135deg, #2F80ED 0%, #5BA7FF 100%);
-            color: #FFFFFF;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: 900;
-            flex-shrink: 0;
-        }
-
-        .nexo-beneficiario-user strong {
-            display: block;
-            color: #061C3F;
-            font-weight: 900;
-        }
-
-        .nexo-beneficiario-user small {
-            color: #64748B;
-        }
-
-        .nexo-light-pill {
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            min-height: 34px;
-            padding: 0 14px;
-            border-radius: 999px;
-            background: #F3F8FF;
-            color: #2F80ED;
-            font-size: 0.82rem;
-            font-weight: 900;
-        }
-
-        .nexo-final-action {
-            display: flex;
-            justify-content: flex-end;
-            margin-top: 28px;
-            padding-top: 22px;
-            border-top: 1px solid #EDF2F7;
-        }
-
-        .nexo-timeline {
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
-        }
-
-        .nexo-timeline-item {
-            position: relative;
-            display: flex;
-            gap: 16px;
-        }
-
-        .nexo-timeline-dot {
-            width: 14px;
-            height: 14px;
-            border-radius: 999px;
-            background: #2F80ED;
-            margin-top: 6px;
-            flex-shrink: 0;
-            box-shadow: 0 0 0 6px rgba(47, 128, 237, 0.10);
-        }
-
-        .nexo-timeline-content {
-            position: relative;
-            padding-bottom: 18px;
-            flex: 1;
-        }
-
-        .nexo-timeline-content::before {
-            content: "";
-            position: absolute;
-            left: -23px;
-            top: 22px;
-            width: 2px;
-            height: calc(100% - 6px);
-            background: #DCEBFF;
-        }
-
-        .nexo-timeline-item:last-child .nexo-timeline-content::before {
-            display: none;
-        }
-
-        .nexo-timeline-content strong {
-            display: block;
-            color: #061C3F;
-            font-weight: 900;
-            margin-bottom: 6px;
-        }
-
-        .nexo-timeline-content p {
-            color: #64748B;
-            margin: 0 0 8px;
-            font-size: 0.92rem;
-        }
-
-        .nexo-timeline-content span {
-            color: #94A3B8;
-            font-size: 0.8rem;
-            font-weight: 700;
-        }
-
-        .nexo-empty-state {
-            min-height: 180px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            flex-direction: column;
-            color: #64748B;
-            text-align: center;
-        }
-
-        .nexo-empty-state i {
-            color: #2F80ED;
-            font-size: 2.4rem;
-            margin-bottom: 12px;
-        }
-
-        .nexo-empty-state p {
-            margin: 0;
-            font-weight: 700;
-        }
-
-        .nexo-modal-content {
-            border: 0;
-            border-radius: 28px;
-            overflow: hidden;
-            box-shadow: 0 28px 70px rgba(6, 28, 63, 0.22);
-        }
-
-        .nexo-modal-header {
-            align-items: flex-start;
-            padding: 28px;
-            border-bottom: 1px solid #E8EEF6;
-            background: linear-gradient(180deg, #F8FBFF 0%, #FFFFFF 100%);
-        }
-
-        .nexo-modal-header h2 {
-            color: #061C3F;
-            font-size: 1.6rem;
-            font-weight: 900;
-            margin: 0 0 6px;
-        }
-
-        .nexo-modal-header p {
-            color: #64748B;
-            margin: 0;
-        }
-
-        .nexo-modal-body {
-            padding: 28px;
-        }
-
-        .nexo-modal-footer {
-            padding: 22px 28px;
-            border-top: 1px solid #E8EEF6;
-            background: #F8FBFF;
-        }
-
-        .nexo-check-card {
-            display: flex;
-            align-items: flex-start;
-            gap: 12px;
-            padding: 16px;
-            border-radius: 18px;
-            border: 1px solid #DCEBFF;
-            background: #F8FBFF;
-            cursor: pointer;
-            height: 100%;
-        }
-
-        .nexo-check-card input {
-            margin-top: 4px;
-            accent-color: #2F80ED;
-        }
-
-        .nexo-check-card strong {
-            display: block;
-            color: #061C3F;
-            font-size: 0.92rem;
-            margin-bottom: 2px;
-        }
-
-        .nexo-check-card small {
-            display: block;
-            color: #64748B;
-            line-height: 1.35;
-        }
-
-
-        .nexo-modal-title-wrap {
-            display: flex;
-            align-items: flex-start;
-            gap: 16px;
-        }
-
-        .nexo-modal-icon {
-            width: 54px;
-            height: 54px;
-            border-radius: 18px;
-            background: linear-gradient(135deg, #2F80ED 0%, #1B6DFF 100%);
-            color: #FFFFFF;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.35rem;
-            flex-shrink: 0;
-            box-shadow: 0 16px 34px rgba(47, 128, 237, 0.22);
-        }
-
-        .nexo-modal-kicker {
-            display: inline-flex;
-            align-items: center;
-            width: fit-content;
-            min-height: 28px;
-            padding: 0 10px;
-            border-radius: 999px;
-            background: #EAF3FF;
-            color: #2F80ED;
-            font-size: 0.74rem;
-            font-weight: 950;
-            margin-bottom: 8px;
-        }
-
-        .nexo-modal-close {
-            width: 40px;
-            height: 40px;
-            border-radius: 14px;
-            background-color: #F1F7FF;
-            opacity: 1;
-        }
-
-        .nexo-modal-summary-card {
+        .nexo-preferences-grid {
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 12px;
+            gap: 14px;
+        }
+
+        .nexo-preference-block {
+            display: grid;
+            gap: 10px;
+            min-height: 104px;
             padding: 16px;
-            border-radius: 22px;
-            background:
-                radial-gradient(circle at top right, rgba(47, 128, 237, 0.12), transparent 32%),
-                #F8FBFF;
-            border: 1px solid #DCEBFF;
+            border: 1px solid #E4EBF5;
+            border-radius: 18px;
+            background: #FFFFFF;
+        }
+
+        .nexo-preference-block > span {
+            color: #64748B;
+            font-size: 0.78rem;
+            font-weight: 900;
+            text-transform: uppercase;
+        }
+
+        .nexo-preference-block > strong {
+            color: #061C3F;
+            font-size: 1rem;
+            font-weight: 950;
+        }
+
+        .nexo-preference-tags {
+            display: flex;
+            flex-wrap: wrap;
+            align-content: flex-start;
+            gap: 8px;
+        }
+
+        .nexo-preference-tags strong {
+            min-height: 28px;
+            padding: 5px 10px;
+            border-radius: 999px;
+            background: #EAF3FF;
+            color: #145FC5;
+            font-size: 0.82rem;
+            font-weight: 900;
+        }
+
+        .nexo-preference-tags em {
+            color: #94A3B8;
+            font-style: normal;
+            font-weight: 800;
+        }
+
+        .nexo-section-header {
             margin-bottom: 22px;
         }
 
-        .nexo-modal-summary-card div {
-            padding: 12px;
-            border-radius: 16px;
-            background: #FFFFFF;
-            border: 1px solid #E6EEF9;
+        .nexo-section-header-action {
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
         }
 
-        .nexo-modal-summary-card span {
-            display: block;
-            color: #64748B;
-            font-size: 0.78rem;
-            font-weight: 850;
-            margin-bottom: 4px;
-        }
-
-        .nexo-modal-summary-card strong {
-            display: block;
+        .nexo-section-header h2 {
             color: #061C3F;
-            font-size: 0.95rem;
+            font-size: 1.45rem;
             font-weight: 950;
-            line-height: 1.2;
+            letter-spacing: -0.035em;
+            margin: 0 0 6px;
         }
 
-        .nexo-modal-body .form-label {
-            font-size: 0.86rem;
-            font-weight: 900;
+        .nexo-section-header p {
+            color: #64748B;
+            margin: 0;
+            font-weight: 650;
+        }
+
+        .form-label {
+            color: #061C3F;
+            font-weight: 850;
             margin-bottom: 8px;
         }
 
-        .nexo-modal-body .form-select,
-        .nexo-modal-body .form-control {
+        .form-control,
+        .form-select {
             min-height: 52px;
-            border-radius: 15px;
+            border-radius: 14px;
             border: 1px solid #D8E2EF;
             color: #061C3F;
             padding: 12px 15px;
-            font-weight: 700;
         }
 
-        .nexo-modal-body textarea.form-control {
-            min-height: 112px;
-            resize: vertical;
-        }
-
-        .nexo-modal-body .form-select:focus,
-        .nexo-modal-body .form-control:focus {
+        .form-control:focus,
+        .form-select:focus {
             border-color: #2F80ED;
             box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.14);
         }
@@ -1145,7 +930,6 @@
         .nexo-date-display {
             padding-left: 44px !important;
             cursor: text;
-            background: #FFFFFF !important;
         }
 
         .nexo-date-hidden {
@@ -1154,9 +938,9 @@
 
         .nexo-date-button {
             width: 48px;
-            min-height: 52px;
+            height: 52px;
             border: 1px solid #D8E2EF;
-            border-radius: 15px;
+            border-radius: 14px;
             background: #F8FBFF;
             color: #2F80ED;
             display: inline-flex;
@@ -1165,18 +949,16 @@
             transition: 0.2s ease;
         }
 
-        .nexo-date-button:hover,
-        .nexo-date-button:focus {
+        .nexo-date-button:hover {
             background: #EAF3FF;
             border-color: #2F80ED;
-            box-shadow: 0 0 0 4px rgba(47, 128, 237, 0.14);
         }
 
         .nexo-calendar {
             position: absolute;
             top: calc(100% + 10px);
             left: 0;
-            z-index: 5000;
+            z-index: 3000;
             width: min(350px, 92vw);
             padding: 16px;
             border-radius: 22px;
@@ -1284,149 +1066,381 @@
             outline: 2px solid rgba(47, 128, 237, 0.18);
         }
 
+        .nexo-calendar-day.is-disabled {
+            opacity: 0.35;
+            cursor: not-allowed;
+        }
+
         .nexo-calendar-empty {
             height: 36px;
         }
 
-        .nexo-modal-footer {
+        .nexo-file-upload {
             display: flex;
             align-items: center;
-            justify-content: space-between;
-            gap: 18px;
+            gap: 14px;
+            min-height: 74px;
+            padding: 16px;
+            border-radius: 18px;
+            background: #F8FBFF;
+            border: 1px dashed #BFD7F8;
+            cursor: pointer;
+            transition: 0.2s ease;
         }
 
-        .nexo-modal-footer-note {
+        .nexo-file-upload:hover {
+            background: #F1F7FF;
+            border-color: #2F80ED;
+        }
+
+        .nexo-file-input {
+            display: none;
+        }
+
+        .nexo-file-icon {
+            width: 44px;
+            height: 44px;
+            border-radius: 15px;
+            background: linear-gradient(135deg, #2F80ED 0%, #1B6DFF 100%);
+            color: #FFFFFF;
             display: inline-flex;
             align-items: center;
-            gap: 8px;
-            color: #64748B;
-            font-size: 0.86rem;
-            font-weight: 750;
+            justify-content: center;
+            font-size: 1.25rem;
+            flex-shrink: 0;
+            box-shadow: 0 12px 26px rgba(47, 128, 237, 0.20);
         }
 
-        .nexo-modal-footer-note i {
+        .nexo-file-content {
+            display: grid;
+            gap: 2px;
+        }
+
+        .nexo-file-title {
+            color: #061C3F;
+            font-weight: 950;
+        }
+
+        .nexo-file-name {
+            color: #64748B;
+            font-weight: 700;
+        }
+
+        .nexo-primary-btn,
+        .nexo-secondary-btn,
+        .nexo-warning-btn {
+            min-height: 46px;
+            padding: 0 18px;
+            border-radius: 14px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 9px;
+            font-weight: 950;
+            text-decoration: none;
+            transition: 0.2s ease;
+            border: 1px solid transparent;
+        }
+
+        .nexo-primary-btn {
+            background: linear-gradient(135deg, #2F80ED 0%, #1B6DFF 100%);
+            color: #FFFFFF;
+            box-shadow: 0 14px 30px rgba(47, 128, 237, 0.22);
+        }
+
+        .nexo-secondary-btn {
+            background: #FFFFFF;
+            border-color: #D7E7FF;
             color: #2F80ED;
         }
 
-        .nexo-modal-footer-actions {
+        .nexo-warning-btn {
+            background: #FFF8EC;
+            border-color: #FFE2B8;
+            color: #C76A12;
+        }
+
+        .nexo-primary-btn:hover,
+        .nexo-secondary-btn:hover,
+        .nexo-warning-btn:hover {
+            transform: translateY(-1px);
+        }
+
+        .nexo-primary-btn:hover {
+            color: #FFFFFF;
+            box-shadow: 0 18px 36px rgba(47, 128, 237, 0.28);
+        }
+
+        .nexo-secondary-btn:hover {
+            background: #EAF3FF;
+            color: #2F80ED;
+        }
+
+        .nexo-proposal-list,
+        .nexo-reminder-list,
+        .nexo-timeline-list,
+        .nexo-beneficiary-list {
+            display: grid;
+            gap: 14px;
+        }
+
+        .nexo-proposal-item,
+        .nexo-reminder-item {
+            display: flex;
+            justify-content: space-between;
+            gap: 16px;
+            padding: 16px;
+            border-radius: 18px;
+            background: #F8FBFF;
+            border: 1px solid #E6EEF9;
+        }
+
+        .nexo-proposal-item strong,
+        .nexo-reminder-item strong {
+            display: block;
+            color: #061C3F;
+            font-weight: 950;
+            margin-bottom: 4px;
+        }
+
+        .nexo-proposal-item p,
+        .nexo-reminder-item span {
+            color: #64748B;
+            margin: 0;
+            font-size: 0.9rem;
+            font-weight: 650;
+        }
+
+        .nexo-proposal-item span,
+        .nexo-reminder-item small {
+            height: fit-content;
+            padding: 6px 11px;
+            border-radius: 999px;
+            background: #EAF3FF;
+            color: #2F80ED;
+            font-size: 0.76rem;
+            font-weight: 950;
+            white-space: nowrap;
+        }
+
+        .nexo-empty-state {
+            padding: 18px;
+            border-radius: 18px;
+            background: #F8FBFF;
+            border: 1px solid #E6EEF9;
+            color: #64748B;
+            font-weight: 750;
+        }
+
+        .nexo-warning-box,
+        .nexo-correction-form {
+            padding: 18px;
+            border-radius: 20px;
+            background: #FFF8EC;
+            border: 1px solid #FFE2B8;
+            color: #8A4B12;
+            margin-bottom: 18px;
+            font-weight: 750;
+        }
+
+        .nexo-beneficiary-review-card {
+            padding: 20px;
+            border-radius: 22px;
+            background: #F8FBFF;
+            border: 1px solid #E3ECF8;
+        }
+
+        .nexo-beneficiary-review-header {
             display: flex;
             align-items: center;
-            justify-content: flex-end;
+            gap: 14px;
+            margin-bottom: 18px;
+        }
+
+        .nexo-beneficiary-avatar {
+            width: 52px;
+            height: 52px;
+            border-radius: 17px;
+            background: linear-gradient(135deg, #2F80ED 0%, #1B6DFF 100%);
+            color: #FFFFFF;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 950;
+            box-shadow: 0 12px 26px rgba(47, 128, 237, 0.22);
+            flex-shrink: 0;
+        }
+
+        .nexo-beneficiary-review-header h3 {
+            color: #061C3F;
+            font-size: 1.15rem;
+            font-weight: 950;
+            margin: 0 0 3px;
+        }
+
+        .nexo-beneficiary-review-header p {
+            color: #64748B;
+            margin: 0;
+            font-weight: 750;
+            text-transform: capitalize;
+        }
+
+        .nexo-timeline-item {
+            position: relative;
+            padding-left: 20px;
+            border-left: 2px solid #2F80ED;
+        }
+
+        .nexo-timeline-item strong {
+            display: block;
+            color: #061C3F;
+            font-weight: 950;
+            margin-bottom: 4px;
+        }
+
+        .nexo-timeline-item p {
+            color: #64748B;
+            margin: 0 0 4px;
+            font-size: 0.92rem;
+        }
+
+        .nexo-timeline-item small {
+            color: #94A3B8;
+            font-weight: 750;
+        }
+
+        .nexo-contract-modal {
+            border: 0;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 28px 70px rgba(6, 28, 63, 0.18);
+        }
+
+        .nexo-contract-modal .modal-header,
+        .nexo-contract-modal .modal-footer {
+            border-color: #E8EEF6;
+            background: #F8FBFF;
+            padding: 22px 24px;
+        }
+
+        .nexo-contract-modal .modal-title {
+            color: #061C3F;
+            font-weight: 950;
+        }
+
+        .nexo-contract-modal .modal-body {
+            padding: 24px;
+        }
+
+        .nexo-check-card {
+            min-height: 72px;
+            padding: 14px;
+            border-radius: 16px;
+            background: #F8FBFF;
+            border: 1px solid #E3ECF8;
+            display: flex;
+            align-items: flex-start;
             gap: 10px;
+            cursor: pointer;
         }
 
-
-        @media (max-width: 1200px) {
-            .nexo-implantacao-summary {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
-            }
-
-            .nexo-contract-grid {
-                grid-template-columns: 1fr;
-            }
+        .nexo-check-card strong {
+            display: block;
+            color: #061C3F;
+            font-weight: 900;
+            margin-bottom: 2px;
         }
 
-        @media (max-width: 768px) {
-            .nexo-implantacao-header {
-                flex-direction: column;
+        .nexo-check-card small {
+            display: block;
+            color: #64748B;
+            font-weight: 650;
+        }
+
+        @media (min-width: 768px) {
+            .nexo-section-header-action {
+                flex-direction: row;
+                justify-content: space-between;
                 align-items: flex-start;
             }
+        }
 
-            .nexo-implantacao-summary {
+        @media (max-width: 991px) {
+            .nexo-preferences-grid {
                 grid-template-columns: 1fr;
             }
+        }
 
-            .nexo-panel-header {
+        @media (min-width: 992px) {
+            .nexo-lead-hero {
+                grid-template-columns: 1fr 250px;
+                align-items: center;
+                padding: 24px 28px;
+            }
+
+            .nexo-lead-status-card {
+                min-width: 250px;
+            }
+        }
+
+        @media (max-width: 576px) {
+            .nexo-lead-hero,
+            .nexo-panel-card {
+                padding: 20px;
+                border-radius: 24px;
+            }
+
+            .nexo-lead-hero h1 {
+                font-size: clamp(1.65rem, 8vw, 2.2rem);
+            }
+
+            .nexo-lead-meta {
                 flex-direction: column;
             }
 
-            .nexo-status-actions {
+            .nexo-calendar {
+                right: 0;
+                left: auto;
+            }
+
+            .nexo-proposal-item,
+            .nexo-reminder-item {
                 flex-direction: column;
             }
 
-            .nexo-status-actions .nexo-secondary-btn {
-                width: 100%;
-            }
-
-            .nexo-final-action {
-                justify-content: stretch;
-            }
-
-            .nexo-final-action .nexo-primary-btn {
-                width: 100%;
-            }
-
-            .nexo-implantacao-panel {
-                padding: 22px;
-            }
-
-            .nexo-modal-header,
-            .nexo-modal-body {
-                padding: 22px;
-            }
-
-            .nexo-modal-title-wrap {
-                flex-direction: column;
-            }
-
-            .nexo-modal-summary-card {
-                grid-template-columns: 1fr;
-            }
-
-            .nexo-modal-footer {
-                flex-direction: column;
-                align-items: stretch;
-            }
-
-            .nexo-modal-footer-actions {
-                flex-direction: column-reverse;
-                width: 100%;
-            }
-
-            .nexo-modal-footer-actions .nexo-primary-btn,
-            .nexo-modal-footer-actions .nexo-secondary-btn {
+            .nexo-primary-btn,
+            .nexo-secondary-btn,
+            .nexo-warning-btn {
                 width: 100%;
             }
         }
     </style>
 
     <script>
-        document.addEventListener('DOMContentLoaded', function () {
-            const moneyInputs = document.querySelectorAll('[data-money-mask]');
+        document.addEventListener('DOMContentLoaded', () => {
+            const formatMoney = (value) => {
+                const onlyNumbers = value.replace(/\D/g, '');
+                const amount = Number(onlyNumbers || 0) / 100;
 
-            function onlyDigits(value) {
-                return value.replace(/\D/g, '');
-            }
+                return amount.toLocaleString('pt-BR', {
+                    style: 'currency',
+                    currency: 'BRL',
+                });
+            };
 
-            function formatMoneyFromDigits(digits) {
-                if (!digits) {
-                    return '';
-                }
+            document.querySelectorAll('.nexo-money-input').forEach((input) => {
+                input.addEventListener('input', () => {
+                    input.value = formatMoney(input.value);
+                });
 
-                let value = (Number(digits) / 100).toFixed(2);
-
-                value = value.replace('.', ',');
-                value = value.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-
-                return 'R$ ' + value;
-            }
-
-            function updateHiddenValue(input) {
-                const hiddenInput = input.closest('.col-md-4')?.querySelector('[data-money-hidden]');
-                const digits = onlyDigits(input.value);
-
-                if (!hiddenInput) {
-                    return;
-                }
-
-                if (!digits) {
-                    hiddenInput.value = '';
-                    return;
-                }
-
-                hiddenInput.value = (Number(digits) / 100).toFixed(2);
-            }
-
+                input.form?.addEventListener('submit', () => {
+                    input.value = input.value
+                        .replace(/\s/g, '')
+                        .replace('R$', '')
+                        .replace(/\./g, '')
+                        .replace(',', '.');
+                });
+            });
 
             const months = [
                 'Janeiro',
@@ -1461,6 +1475,20 @@
                 }
 
                 return day;
+            };
+
+            const toDisplayDate = (value) => {
+                if (! value) {
+                    return '';
+                }
+
+                const [year, month, day] = value.split('-');
+
+                if (! year || ! month || ! day) {
+                    return '';
+                }
+
+                return `${day}/${month}/${year}`;
             };
 
             const toHiddenDate = (value) => {
@@ -1538,6 +1566,7 @@
             const renderCalendar = (field, referenceDate) => {
                 const calendar = field.querySelector('.nexo-calendar');
                 const hiddenInput = field.querySelector('.nexo-date-hidden');
+                const minDate = parseDate(field.dataset.minDate || '');
                 const selectedDate = parseDate(hiddenInput.value);
                 const today = new Date();
                 const year = referenceDate.getFullYear();
@@ -1574,7 +1603,7 @@
                     monthSelect.appendChild(option);
                 });
 
-                for (let optionYear = today.getFullYear() - 2; optionYear <= today.getFullYear() + 15; optionYear++) {
+                for (let optionYear = year - 8; optionYear <= year + 12; optionYear++) {
                     const option = document.createElement('option');
                     option.value = optionYear;
                     option.textContent = optionYear;
@@ -1618,6 +1647,11 @@
                         button.classList.add('is-selected');
                     }
 
+                    if (minDate && date < new Date(minDate.getFullYear(), minDate.getMonth(), minDate.getDate())) {
+                        button.classList.add('is-disabled');
+                        button.disabled = true;
+                    }
+
                     button.addEventListener('click', (event) => {
                         event.preventDefault();
                         event.stopPropagation();
@@ -1647,8 +1681,13 @@
                     calendar.classList.add('is-open');
                 });
 
-                monthSelect.addEventListener('click', (event) => event.stopPropagation());
-                yearSelect.addEventListener('click', (event) => event.stopPropagation());
+                monthSelect.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                });
+
+                yearSelect.addEventListener('click', (event) => {
+                    event.stopPropagation();
+                });
 
                 monthSelect.addEventListener('change', (event) => {
                     event.preventDefault();
@@ -1683,6 +1722,10 @@
 
                 if (! displayInput || ! hiddenInput || ! button || ! calendar) {
                     return;
+                }
+
+                if (hiddenInput.value && ! displayInput.value) {
+                    displayInput.value = toDisplayDate(hiddenInput.value);
                 }
 
                 field._nexoCalendarDate = parseDate(hiddenInput.value) || new Date();
@@ -1729,20 +1772,25 @@
                 closeCalendars();
             });
 
-            moneyInputs.forEach(function (input) {
-                input.addEventListener('input', function (event) {
-                    const digits = onlyDigits(event.target.value);
+            document.querySelectorAll('.nexo-file-input').forEach((input) => {
+                input.addEventListener('change', () => {
+                    const upload = input.closest('.nexo-file-upload');
+                    const fileName = upload?.querySelector('.nexo-file-name');
+                    const fileTitle = upload?.querySelector('.nexo-file-title');
 
-                    event.target.value = formatMoneyFromDigits(digits);
+                    if (! fileName || ! fileTitle) {
+                        return;
+                    }
 
-                    updateHiddenValue(event.target);
+                    if (input.files && input.files.length > 0) {
+                        fileTitle.textContent = input.files.length === 1 ? 'Proposta selecionada' : 'Propostas selecionadas';
+                        fileName.textContent = Array.from(input.files).map((file) => file.name).join(', ');
+                        return;
+                    }
+
+                    fileTitle.textContent = 'Selecionar proposta em PDF';
+                    fileName.textContent = 'Selecione uma ou mais propostas em PDF';
                 });
-
-                input.closest('form')?.addEventListener('submit', function () {
-                    updateHiddenValue(input);
-                });
-
-                updateHiddenValue(input);
             });
         });
     </script>

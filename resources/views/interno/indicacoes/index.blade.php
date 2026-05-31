@@ -72,7 +72,7 @@
                 <div>
                     <span>Com e-mail</span>
                     <strong>
-                        {{ $indicacoes->filter(fn ($indicacao) => filled($indicacao->email))->count() }}
+                        {{ $indicacoes->filter(fn($indicacao) => filled($indicacao->email))->count() }}
                     </strong>
                 </div>
             </div>
@@ -118,7 +118,7 @@
                     </thead>
 
                     <tbody>
-                        @foreach($indicacoes as $indicacao)
+                        @foreach ($indicacoes as $indicacao)
                             <tr>
                                 <td>
                                     <div class="nexo-lead-user">
@@ -135,7 +135,7 @@
                                                 {{ $indicacao->cidade }}/{{ $indicacao->estado }}
                                             </small>
 
-                                            @if(filled($indicacao->observacoes))
+                                            @if (filled($indicacao->observacoes))
                                                 <small class="nexo-lead-observation">
                                                     {{ \Illuminate\Support\Str::limit($indicacao->observacoes, 90) }}
                                                 </small>
@@ -151,15 +151,10 @@
                                                 {{ $indicacao->telefone }}
                                             </strong>
 
-                                            @if($indicacao->telefone)
-                                                <a
-                                                    href="{{ $whatsapp->buildLeadLink($indicacao, auth()->user()) }}"
-                                                    target="_blank"
-                                                    rel="noopener"
-                                                    class="nexo-whatsapp-link"
-                                                    title="Conversar no WhatsApp"
-                                                    aria-label="Conversar no WhatsApp"
-                                                >
+                                            @if ($indicacao->telefone)
+                                                <a href="{{ $whatsapp->buildLeadLink($indicacao, auth()->user()) }}"
+                                                    target="_blank" rel="noopener" class="nexo-whatsapp-link"
+                                                    title="Conversar no WhatsApp" aria-label="Conversar no WhatsApp">
                                                     <i class="bi bi-whatsapp"></i>
                                                 </a>
                                             @endif
@@ -182,24 +177,18 @@
                                         <strong>
                                             {{ $indicacao->quantidade_vidas }}
                                         </strong>
-
-                                        <span>
-                                            vidas
-                                        </span>
                                     </div>
                                 </td>
 
                                 <td>
-                                    <span class="nexo-status-pill nexo-status-{{ $statusCores[$indicacao->status] ?? 'primary' }}">
+                                    <span
+                                        class="nexo-status-pill nexo-status-{{ $statusCores[$indicacao->status] ?? 'primary' }}">
                                         {{ $statusLegiveis[$indicacao->status] ?? str_replace('_', ' ', $indicacao->status) }}
                                     </span>
                                 </td>
 
                                 <td class="text-end">
-                                    <a
-                                        class="nexo-open-btn"
-                                        href="{{ route('indicacoes.show', $indicacao) }}"
-                                    >
+                                    <a class="nexo-open-btn" href="{{ route('indicacoes.show', $indicacao) }}">
                                         Acompanhar
                                     </a>
                                 </td>
@@ -216,6 +205,21 @@
     </main>
 
     <style>
+        .nexo-leads-table th:nth-child(3),
+        .nexo-leads-table th:nth-child(4),
+        .nexo-leads-table th:nth-child(5),
+        .nexo-leads-table td:nth-child(3),
+        .nexo-leads-table td:nth-child(4),
+        .nexo-leads-table td:nth-child(5) {
+            text-align: center;
+        }
+
+        .nexo-leads-table td:nth-child(3),
+        .nexo-leads-table td:nth-child(4),
+        .nexo-leads-table td:nth-child(5) {
+            vertical-align: middle;
+        }
+
         .nexo-leads-header {
             display: flex;
             align-items: center;

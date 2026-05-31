@@ -19,6 +19,7 @@ use App\Http\Controllers\Publico\AvaliacaoAtendimentoController;
 use App\Http\Controllers\Publico\DocumentoIaValidationController;
 use App\Http\Controllers\Publico\DocumentoClienteController;
 use App\Http\Controllers\Publico\PaginaCorretorController;
+use App\Http\Controllers\Publico\PropostaPublicaController;
 use App\Http\Controllers\Webhook\AsaasWebhookController;
 use Illuminate\Support\Facades\Route;
 use Illuminate\Support\Facades\Mail;
@@ -57,6 +58,8 @@ Route::post('/perfil-corretor/{slug}/solicitacao', [PaginaCorretorController::cl
 
 Route::get('/avaliacao/{token}', [AvaliacaoAtendimentoController::class, 'show'])->name('publico.avaliacoes.show');
 Route::post('/avaliacao/{token}', [AvaliacaoAtendimentoController::class, 'store'])->name('publico.avaliacoes.store');
+Route::get('/propostas-publicas/{token}', [PropostaPublicaController::class, 'show'])->name('publico.propostas.show');
+Route::get('/propostas-publicas/{token}/arquivos/{proposta}', [PropostaPublicaController::class, 'download'])->name('publico.propostas.download');
 
 Route::get('/{slug}/pre-cadastro/{token}', [DocumentoClienteController::class, 'show'])->name('cliente.pre-cadastro.show');
 Route::post('/{slug}/pre-cadastro/{token}/validar-acesso', [DocumentoClienteController::class, 'validarAcesso'])->name('cliente.pre-cadastro.validar-acesso');
@@ -169,5 +172,4 @@ Route::middleware(['auth', 'usuario.ativo', 'email.confirmado', 'assinatura.ativ
         ->whereIn('pagina', ['propostas', 'pre-cadastros', 'implantacoes', 'clientes', 'carteira'])
         ->name('paginas.simples');
 });
-
 
