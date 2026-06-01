@@ -411,7 +411,8 @@
             font-weight: 900;
         }
 
-        .footer-column a {
+        .footer-column a,
+        .footer-contact a {
             display: block;
             color: rgba(255,255,255,.88);
             text-decoration: none;
@@ -420,14 +421,15 @@
             margin-bottom: 18px;
         }
 
-        .footer-contact p {
+        .footer-contact p,
+        .footer-contact a {
             display: flex;
             align-items: center;
             gap: 14px;
-            color: rgba(255,255,255,.88);
-            font-size: 17px;
-            line-height: 1;
-            margin-bottom: 18px;
+        }
+
+        .footer-contact a:hover {
+            color: #ffffff;
         }
 
         .footer-contact-icon {
@@ -437,6 +439,12 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+        }
+
+        .footer-contact-icon img {
+            width: 18px;
+            height: 18px;
+            display: block;
         }
 
         @media (max-width: 1280px) {
@@ -738,6 +746,13 @@
                     <span class="footer-contact-icon">☎</span>
                     (11) 99953-5578
                 </p>
+
+                <a href="https://wa.me/5511999535578" target="_blank" rel="noopener noreferrer" aria-label="Falar com a Nexo Saude pelo WhatsApp">
+                    <span class="footer-contact-icon">
+                        <img src="{{ asset('assets/whatsapp.svg') }}" alt="" aria-hidden="true">
+                    </span>
+                    WhatsApp
+                </a>
             </div>
         </footer>
     </section>
