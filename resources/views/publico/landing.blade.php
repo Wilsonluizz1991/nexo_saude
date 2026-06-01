@@ -412,39 +412,49 @@
         }
 
         .footer-column a,
-        .footer-contact a {
-            display: block;
+        .footer-contact p {
+            display: flex;
+            align-items: center;
             color: rgba(255,255,255,.88);
             text-decoration: none;
             font-size: 17px;
             line-height: 1;
             margin-bottom: 18px;
+            gap: 12px;
         }
 
-        .footer-contact p,
-        .footer-contact a {
-            display: flex;
-            align-items: center;
-            gap: 14px;
+        .footer-contact p {
+            cursor: default;
         }
 
-        .footer-contact a:hover {
+        .footer-column a:hover {
             color: #ffffff;
         }
 
+        /* Wrappers de tamanho uniforme para os ícones */
         .footer-contact-icon {
-            width: 18px;
-            height: 18px;
-            color: #ffffff;
+            width: 24px;
+            height: 24px;
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            flex-shrink: 0;
         }
 
-        .footer-contact-icon img {
-            width: 18px;
-            height: 18px;
+        .footer-contact-icon svg {
+            width: 100%;
+            height: 100%;
             display: block;
+        }
+
+        /* Correção de tamanho proporcional: scale aumentado para compensar as linhas vazadas */
+        .icon-whatsapp {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+            transform: scale(1.70); 
+            transform-origin: center;
         }
 
         @media (max-width: 1280px) {
@@ -738,21 +748,21 @@
                 <h4>Contato</h4>
 
                 <p>
-                    <span class="footer-contact-icon">✉</span>
+                    <span class="footer-contact-icon">
+                        <svg viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M20 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2zm0 4l-8 5-8-5V6l8 5 8-5v2z"/>
+                        </svg>
+                    </span>
                     contato@nexosaude.com.br
                 </p>
 
                 <p>
-                    <span class="footer-contact-icon">☎</span>
+                    <span class="footer-contact-icon">
+                        <!-- Aplicada a classe dedicada para expandir o ícone estático -->
+                        <img src="{{ asset('assets/whatsApp.png') }}" alt="" aria-hidden="true" class="icon-whatsapp">
+                    </span>
                     (11) 99953-5578
                 </p>
-
-                <a href="https://wa.me/5511999535578" target="_blank" rel="noopener noreferrer" aria-label="Falar com a Nexo Saude pelo WhatsApp">
-                    <span class="footer-contact-icon">
-                        <img src="{{ asset('assets/whatsapp.svg') }}" alt="" aria-hidden="true">
-                    </span>
-                    WhatsApp
-                </a>
             </div>
         </footer>
     </section>
