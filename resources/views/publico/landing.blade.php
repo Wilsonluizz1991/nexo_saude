@@ -30,7 +30,7 @@
             min-height: 100vh;
             position: relative;
             overflow: hidden;
-            padding: 38px 72px 42px;
+            padding: 24px 18px 32px;
             background:
                 radial-gradient(circle at 88% 18%, rgba(0, 94, 255, 0.28), transparent 34%),
                 radial-gradient(circle at 12% 78%, rgba(0, 110, 255, 0.22), transparent 30%),
@@ -96,46 +96,49 @@
         }
 
         .nexo-header {
-            height: 82px;
+            width: 100%;
             display: flex;
+            flex-direction: column;
             align-items: center;
-            justify-content: space-between;
+            gap: 22px;
         }
 
         .nexo-logo img {
-            height: 82px;
+            height: 68px;
             width: auto;
             display: block;
             object-fit: contain;
         }
 
         .nexo-nav {
+            width: 100%;
             display: flex;
             align-items: center;
-            gap: 48px;
-            margin-left: auto;
-            margin-right: 72px;
+            justify-content: center;
+            gap: 18px;
+            flex-wrap: wrap;
         }
 
         .nexo-nav a {
             color: #ffffff;
             text-decoration: none;
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 14px;
+            font-weight: 700;
             opacity: .95;
         }
 
         .nexo-header-actions {
-            display: flex;
-            align-items: center;
-            gap: 18px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 12px;
         }
 
         .nexo-btn {
-            height: 56px;
-            min-width: 148px;
+            width: 100%;
+            min-height: 52px;
             border-radius: 999px;
-            font-size: 16px;
+            font-size: 15px;
             font-weight: 800;
             letter-spacing: .1px;
             text-decoration: none;
@@ -166,7 +169,6 @@
         }
 
         .nexo-btn-primary {
-            min-width: 206px;
             border: 0;
             color: #ffffff;
             background:
@@ -201,16 +203,15 @@
 
         .nexo-main {
             display: grid;
-            grid-template-columns: 58% 42%;
-            gap: 48px;
-            padding-top: 92px;
-            min-height: 672px;
+            grid-template-columns: 1fr;
+            gap: 34px;
+            padding-top: 48px;
         }
 
         .nexo-title {
-            font-size: 64px;
+            font-size: clamp(38px, 12vw, 64px);
             line-height: 1.08;
-            letter-spacing: -2.4px;
+            letter-spacing: -1.5px;
             font-weight: 900;
             color: #ffffff;
             max-width: 620px;
@@ -221,71 +222,61 @@
         }
 
         .nexo-subtitle {
-            margin-top: 34px;
+            margin-top: 26px;
             max-width: 650px;
-            font-size: 25px;
+            font-size: clamp(18px, 5vw, 25px);
             line-height: 1.48;
             font-weight: 400;
             color: rgba(255,255,255,.9);
         }
 
         .nexo-hero-actions {
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            margin-top: 48px;
+            width: 100%;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            margin-top: 36px;
         }
 
         .nexo-metrics {
             width: 100%;
-            max-width: 900px;
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            align-items: center;
-            gap: 0;
-            margin-top: 58px;
+            grid-template-columns: 1fr;
+            gap: 14px;
+            margin-top: 40px;
         }
 
         .nexo-metric {
+            width: 100%;
             min-width: 0;
-            display: flex;
+            display: grid;
+            grid-template-columns: 48px 1fr;
             align-items: center;
             gap: 14px;
-            padding: 0 24px;
-            border-right: 1px solid rgba(255,255,255,.24);
-        }
-
-        .nexo-metric:first-child {
-            padding-left: 0;
-        }
-
-        .nexo-metric:last-child {
-            padding-right: 0;
-            border-right: 0;
+            padding: 16px;
+            border: 1px solid rgba(62, 134, 255, .32);
+            border-radius: 14px;
+            background: rgba(4, 24, 61, .42);
         }
 
         .nexo-metric img {
-            width: 44px;
-            height: 44px;
-            flex: 0 0 44px;
+            width: 42px;
+            height: 42px;
             display: block;
             object-fit: contain;
         }
 
         .metric-ia-icon {
-            width: 70px !important;
-            height: 70px !important;
-            flex: 0 0 70px !important;
+            width: 50px !important;
+            height: 50px !important;
             object-fit: contain;
-            transform: scale(1.28);
-            transform-origin: center;
-            margin-left: -10px;
-            margin-right: -6px;
+            transform: none;
+            margin: 0;
         }
 
         .nexo-metric strong {
             display: block;
-            font-size: 24px;
+            font-size: 20px;
             line-height: 1.08;
             font-weight: 900;
             color: #ffffff;
@@ -295,21 +286,17 @@
         .nexo-metric small {
             display: block;
             margin-top: 6px;
-            font-size: 14px;
-            line-height: 1.28;
+            font-size: 13px;
+            line-height: 1.35;
             color: rgba(255,255,255,.84);
             word-break: normal;
         }
 
         .nexo-cards {
             width: 100%;
-            max-width: 760px;
-            margin-left: auto;
-            margin-right: 0;
             display: grid;
-            grid-template-columns: repeat(3, minmax(0, 1fr));
-            gap: 24px;
-            align-content: start;
+            grid-template-columns: 1fr;
+            gap: 20px;
         }
 
         .nexo-card {
@@ -336,12 +323,12 @@
             height: 56px;
             display: block;
             object-fit: contain;
-            transform: scale(2.8);
+            transform: scale(2.4);
             transform-origin: center;
         }
 
         .nexo-card h3 {
-            font-size: 15px;
+            font-size: 16px;
             line-height: 1.35;
             font-weight: 900;
             color: #ffffff;
@@ -349,37 +336,35 @@
         }
 
         .nexo-card p {
-            font-size: 13px;
+            font-size: 14px;
             line-height: 1.6;
             font-weight: 400;
             color: rgba(255,255,255,.84);
         }
 
         .nexo-footer {
-            min-height: 205px;
-            margin-top: 8px;
+            min-height: auto;
+            margin-top: 40px;
             border-radius: 16px;
             border: 1px solid rgba(62, 134, 255, .42);
             background: rgba(4, 24, 61, .74);
             backdrop-filter: blur(18px);
             display: grid;
-            grid-template-columns: 28% 22% 22% 28%;
-            padding: 30px 42px;
+            grid-template-columns: 1fr;
+            gap: 28px;
+            padding: 28px;
         }
 
         .footer-brand,
         .footer-column,
         .footer-contact {
-            min-height: 145px;
-        }
-
-        .footer-brand {
-            padding-right: 55px;
-            border-right: 1px solid rgba(255,255,255,.18);
+            min-height: auto;
+            padding: 0;
+            border-right: 0;
         }
 
         .footer-brand img {
-            height: 78px;
+            height: 70px;
             width: auto;
             object-fit: contain;
             display: block;
@@ -387,26 +372,16 @@
         }
 
         .footer-brand p {
-            font-size: 17px;
+            font-size: 16px;
             line-height: 1.62;
             color: rgba(255,255,255,.88);
         }
 
-        .footer-column,
-        .footer-contact {
-            padding-left: 72px;
-            border-right: 1px solid rgba(255,255,255,.18);
-        }
-
-        .footer-contact {
-            border-right: 0;
-        }
-
         .footer-column h4,
         .footer-contact h4 {
-            font-size: 19px;
+            font-size: 18px;
             line-height: 1;
-            margin-bottom: 24px;
+            margin-bottom: 18px;
             color: #ffffff;
             font-weight: 900;
         }
@@ -417,10 +392,11 @@
             align-items: center;
             color: rgba(255,255,255,.88);
             text-decoration: none;
-            font-size: 17px;
-            line-height: 1;
-            margin-bottom: 18px;
+            font-size: 16px;
+            line-height: 1.35;
+            margin-bottom: 14px;
             gap: 12px;
+            word-break: break-word;
         }
 
         .footer-contact p {
@@ -431,7 +407,6 @@
             color: #ffffff;
         }
 
-        /* Wrappers de tamanho uniforme para os ícones */
         .footer-contact-icon {
             width: 24px;
             height: 24px;
@@ -447,77 +422,118 @@
             display: block;
         }
 
-        /* Correção de tamanho proporcional: scale aumentado para compensar as linhas vazadas */
         .icon-whatsapp {
             width: 100%;
             height: 100%;
             object-fit: contain;
             display: block;
-            transform: scale(1.70); 
+            transform: scale(1.70);
             transform-origin: center;
         }
 
-        @media (max-width: 1280px) {
+        @media (min-width: 520px) {
+            .nexo-home {
+                padding: 28px 28px 34px;
+            }
+
+            .nexo-header-actions,
+            .nexo-hero-actions {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+
+            .nexo-cards {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 769px) {
             .nexo-home {
                 padding: 32px 56px 38px;
             }
 
-            .nexo-title {
-                font-size: 56px;
+            .nexo-header {
+                height: 82px;
+                flex-direction: row;
+                align-items: center;
+                justify-content: space-between;
+                gap: 24px;
             }
 
-            .nexo-subtitle {
-                font-size: 22px;
+            .nexo-logo img {
+                height: 82px;
             }
 
             .nexo-nav {
-                margin-right: 42px;
+                width: auto;
+                gap: 32px;
+                margin-left: auto;
+            }
+
+            .nexo-nav a {
+                font-size: 16px;
+            }
+
+            .nexo-header-actions {
+                width: auto;
+                display: flex;
+                align-items: center;
+                gap: 18px;
+            }
+
+            .nexo-btn {
+                width: auto;
+                min-width: 148px;
+                height: 56px;
+            }
+
+            .nexo-btn-primary {
+                min-width: 206px;
             }
 
             .nexo-main {
-                grid-template-columns: 56% 44%;
-                gap: 36px;
-            }
-
-            .nexo-cards {
-                width: 100%;
-                margin-right: 0;
-                gap: 22px;
-            }
-
-            .nexo-metric {
-                padding: 0 16px;
-            }
-
-            .nexo-metric strong {
-                font-size: 21px;
-            }
-
-            .nexo-metric small {
-                font-size: 13px;
-            }
-
-            .metric-ia-icon {
-                width: 60px !important;
-                height: 60px !important;
-                flex-basis: 60px !important;
-            }
-        }
-
-        @media (max-width: 1100px) {
-            .nexo-main {
-                grid-template-columns: 1fr;
                 gap: 44px;
+                padding-top: 72px;
+            }
+
+            .nexo-title {
+                letter-spacing: -2.4px;
             }
 
             .nexo-metrics {
-                max-width: 100%;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 0;
+                max-width: 900px;
+            }
+
+            .nexo-metric {
+                display: flex;
+                border: 0;
+                border-right: 1px solid rgba(255,255,255,.24);
+                border-radius: 0;
+                background: transparent;
+                padding: 0 18px;
+                gap: 14px;
+            }
+
+            .nexo-metric:first-child {
+                padding-left: 0;
+            }
+
+            .nexo-metric:last-child {
+                padding-right: 0;
+                border-right: 0;
+            }
+
+            .metric-ia-icon {
+                width: 64px !important;
+                height: 64px !important;
+                flex: 0 0 64px !important;
+                transform: scale(1.18);
+                margin-left: -8px;
+                margin-right: -4px;
             }
 
             .nexo-cards {
-                width: 100%;
-                margin-left: 0;
-                margin-right: 0;
                 grid-template-columns: repeat(2, minmax(0, 1fr));
             }
 
@@ -525,85 +541,87 @@
                 grid-template-columns: 1fr 1fr;
                 gap: 32px;
             }
+        }
+
+        @media (min-width: 1101px) {
+            .nexo-main {
+                grid-template-columns: 56% 44%;
+                gap: 36px;
+                min-height: 672px;
+                padding-top: 92px;
+            }
+
+            .nexo-cards {
+                max-width: 760px;
+                margin-left: auto;
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+                gap: 24px;
+                align-content: start;
+            }
+
+            .nexo-footer {
+                min-height: 205px;
+                margin-top: 8px;
+                grid-template-columns: 28% 22% 22% 28%;
+                padding: 30px 42px;
+            }
 
             .footer-brand,
             .footer-column,
             .footer-contact {
+                min-height: 145px;
+            }
+
+            .footer-brand {
+                padding-right: 55px;
+                border-right: 1px solid rgba(255,255,255,.18);
+            }
+
+            .footer-column,
+            .footer-contact {
+                padding-left: 72px;
+                border-right: 1px solid rgba(255,255,255,.18);
+            }
+
+            .footer-contact {
                 border-right: 0;
-                padding-left: 0;
-                padding-right: 0;
             }
         }
 
-        @media (max-width: 768px) {
+        @media (min-width: 1281px) {
             .nexo-home {
-                padding: 24px 20px 30px;
-            }
-
-            .nexo-header {
-                height: auto;
-                align-items: flex-start;
-                flex-direction: column;
-                gap: 24px;
+                padding: 38px 72px 42px;
             }
 
             .nexo-nav {
-                margin: 0;
-                gap: 20px;
-                flex-wrap: wrap;
-            }
-
-            .nexo-header-actions,
-            .nexo-hero-actions {
-                width: 100%;
-                gap: 14px;
-                flex-direction: column;
-            }
-
-            .nexo-btn {
-                width: 100%;
+                gap: 48px;
+                margin-right: 72px;
             }
 
             .nexo-main {
-                padding-top: 52px;
-            }
-
-            .nexo-title {
-                font-size: 42px;
-                letter-spacing: -1.4px;
-            }
-
-            .nexo-subtitle {
-                font-size: 19px;
-            }
-
-            .nexo-metrics {
-                align-items: flex-start;
-                flex-direction: column;
-                gap: 20px;
+                grid-template-columns: 58% 42%;
+                gap: 48px;
             }
 
             .nexo-metric {
-                width: 100%;
-                border-right: 0;
-                padding: 0;
+                padding: 0 24px;
+            }
+
+            .nexo-metric strong {
+                font-size: 24px;
+            }
+
+            .nexo-metric small {
+                font-size: 14px;
             }
 
             .metric-ia-icon {
-                width: 64px !important;
-                height: 64px !important;
-                flex-basis: 64px !important;
-                margin-left: -8px;
-                margin-right: -4px;
-            }
-
-            .nexo-cards {
-                grid-template-columns: 1fr;
-            }
-
-            .nexo-footer {
-                grid-template-columns: 1fr;
-                padding: 28px;
+                width: 70px !important;
+                height: 70px !important;
+                flex: 0 0 70px !important;
+                transform: scale(1.28);
+                margin-left: -10px;
+                margin-right: -6px;
             }
         }
     </style>
@@ -758,7 +776,6 @@
 
                 <p>
                     <span class="footer-contact-icon">
-                        <!-- Aplicada a classe dedicada para expandir o ícone estático -->
                         <img src="{{ asset('assets/whatsApp.png') }}" alt="" aria-hidden="true" class="icon-whatsapp">
                     </span>
                     (11) 99953-5578
