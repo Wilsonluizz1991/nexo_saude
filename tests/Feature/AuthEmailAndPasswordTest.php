@@ -153,9 +153,9 @@ class AuthEmailAndPasswordTest extends TestCase
             ->assertRedirect(route('login'))
             ->assertSessionHas('status');
 
-        $this->assertTrue(Hash::check('nova-senha-segura', $user->fresh()->password));
+        $this->assertTrue(Hash::check('NovaSenha@123', $user->fresh()->password));
 
-        $this->post(route('password.update'), $this->dadosReset($user, $token, 'outra-senha-segura'))
+        $this->post(route('password.update'), $this->dadosReset($user, $token, 'OutraSenha@123'))
             ->assertSessionHasErrors('email');
     }
 
@@ -190,7 +190,7 @@ class AuthEmailAndPasswordTest extends TestCase
         $this->post(route('password.update'), $this->dadosReset($admin->fresh(), $token))
             ->assertRedirect(route('login'));
 
-        $this->assertTrue(Hash::check('nova-senha-segura', $admin->fresh()->password));
+        $this->assertTrue(Hash::check('NovaSenha@123', $admin->fresh()->password));
     }
 
     public function test_corretor_bloqueado_continua_sem_acesso_mesmo_com_email_confirmado(): void
@@ -220,9 +220,9 @@ class AuthEmailAndPasswordTest extends TestCase
             'name' => 'Novo Corretor',
             'email' => 'novo@example.com',
             'telefone' => '(11) 98888-0000',
-            'billing_cpf_cnpj' => '12345678901',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'billing_cpf_cnpj' => '12345678909',
+            'password' => 'SenhaForte@123',
+            'password_confirmation' => 'SenhaForte@123',
             'card_holder_name' => 'Novo Corretor',
             'card_number' => '4111111111111111',
             'card_expiry_month' => '12',
@@ -232,7 +232,7 @@ class AuthEmailAndPasswordTest extends TestCase
         ], $overrides);
     }
 
-    private function dadosReset(User $user, string $token, string $password = 'nova-senha-segura'): array
+    private function dadosReset(User $user, string $token, string $password = 'NovaSenha@123'): array
     {
         return [
             'token' => $token,

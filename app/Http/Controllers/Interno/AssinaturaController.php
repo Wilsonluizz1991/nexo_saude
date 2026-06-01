@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Interno;
 
 use App\Http\Controllers\Controller;
+use App\Rules\CpfCnpjValido;
+use App\Services\DocumentoFiscalService;
 use App\Services\Asaas\AsaasSubscriptionService;
 use App\Services\AssinaturaService;
 use Carbon\Carbon;
@@ -43,7 +45,7 @@ class AssinaturaController extends Controller
         }
 
         $dados = $request->validate([
-            'billing_cpf_cnpj' => ['required', 'string', 'max:20'],
+            'billing_cpf_cnpj' => ['required', 'string', 'max:20', new CpfCnpjValido],
             'holder_phone' => ['required', 'string', 'max:30'],
             'card_holder_name' => ['required', 'string', 'max:255'],
             'card_number' => ['required', 'string', 'max:30'],
@@ -53,6 +55,8 @@ class AssinaturaController extends Controller
             'holder_postal_code' => ['nullable', 'string', 'max:20'],
             'holder_address_number' => ['nullable', 'string', 'max:20'],
         ]);
+
+        $dados['billing_cpf_cnpj'] = app(DocumentoFiscalService::class)->normalizar($dados['billing_cpf_cnpj']);
 
         $user = auth()->user();
         $assinatura = $user->assinatura;
@@ -107,7 +111,7 @@ class AssinaturaController extends Controller
         }
 
         $dados = $request->validate([
-            'billing_cpf_cnpj' => ['required', 'string', 'max:20'],
+            'billing_cpf_cnpj' => ['required', 'string', 'max:20', new CpfCnpjValido],
             'holder_phone' => ['required', 'string', 'max:30'],
             'card_holder_name' => ['required', 'string', 'max:255'],
             'card_number' => ['required', 'string', 'max:30'],
@@ -117,6 +121,8 @@ class AssinaturaController extends Controller
             'holder_postal_code' => ['nullable', 'string', 'max:20'],
             'holder_address_number' => ['nullable', 'string', 'max:20'],
         ]);
+
+        $dados['billing_cpf_cnpj'] = app(DocumentoFiscalService::class)->normalizar($dados['billing_cpf_cnpj']);
 
         $user = auth()->user();
         $assinatura = $user->assinatura;

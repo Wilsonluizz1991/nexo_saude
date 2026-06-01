@@ -17,6 +17,7 @@ use Illuminate\Notifications\Notifiable;
     'name',
     'email',
     'telefone',
+    'billing_cpf_cnpj',
     'perfil',
     'avatar_path',
     'password',

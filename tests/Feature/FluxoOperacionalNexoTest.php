@@ -448,7 +448,7 @@ class FluxoOperacionalNexoTest extends TestCase
         $this->post(route('cliente.pre-cadastro.store', ['slug' => 'CARLOSOLIVEIRA', 'token' => $lead->preCadastro->token]), [
             'vidas' => $lead->preCadastro->vidas->mapWithKeys(fn ($vida) => [$vida->id => [
                 'nome' => 'Beneficiário '.$vida->ordem,
-                'cpf' => '0000000000'.$vida->ordem,
+                'cpf' => ['12345678909', '52998224725', '11144477735', '93541134780'][$vida->ordem - 1],
                 'data_nascimento' => '1990-01-0'.$vida->ordem,
                 'sexo' => $vida->ordem === 2 ? 'feminino' : 'masculino',
                 'parentesco' => $vida->tipo === 'dependente' ? 'filho' : null,
@@ -801,10 +801,12 @@ class FluxoOperacionalNexoTest extends TestCase
         ]);
 
         $whatsApp = app(WhatsAppLinkService::class);
-        $this->actingAs($this->corretor)
+        $corretorComMensagemAtualizada = $this->corretor->fresh('corretorPerfil');
+
+        $this->actingAs($corretorComMensagemAtualizada)
             ->get(route('indicacoes.index'))
             ->assertOk()
-            ->assertSee($whatsApp->buildLeadLink($lead, $this->corretor->fresh('corretorPerfil')), false)
+            ->assertSee($whatsApp->buildLeadLink($lead, $corretorComMensagemAtualizada), false)
             ->assertSee('bi-whatsapp', false);
 
         $indicacaoCliente = Indicacao::create([
@@ -1025,7 +1027,7 @@ class FluxoOperacionalNexoTest extends TestCase
                 'tipo_proposta' => 'empresarial',
                 'pessoa' => 'PJ',
                 'vidas' => [
-                    ['tipo' => 'socio', 'nome' => 'Sócia QA', 'sexo' => 'feminino', 'data_nascimento' => '1985-05-05', 'gestante' => 1, 'cpf' => '11122233344', 'documentos_solicitados' => $this->documentosPorSlug(['documento-de-identidade-com-foto', 'cpf'])],
+                    ['tipo' => 'socio', 'nome' => 'Sócia QA', 'sexo' => 'feminino', 'data_nascimento' => '1985-05-05', 'gestante' => 1, 'cpf' => '11144477735', 'documentos_solicitados' => $this->documentosPorSlug(['documento-de-identidade-com-foto', 'cpf'])],
                     ['tipo' => 'colaborador', 'nome' => 'Colaborador QA', 'sexo' => 'masculino', 'data_nascimento' => '1990-06-06', 'cargo' => 'Analista', 'documentos_solicitados' => $this->documentosPorSlug(['documento-de-identidade-com-foto', 'cpf'])],
                     ['tipo' => 'dependente_colaborador', 'vinculo_beneficiario_id' => 1, 'nome' => 'Filho Colaborador', 'parentesco' => 'filho', 'sexo' => 'masculino', 'data_nascimento' => '2018-07-07', 'documentos_solicitados' => $this->documentosPorSlug(['certidao-de-nascimento'])],
                 ],
@@ -1117,7 +1119,7 @@ class FluxoOperacionalNexoTest extends TestCase
         $this->post(route('cliente.pre-cadastro.store', ['slug' => 'CARLOSOLIVEIRA', 'token' => $tokenOriginal]), [
             'vidas' => $lead->preCadastro->vidas->mapWithKeys(fn ($vida) => [$vida->id => [
                 'nome' => 'Cliente Link',
-                'cpf' => '12345678900',
+                'cpf' => '12345678909',
                 'data_nascimento' => '1991-01-01',
                 'sexo' => 'feminino',
                 'gestante' => 1,
@@ -1138,7 +1140,7 @@ class FluxoOperacionalNexoTest extends TestCase
         $this->post(route('cliente.pre-cadastro.store', ['slug' => 'CARLOSOLIVEIRA', 'token' => $tokenOriginal]), [
             'vidas' => $lead->preCadastro->vidas->mapWithKeys(fn ($vida) => [$vida->id => [
                 'nome' => 'Cliente Link',
-                'cpf' => '12345678900',
+                'cpf' => '12345678909',
                 'data_nascimento' => '1991-01-01',
                 'sexo' => 'feminino',
             ]])->all(),

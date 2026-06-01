@@ -50,7 +50,7 @@ class PropostaComercialEmailTest extends TestCase
 
             return $mail->hasTo($lead->email)
                 && $mail->propostas->count() === 1
-                && str_contains($mail->render(), 'uma proposta comercial de plano de saúde')
+                && str_contains($mail->render(), 'uma proposta comercial para sua análise')
                 && str_contains($mail->linkPublico, $mail->propostas->first()->public_group_token);
         });
     }
@@ -79,7 +79,7 @@ class PropostaComercialEmailTest extends TestCase
             $mail->assertHasSubject('Suas cotações de plano de saúde');
             $html = $mail->render();
 
-            if (! $mail->hasTo($lead->email) || $mail->propostas->count() !== 2 || ! str_contains($html, 'algumas cotações de plano de saúde')) {
+            if (! $mail->hasTo($lead->email) || $mail->propostas->count() !== 2 || ! str_contains($html, 'algumas cotações para que você possa comparar')) {
                 return false;
             }
 

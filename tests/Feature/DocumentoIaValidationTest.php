@@ -819,7 +819,7 @@ class DocumentoIaValidationTest extends TestCase
             'documento_corresponde_ao_tipo' => true,
             'legivel' => true,
             'possui_foto' => true,
-            'cpf_extraido' => '12345678900',
+            'cpf_extraido' => '12345678909',
             'match_cpf' => true,
             'match_nome' => true,
             'motivos' => [],
@@ -834,7 +834,7 @@ class DocumentoIaValidationTest extends TestCase
             'vidas' => [
                 $this->documento->vida_proposta_id => [
                     'nome' => 'Cliente QA',
-                    'cpf' => '123.456.789-00',
+                    'cpf' => '123.456.789-09',
                     'data_nascimento' => '1990-01-01',
                     'sexo' => 'masculino',
                 ],

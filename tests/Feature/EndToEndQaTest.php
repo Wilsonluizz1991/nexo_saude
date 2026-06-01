@@ -53,9 +53,9 @@ class EndToEndQaTest extends TestCase
             'name' => 'QA Corretor',
             'email' => 'qa-corretor@example.com',
             'telefone' => '(11) 98888-0000',
-            'billing_cpf_cnpj' => '12345678901',
-            'password' => 'password123',
-            'password_confirmation' => 'password123',
+            'billing_cpf_cnpj' => '12345678909',
+            'password' => 'SenhaForte@123',
+            'password_confirmation' => 'SenhaForte@123',
             'card_holder_name' => 'QA Corretor',
             'card_number' => '4111111111111111',
             'card_expiry_month' => '12',
@@ -311,7 +311,7 @@ class EndToEndQaTest extends TestCase
                 'email' => 'usuario-admin-criado@example.com',
                 'telefone' => '(11) 90000-1111',
                 'perfil' => 'corretor',
-                'password' => 'password123',
+                'password' => 'SenhaForte@123',
             ])
             ->assertRedirect(route('admin.usuarios.index'));
 
@@ -438,7 +438,7 @@ class EndToEndQaTest extends TestCase
     private function dadosCartao(): array
     {
         return [
-            'billing_cpf_cnpj' => '12345678901',
+            'billing_cpf_cnpj' => '12345678909',
             'holder_phone' => '(11) 98888-0000',
             'card_holder_name' => 'QA Corretor',
             'card_number' => '4111111111111111',

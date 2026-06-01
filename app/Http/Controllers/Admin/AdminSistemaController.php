@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class AdminSistemaController extends Controller
 {
@@ -152,7 +153,7 @@ class AdminSistemaController extends Controller
             'telefone' => ['nullable', 'string', 'max:30'],
             'perfil' => ['nullable', 'string', 'max:50'],
             'is_admin' => ['nullable', 'boolean'],
-            'password' => ['required', 'string', 'min:8'],
+            'password' => ['required', 'string', PasswordRule::min(8)->mixedCase()->letters()->numbers()->symbols()],
         ]);
 
         $usuario = User::create([
@@ -191,7 +192,7 @@ class AdminSistemaController extends Controller
             'telefone' => ['nullable', 'string', 'max:30'],
             'perfil' => ['nullable', 'string', 'max:50'],
             'is_admin' => ['nullable', 'boolean'],
-            'password' => ['nullable', 'string', 'min:8'],
+            'password' => ['nullable', 'string', PasswordRule::min(8)->mixedCase()->letters()->numbers()->symbols()],
         ]);
 
         $novoPerfil = $dados['perfil'] ?? $usuario->perfil;

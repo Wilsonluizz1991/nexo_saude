@@ -8,7 +8,7 @@ class AtualizarPerfilPublicoRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'foto' => ['nullable', 'image', 'max:4096'],
+            'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'nome_publico' => ['required', 'string', 'max:255'],
             'bio' => ['nullable', 'string', 'max:700'],
             'especialidades' => ['nullable', 'string', 'max:255'],

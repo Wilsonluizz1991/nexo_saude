@@ -33,9 +33,9 @@ class StorePropostaRequest extends FormRequest
 
         if ($multiplosArquivos) {
             $regras[$campoArquivo] = ['required', 'array', 'min:1'];
-            $regras[$campoArquivo.'.*'] = ['required', 'file', 'mimes:pdf', 'max:10240'];
+            $regras[$campoArquivo.'.*'] = ['required', 'file', 'mimes:pdf', 'mimetypes:application/pdf', 'max:10240'];
         } else {
-            $regras[$campoArquivo] = ['required', 'file', 'mimes:pdf', 'max:10240'];
+            $regras[$campoArquivo] = ['required', 'file', 'mimes:pdf', 'mimetypes:application/pdf', 'max:10240'];
         }
 
         return $regras;

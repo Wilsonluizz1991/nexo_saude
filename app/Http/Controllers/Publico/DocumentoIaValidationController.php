@@ -218,7 +218,6 @@ class DocumentoIaValidationController extends Controller
             'dispensado_por_documento_id' => $documento->id,
             'motivo_dispensa' => $motivo,
             'dispensado_em' => now(),
-            'observacoes' => $motivo,
         ]);
 
         return [[

@@ -39,12 +39,13 @@ class AuthController extends Controller
                 $registrarAssinaturaService
             ) {
                 $telefone = preg_replace('/\D/', '', $request->telefone);
-                $cpfCnpj = preg_replace('/\D/', '', $request->billing_cpf_cnpj);
+                $cpfCnpj = $request->validated('billing_cpf_cnpj');
 
                 $user = User::create([
                     'name' => $request->name,
                     'email' => $request->email,
                     'telefone' => $request->telefone,
+                    'billing_cpf_cnpj' => $cpfCnpj,
                     'password' => Hash::make($request->password),
                     'perfil' => 'corretor',
 

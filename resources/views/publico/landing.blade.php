@@ -201,8 +201,8 @@
 
         .nexo-main {
             display: grid;
-            grid-template-columns: 48% 52%;
-            gap: 36px;
+            grid-template-columns: 58% 42%;
+            gap: 48px;
             padding-top: 92px;
             min-height: 672px;
         }
@@ -237,51 +237,75 @@
         }
 
         .nexo-metrics {
-            display: flex;
+            width: 100%;
+            max-width: 900px;
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
             align-items: center;
-            gap: 32px;
-            margin-top: 64px;
+            gap: 0;
+            margin-top: 58px;
         }
 
         .nexo-metric {
+            min-width: 0;
             display: flex;
             align-items: center;
             gap: 14px;
-            padding-right: 32px;
+            padding: 0 24px;
             border-right: 1px solid rgba(255,255,255,.24);
         }
 
+        .nexo-metric:first-child {
+            padding-left: 0;
+        }
+
         .nexo-metric:last-child {
+            padding-right: 0;
             border-right: 0;
         }
 
         .nexo-metric img {
             width: 44px;
             height: 44px;
+            flex: 0 0 44px;
             display: block;
             object-fit: contain;
         }
 
+        .metric-ia-icon {
+            width: 70px !important;
+            height: 70px !important;
+            flex: 0 0 70px !important;
+            object-fit: contain;
+            transform: scale(1.28);
+            transform-origin: center;
+            margin-left: -10px;
+            margin-right: -6px;
+        }
+
         .nexo-metric strong {
             display: block;
-            font-size: 28px;
-            line-height: 1.05;
+            font-size: 24px;
+            line-height: 1.08;
             font-weight: 900;
             color: #ffffff;
+            word-break: normal;
         }
 
         .nexo-metric small {
             display: block;
-            margin-top: 5px;
-            font-size: 15px;
-            line-height: 1.25;
+            margin-top: 6px;
+            font-size: 14px;
+            line-height: 1.28;
             color: rgba(255,255,255,.84);
+            word-break: normal;
         }
 
         .nexo-cards {
-            width: 82%;
+            width: 100%;
+            max-width: 760px;
             margin-left: auto;
-            margin-right: 48px;
+            margin-right: 0;
             display: grid;
             grid-template-columns: repeat(3, minmax(0, 1fr));
             gap: 24px;
@@ -432,10 +456,33 @@
                 margin-right: 42px;
             }
 
+            .nexo-main {
+                grid-template-columns: 56% 44%;
+                gap: 36px;
+            }
+
             .nexo-cards {
-                width: 84%;
-                margin-right: 34px;
+                width: 100%;
+                margin-right: 0;
                 gap: 22px;
+            }
+
+            .nexo-metric {
+                padding: 0 16px;
+            }
+
+            .nexo-metric strong {
+                font-size: 21px;
+            }
+
+            .nexo-metric small {
+                font-size: 13px;
+            }
+
+            .metric-ia-icon {
+                width: 60px !important;
+                height: 60px !important;
+                flex-basis: 60px !important;
             }
         }
 
@@ -443,6 +490,10 @@
             .nexo-main {
                 grid-template-columns: 1fr;
                 gap: 44px;
+            }
+
+            .nexo-metrics {
+                max-width: 100%;
             }
 
             .nexo-cards {
@@ -515,8 +566,17 @@
             }
 
             .nexo-metric {
+                width: 100%;
                 border-right: 0;
-                padding-right: 0;
+                padding: 0;
+            }
+
+            .metric-ia-icon {
+                width: 64px !important;
+                height: 64px !important;
+                flex-basis: 64px !important;
+                margin-left: -8px;
+                margin-right: -4px;
             }
 
             .nexo-cards {
@@ -558,27 +618,27 @@
         <main class="nexo-main">
             <section>
                 <h1 class="nexo-title">
-                    O futuro da corretagem já começou.</span>
+                    O futuro da corretagem já <span>começou.</span>
                 </h1>
 
                 <p class="nexo-subtitle">
-                    Uma nova forma de gerenciar leads, propostas, implantações e clientes com inteligência, automação e excelência operacional.
+                    Uma nova forma de gerenciar leads, propostas, documentos, implantações e clientes com automação, recursos de IA e excelência operacional.
                 </p>
 
                 <div class="nexo-metrics">
                     <div class="nexo-metric">
                         <img src="{{ asset('assets/usuarios.svg') }}" alt="">
                         <div>
-                            <strong>CRM + IA</strong>
-                            <small>tecnologia criada para corretores modernos</small>
+                            <strong>Plataforma Operacional</strong>
+                            <small>toda a jornada do cliente em um só lugar</small>
                         </div>
                     </div>
 
                     <div class="nexo-metric">
-                        <img src="{{ asset('assets/alvo.svg') }}" alt="">
+                        <img src="{{ asset('assets/doc_ia.png') }}" alt="" class="metric-ia-icon">
                         <div>
-                            <strong>Fluxo Completo</strong>
-                            <small>do lead à implantação em uma única plataforma</small>
+                            <strong>Recursos de IA</strong>
+                            <small>análise documental inteligente para reduzir retrabalho</small>
                         </div>
                     </div>
 
@@ -613,8 +673,8 @@
                     <div class="nexo-card-icon">
                         <img src="{{ asset('assets/inteligencia.png') }}" alt="">
                     </div>
-                    <h3>Decisões com inteligência</h3>
-                    <p>Dados e relatórios que mostram o caminho para crescer.</p>
+                    <h3>IA aplicada à operação</h3>
+                    <p>Recursos inteligentes para analisar documentos e apoiar uma rotina mais produtiva.</p>
                 </article>
 
                 <article class="nexo-card">
@@ -676,7 +736,7 @@
 
                 <p>
                     <span class="footer-contact-icon">☎</span>
-                    (11) 99999-9999
+                    (11) 99953-5578
                 </p>
             </div>
         </footer>

@@ -50,7 +50,7 @@
                 </p>
             </div>
             @if (auth()->user()->corretorPerfil)
-                <a href="{{ route('publico.corretor', auth()->user()->corretorPerfil->slug) }}"
+                <a target="blank" href="{{ route('publico.corretor', auth()->user()->corretorPerfil->slug) }}"
                     class="nexo-dashboard-public-link">
                     <i class="bi bi-box-arrow-up-right"></i>
                     Abrir página pública

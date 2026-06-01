@@ -2,19 +2,32 @@
 
 namespace App\Http\Requests;
 
+use App\Rules\CpfCnpjValido;
+use App\Services\DocumentoFiscalService;
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class CriarContaRequest extends FormRequest
 {
+    protected function prepareForValidation(): void
+    {
+        if ($this->has('billing_cpf_cnpj')) {
+            $this->merge([
+                'billing_cpf_cnpj' => app(DocumentoFiscalService::class)->normalizar($this->input('billing_cpf_cnpj')),
+            ]);
+        }
+    }
+
     public function rules(): array
     {
         return [
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'email', 'unique:users,email'],
             'telefone' => ['required', 'string', 'max:30'],
-            'billing_cpf_cnpj' => ['required', 'string', 'max:20'],
+            'billing_cpf_cnpj' => ['required', 'string', 'max:14', new CpfCnpjValido, Rule::unique('users', 'billing_cpf_cnpj')],
 
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', PasswordRule::min(8)->mixedCase()->letters()->numbers()->symbols(), 'confirmed'],
 
             'card_holder_name' => ['required', 'string', 'max:255'],
             'card_number' => ['required', 'string', 'max:30'],

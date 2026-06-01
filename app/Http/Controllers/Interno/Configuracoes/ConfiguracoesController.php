@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Interno\Configuracoes;
 use App\Http\Controllers\Controller;
 use App\Models\CorretorPerfil;
 use App\Models\Indicacao;
+use App\Rules\CpfCnpjValido;
+use App\Services\DocumentoFiscalService;
 use App\Services\ServicoPerfilUsuario;
 use App\Services\ServicoPrivacidade;
 use App\Services\ServicoSegurancaUsuario;
@@ -13,6 +15,7 @@ use App\Services\WhatsAppLinkService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Validation\Rule;
+use Illuminate\Validation\Rules\Password as PasswordRule;
 
 class ConfiguracoesController extends Controller
 {
@@ -24,7 +27,7 @@ class ConfiguracoesController extends Controller
     public function atualizarPerfil(Request $request, ServicoPerfilUsuario $service)
     {
         $dados = $request->validate([
-            'foto' => ['nullable', 'image', 'max:4096'],
+            'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'remover_foto' => ['nullable', 'boolean'],
             'name' => ['required', 'string', 'max:255'],
             'telefone' => ['nullable', 'string', 'max:30'],
@@ -50,7 +53,7 @@ class ConfiguracoesController extends Controller
     {
         $dados = $request->validate([
             'senha_atual' => ['required'],
-            'password' => ['required', 'string', 'min:8', 'confirmed'],
+            'password' => ['required', 'string', PasswordRule::min(8)->mixedCase()->letters()->numbers()->symbols(), 'confirmed'],
         ]);
 
         $service->alterarSenha(auth()->user(), $dados['senha_atual'], $dados['password']);
@@ -194,7 +197,7 @@ class ConfiguracoesController extends Controller
     public function atualizarCartaoAssinatura(Request $request, \App\Services\Asaas\AsaasSubscriptionService $asaasSubscriptionService)
     {
         $dados = $request->validate([
-            'billing_cpf_cnpj' => ['required', 'string', 'max:20'],
+            'billing_cpf_cnpj' => ['required', 'string', 'max:20', new CpfCnpjValido],
             'card_holder_name' => ['required', 'string', 'max:255'],
             'card_number' => ['required', 'string', 'max:30'],
             'card_expiry_month' => ['required', 'string', 'size:2'],
@@ -203,6 +206,8 @@ class ConfiguracoesController extends Controller
             'holder_postal_code' => ['nullable', 'string', 'max:20'],
             'holder_address_number' => ['nullable', 'string', 'max:20'],
         ]);
+
+        $dados['billing_cpf_cnpj'] = app(DocumentoFiscalService::class)->normalizar($dados['billing_cpf_cnpj']);
 
         $user = auth()->user();
         $assinatura = $user->assinatura;

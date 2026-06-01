@@ -9,6 +9,9 @@ use Illuminate\Support\Str;
 
 class AvaliacaoAtendimentoService
 {
+    public const MEDIA_MINIMA_PREMIUM = 4.9;
+    public const QUANTIDADE_MINIMA_PREMIUM = 1;
+
     public function obterOuCriar(Cliente $cliente, ?Indicacao $indicacao = null): AvaliacaoAtendimento
     {
         return AvaliacaoAtendimento::firstOrCreate(
@@ -50,7 +53,7 @@ class AvaliacaoAtendimentoService
         return [
             'media' => $media,
             'total' => $avaliacoes->count(),
-            'premium' => $avaliacoes->count() >= 1 && $media >= 4.9,
+            'premium' => $avaliacoes->count() >= self::QUANTIDADE_MINIMA_PREMIUM && $media >= self::MEDIA_MINIMA_PREMIUM,
             'avaliacoes' => $avaliacoes,
         ];
     }

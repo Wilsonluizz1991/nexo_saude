@@ -17,7 +17,7 @@ class ValidarDocumentoIaRequest extends FormRequest
     {
         return [
             'fase_validacao' => ['required', 'in:documental,titularidade,completa'],
-            'arquivo' => ['required_unless:fase_validacao,titularidade', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'max:10240'],
+            'arquivo' => ['required_unless:fase_validacao,titularidade', 'file', 'mimes:pdf,jpg,jpeg,png,webp', 'mimetypes:application/pdf,image/jpeg,image/png,image/webp', 'max:10240'],
             'ia_validacao_id' => ['nullable', 'integer'],
             'tipo_documento_esperado' => ['nullable', 'string', 'max:255'],
             'nome_beneficiario_atual' => ['nullable', 'string', 'max:255'],
