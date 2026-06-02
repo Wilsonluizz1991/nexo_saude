@@ -203,21 +203,23 @@ class AsaasSubscriptionService
     private function cardPayload(array $data): array
     {
         $telefone = $this->digits($data['holder_phone'] ?? '');
+        $expiryMonth = str_pad($this->digits($data['card_expiry_month'] ?? ''), 2, '0', STR_PAD_LEFT);
+        $expiryYear = $this->normalizeExpiryYear($data['card_expiry_year'] ?? '');
 
         return [
             'creditCard' => [
-                'holderName' => $data['card_holder_name'],
-                'number' => $this->digits($data['card_number']),
-                'expiryMonth' => $data['card_expiry_month'],
-                'expiryYear' => $data['card_expiry_year'],
-                'ccv' => $data['card_ccv'],
+                'holderName' => trim((string) ($data['card_holder_name'] ?? '')),
+                'number' => $this->digits($data['card_number'] ?? ''),
+                'expiryMonth' => $expiryMonth,
+                'expiryYear' => $expiryYear,
+                'ccv' => $this->digits($data['card_ccv'] ?? ''),
             ],
             'creditCardHolderInfo' => [
-                'name' => $data['holder_name'],
-                'email' => $data['holder_email'],
-                'cpfCnpj' => $this->digits($data['holder_cpf_cnpj']),
+                'name' => trim((string) ($data['holder_name'] ?? '')),
+                'email' => trim((string) ($data['holder_email'] ?? '')),
+                'cpfCnpj' => $this->digits($data['holder_cpf_cnpj'] ?? ''),
                 'postalCode' => $this->digits($data['holder_postal_code'] ?? '01001000'),
-                'addressNumber' => $data['holder_address_number'] ?? '100',
+                'addressNumber' => trim((string) ($data['holder_address_number'] ?? '100')),
                 'phone' => $telefone,
                 'mobilePhone' => $telefone,
             ],
@@ -230,11 +232,26 @@ class AsaasSubscriptionService
         return [
             'asaas_env' => config('services.asaas.env'),
             'remote_ip' => $data['remote_ip'] ?? request()->ip(),
+            'card_number_digits' => strlen($this->digits($data['card_number'] ?? '')),
+            'card_expiry_month' => str_pad($this->digits($data['card_expiry_month'] ?? ''), 2, '0', STR_PAD_LEFT),
+            'card_expiry_year_digits' => strlen($this->digits($data['card_expiry_year'] ?? '')),
+            'card_ccv_digits' => strlen($this->digits($data['card_ccv'] ?? '')),
             'holder_document_digits' => strlen($this->digits($data['holder_cpf_cnpj'] ?? '')),
             'holder_phone_digits' => strlen($this->digits($data['holder_phone'] ?? '')),
             'holder_postal_code_digits' => strlen($this->digits($data['holder_postal_code'] ?? '')),
             'holder_address_number_present' => trim((string) ($data['holder_address_number'] ?? '')) !== '',
         ];
+    }
+
+    private function normalizeExpiryYear(?string $value): string
+    {
+        $year = $this->digits($value);
+
+        if (strlen($year) === 2) {
+            return '20' . $year;
+        }
+
+        return $year;
     }
 
     private function sslVerification(): bool|string
