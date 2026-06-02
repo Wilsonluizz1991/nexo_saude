@@ -121,9 +121,13 @@
 
                                 <input
                                     name="billing_cpf_cnpj"
+                                    id="billing_cpf_cnpj"
                                     class="form-control"
                                     placeholder="Digite seu CPF ou CNPJ"
                                     value="{{ old('billing_cpf_cnpj') }}"
+                                    inputmode="numeric"
+                                    autocomplete="off"
+                                    maxlength="18"
                                     required
                                 >
                             </div>
@@ -428,6 +432,7 @@
             display: flex;
             flex-direction: column;
             justify-content: center;
+            min-width: 0;
         }
 
         .nexo-register-brand::after {
@@ -485,6 +490,8 @@
             font-weight: 950;
             letter-spacing: -0.07em;
             margin: 0 0 18px;
+            max-width: 100%;
+            overflow-wrap: anywhere;
         }
 
         .nexo-register-brand p {
@@ -493,6 +500,7 @@
             line-height: 1.55;
             max-width: 430px;
             margin: 0;
+            overflow-wrap: break-word;
         }
 
         .nexo-register-benefits {
@@ -528,6 +536,7 @@
             border: 1px solid rgba(255, 255, 255, 0.14);
             backdrop-filter: blur(10px);
             box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+            min-width: 0;
         }
 
         .nexo-register-highlight span {
@@ -552,6 +561,7 @@
             color: rgba(255, 255, 255, 0.74);
             font-size: 0.88rem;
             line-height: 1.4;
+            overflow-wrap: break-word;
         }
 
         .nexo-register-form-area {
@@ -1011,8 +1021,35 @@
                 border-radius: 24px;
             }
 
+            .nexo-register-brand,
+            .nexo-register-form-area {
+                padding: 24px 18px;
+            }
+
+            .nexo-register-badge {
+                width: 100%;
+                white-space: normal;
+                flex-wrap: wrap;
+            }
+
             .nexo-register-brand h1 {
-                font-size: 2rem;
+                font-size: 1.68rem;
+                line-height: 1.12;
+                letter-spacing: -0.03em;
+            }
+
+            .nexo-register-brand p,
+            .nexo-register-benefits,
+            .nexo-register-highlight {
+                max-width: 100%;
+            }
+
+            .nexo-register-benefits div {
+                align-items: flex-start;
+            }
+
+            .nexo-register-highlight {
+                padding: 18px;
             }
 
             .nexo-register-form-header h2 {
@@ -1025,6 +1062,17 @@
 
             .nexo-card-number-wrapper .form-control {
                 padding-right: 15px;
+            }
+
+            .nexo-payment-commercial-box {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .nexo-card-flags {
+                width: 100%;
+                justify-content: flex-start;
+                flex-wrap: wrap;
             }
 
             .nexo-detected-card {
@@ -1044,6 +1092,7 @@
 
             const telefoneInput = document.getElementById('telefone');
             const telefoneFeedback = document.getElementById('telefone_feedback');
+            const billingCpfCnpjInput = document.getElementById('billing_cpf_cnpj');
             const cardNumberInput = document.getElementById('card_number');
             const cardNumberFeedback = document.getElementById('card_number_feedback');
             const cardExpiryMonthInput = document.getElementById('card_expiry_month');
@@ -1442,6 +1491,54 @@
                 validatePhone();
             };
 
+            const applyCpfCnpjMask = function (input) {
+                const numbers = onlyNumbers(input.value).slice(0, 14);
+
+                if (numbers.length <= 11) {
+                    input.value = numbers.replace(/^(\d{0,3})(\d{0,3})(\d{0,3})(\d{0,2}).*/, function (_, first, second, third, fourth) {
+                        let formatted = first;
+
+                        if (second) {
+                            formatted += '.' + second;
+                        }
+
+                        if (third) {
+                            formatted += '.' + third;
+                        }
+
+                        if (fourth) {
+                            formatted += '-' + fourth;
+                        }
+
+                        return formatted;
+                    });
+
+                    return;
+                }
+
+                input.value = numbers.replace(/^(\d{0,2})(\d{0,3})(\d{0,3})(\d{0,4})(\d{0,2}).*/, function (_, first, second, third, fourth, fifth) {
+                    let formatted = first;
+
+                    if (second) {
+                        formatted += '.' + second;
+                    }
+
+                    if (third) {
+                        formatted += '.' + third;
+                    }
+
+                    if (fourth) {
+                        formatted += '/' + fourth;
+                    }
+
+                    if (fifth) {
+                        formatted += '-' + fifth;
+                    }
+
+                    return formatted;
+                });
+            };
+
             const applyCardNumberMask = function (input) {
                 let numbers = onlyNumbers(input.value);
                 let brand = detectCardBrand(numbers);
@@ -1505,6 +1602,20 @@
                 telefoneInput.addEventListener('paste', function () {
                     setTimeout(function () {
                         applyPhoneMask(telefoneInput);
+                    }, 0);
+                });
+            }
+
+            if (billingCpfCnpjInput) {
+                applyCpfCnpjMask(billingCpfCnpjInput);
+
+                billingCpfCnpjInput.addEventListener('input', function () {
+                    applyCpfCnpjMask(billingCpfCnpjInput);
+                });
+
+                billingCpfCnpjInput.addEventListener('paste', function () {
+                    setTimeout(function () {
+                        applyCpfCnpjMask(billingCpfCnpjInput);
                     }, 0);
                 });
             }

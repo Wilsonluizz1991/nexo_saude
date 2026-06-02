@@ -206,6 +206,7 @@
             grid-template-columns: 1fr;
             gap: 34px;
             padding-top: 48px;
+            min-width: 0;
         }
 
         .nexo-title {
@@ -215,6 +216,8 @@
             font-weight: 900;
             color: #ffffff;
             max-width: 620px;
+            min-width: 0;
+            overflow-wrap: anywhere;
         }
 
         .nexo-title span {
@@ -228,6 +231,8 @@
             line-height: 1.48;
             font-weight: 400;
             color: rgba(255,255,255,.9);
+            min-width: 0;
+            overflow-wrap: break-word;
         }
 
         .nexo-hero-actions {
@@ -443,6 +448,26 @@
 
             .nexo-cards {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 576px) {
+            .nexo-title {
+                max-width: 100%;
+                font-size: clamp(34px, 9.8vw, 42px);
+                line-height: 1.14;
+                letter-spacing: -1.1px;
+            }
+
+            .nexo-subtitle {
+                max-width: 100%;
+                font-size: 18px;
+            }
+
+            .nexo-card,
+            .nexo-metric,
+            .nexo-footer {
+                min-width: 0;
             }
         }
 
