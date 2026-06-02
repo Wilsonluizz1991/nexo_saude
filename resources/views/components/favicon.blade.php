@@ -1,5 +1,5 @@
 @php
-    $faviconVersion = '20260602';
+    $faviconVersion = '20260603';
     $socialImage = asset('assets/nexo-og-image.png') . '?v=' . $faviconVersion;
 @endphp
 
