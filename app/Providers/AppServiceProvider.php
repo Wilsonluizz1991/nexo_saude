@@ -21,6 +21,8 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        app()->setLocale('pt_BR');
+
         View::composer('components.app-header', function ($view): void {
             $user = auth()->user();
 

@@ -11,7 +11,7 @@ class CpfCnpjValido implements ValidationRule
     public function validate(string $attribute, mixed $value, Closure $fail): void
     {
         if (! app(DocumentoFiscalService::class)->cpfOuCnpjValido((string) $value)) {
-            $fail('Informe um CPF ou CNPJ valido.');
+            $fail('Informe um CPF ou CNPJ válido.');
         }
     }
 }

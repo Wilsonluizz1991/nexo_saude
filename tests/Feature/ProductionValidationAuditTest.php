@@ -52,6 +52,28 @@ class ProductionValidationAuditTest extends TestCase
         Http::assertNothingSent();
     }
 
+    public function test_cadastro_exibe_feedbacks_de_validacao_em_portugues(): void
+    {
+        Http::fake();
+        User::factory()->create(['email' => 'auditoria@example.com']);
+
+        $this->from(route('register'))
+            ->post(route('register.store'), $this->dadosCadastro([
+                'password' => 'password123',
+                'password_confirmation' => 'outra-senha',
+            ]))
+            ->assertRedirect(route('register'))
+            ->assertSessionHasErrors([
+                'email' => 'Este e-mail já está cadastrado. Use outro e-mail ou entre na plataforma.',
+                'password' => 'A senha deve conter letras maiúsculas e minúsculas.',
+            ]);
+
+        $mensagens = session('errors')->get('password');
+
+        $this->assertContains('A confirmação da senha não confere. Digite a mesma senha nos dois campos.', $mensagens);
+        Http::assertNothingSent();
+    }
+
     public function test_cadastro_rejeita_cpf_cnpj_invalido_e_duplicado(): void
     {
         Http::fake();
