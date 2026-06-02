@@ -104,6 +104,7 @@ class AuthController extends Controller
                     'holder_phone' => $telefone,
                     'holder_postal_code' => $request->holder_postal_code,
                     'holder_address_number' => $request->holder_address_number,
+                    'remote_ip' => $request->ip(),
                 ]);
 
                 if (!($subscriptionResponse['success'] ?? false)) {

@@ -49,7 +49,8 @@ class EndToEndQaTest extends TestCase
             ], 200),
         ]);
 
-        $this->post(route('register.store'), [
+        $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])
+            ->post(route('register.store'), [
             'name' => 'QA Corretor',
             'email' => 'qa-corretor@example.com',
             'telefone' => '(11) 98888-0000',
@@ -78,6 +79,9 @@ class EndToEndQaTest extends TestCase
         $this->assertSame('QA Corretor', data_get($subscriptionPayload, 'creditCardHolderInfo.name'));
         $this->assertSame('01310200', data_get($subscriptionPayload, 'creditCardHolderInfo.postalCode'));
         $this->assertSame('987', data_get($subscriptionPayload, 'creditCardHolderInfo.addressNumber'));
+        $this->assertSame('11988880000', data_get($subscriptionPayload, 'creditCardHolderInfo.phone'));
+        $this->assertSame('11988880000', data_get($subscriptionPayload, 'creditCardHolderInfo.mobilePhone'));
+        $this->assertSame('203.0.113.10', data_get($subscriptionPayload, 'remoteIp'));
 
         $user = User::where('email', 'qa-corretor@example.com')->firstOrFail();
         $this->assertNull($user->email_verified_at);

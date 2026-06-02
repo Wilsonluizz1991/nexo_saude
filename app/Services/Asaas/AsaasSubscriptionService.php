@@ -32,30 +32,7 @@ class AsaasSubscriptionService
                 ->withOptions([
                     'verify' => $this->sslVerification,
                 ])
-                ->post($this->baseUrl . '/subscriptions', [
-                    'customer' => $data['customer'],
-                    'billingType' => 'CREDIT_CARD',
-                    'value' => $data['value'] ?? 49.90,
-                    'nextDueDate' => $data['nextDueDate'] ?? Carbon::now()->addDays(30)->format('Y-m-d'),
-                    'cycle' => 'MONTHLY',
-                    'description' => $data['description'] ?? 'Assinatura Nexo Saúde - Plano Profissional',
-                    'creditCard' => [
-                        'holderName' => $data['card_holder_name'],
-                        'number' => preg_replace('/\D/', '', $data['card_number']),
-                        'expiryMonth' => $data['card_expiry_month'],
-                        'expiryYear' => $data['card_expiry_year'],
-                        'ccv' => $data['card_ccv'],
-                    ],
-                    'creditCardHolderInfo' => [
-                        'name' => $data['holder_name'],
-                        'email' => $data['holder_email'],
-                        'cpfCnpj' => preg_replace('/\D/', '', $data['holder_cpf_cnpj']),
-                        'postalCode' => preg_replace('/\D/', '', $data['holder_postal_code'] ?? '01001000'),
-                        'addressNumber' => $data['holder_address_number'] ?? '100',
-                        'phone' => preg_replace('/\D/', '', $data['holder_phone']),
-                    ],
-                    'remoteIp' => $data['remote_ip'] ?? request()->ip(),
-                ]);
+                ->post($this->baseUrl . '/subscriptions', $this->subscriptionPayload($data));
 
             if ($response->successful()) {
                 return [
@@ -67,6 +44,7 @@ class AsaasSubscriptionService
             Log::error('Erro ao criar assinatura no Asaas', [
                 'status' => $response->status(),
                 'response' => Assinatura::sanitizarGatewayPayload($response->json() ?? []),
+                'diagnostico' => $this->safeDiagnostics($data),
             ]);
 
             return [
@@ -99,24 +77,7 @@ class AsaasSubscriptionService
                 ->withOptions([
                     'verify' => $this->sslVerification,
                 ])
-                ->put($this->baseUrl . '/subscriptions/' . $subscriptionId . '/creditCard', [
-                    'creditCard' => [
-                        'holderName' => $data['card_holder_name'],
-                        'number' => preg_replace('/\D/', '', $data['card_number']),
-                        'expiryMonth' => $data['card_expiry_month'],
-                        'expiryYear' => $data['card_expiry_year'],
-                        'ccv' => $data['card_ccv'],
-                    ],
-                    'creditCardHolderInfo' => [
-                        'name' => $data['holder_name'],
-                        'email' => $data['holder_email'],
-                        'cpfCnpj' => preg_replace('/\D/', '', $data['holder_cpf_cnpj']),
-                        'postalCode' => preg_replace('/\D/', '', $data['holder_postal_code'] ?? '01001000'),
-                        'addressNumber' => $data['holder_address_number'] ?? '100',
-                        'phone' => preg_replace('/\D/', '', $data['holder_phone']),
-                    ],
-                    'remoteIp' => $data['remote_ip'] ?? request()->ip(),
-                ]);
+                ->put($this->baseUrl . '/subscriptions/' . $subscriptionId . '/creditCard', $this->cardPayload($data));
 
             if ($response->successful()) {
                 return [
@@ -129,6 +90,7 @@ class AsaasSubscriptionService
                 'subscription_id' => $subscriptionId,
                 'status' => $response->status(),
                 'response' => Assinatura::sanitizarGatewayPayload($response->json() ?? []),
+                'diagnostico' => $this->safeDiagnostics($data),
             ]);
 
             return [
@@ -226,6 +188,55 @@ class AsaasSubscriptionService
         }
     }
 
+    private function subscriptionPayload(array $data): array
+    {
+        return array_merge([
+            'customer' => $data['customer'],
+            'billingType' => 'CREDIT_CARD',
+            'value' => $data['value'] ?? 49.90,
+            'nextDueDate' => $data['nextDueDate'] ?? Carbon::now()->addDays(30)->format('Y-m-d'),
+            'cycle' => 'MONTHLY',
+            'description' => $data['description'] ?? 'Assinatura Nexo Saúde - Plano Profissional',
+        ], $this->cardPayload($data));
+    }
+
+    private function cardPayload(array $data): array
+    {
+        $telefone = $this->digits($data['holder_phone'] ?? '');
+
+        return [
+            'creditCard' => [
+                'holderName' => $data['card_holder_name'],
+                'number' => $this->digits($data['card_number']),
+                'expiryMonth' => $data['card_expiry_month'],
+                'expiryYear' => $data['card_expiry_year'],
+                'ccv' => $data['card_ccv'],
+            ],
+            'creditCardHolderInfo' => [
+                'name' => $data['holder_name'],
+                'email' => $data['holder_email'],
+                'cpfCnpj' => $this->digits($data['holder_cpf_cnpj']),
+                'postalCode' => $this->digits($data['holder_postal_code'] ?? '01001000'),
+                'addressNumber' => $data['holder_address_number'] ?? '100',
+                'phone' => $telefone,
+                'mobilePhone' => $telefone,
+            ],
+            'remoteIp' => $data['remote_ip'] ?? request()->ip(),
+        ];
+    }
+
+    private function safeDiagnostics(array $data): array
+    {
+        return [
+            'asaas_env' => config('services.asaas.env'),
+            'remote_ip' => $data['remote_ip'] ?? request()->ip(),
+            'holder_document_digits' => strlen($this->digits($data['holder_cpf_cnpj'] ?? '')),
+            'holder_phone_digits' => strlen($this->digits($data['holder_phone'] ?? '')),
+            'holder_postal_code_digits' => strlen($this->digits($data['holder_postal_code'] ?? '')),
+            'holder_address_number_present' => trim((string) ($data['holder_address_number'] ?? '')) !== '',
+        ];
+    }
+
     private function sslVerification(): bool|string
     {
         $caBundle = config('services.asaas.ca_bundle');
@@ -235,5 +246,10 @@ class AsaasSubscriptionService
         }
 
         return filter_var(config('services.asaas.verify_ssl', true), FILTER_VALIDATE_BOOLEAN);
+    }
+
+    private function digits(?string $value): string
+    {
+        return preg_replace('/\D/', '', (string) $value);
     }
 }
