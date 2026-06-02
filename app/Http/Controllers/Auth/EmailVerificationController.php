@@ -25,7 +25,7 @@ class EmailVerificationController extends Controller
             event(new Verified($user));
         }
 
-        return redirect()->intended($this->redirectAposVerificacao($user))
+        return redirect($this->redirectAposVerificacao($user))
             ->with('status', 'E-mail confirmado com sucesso.');
     }
 

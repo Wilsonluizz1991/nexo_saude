@@ -74,6 +74,20 @@ class AuthEmailAndPasswordTest extends TestCase
             ->assertOk();
     }
 
+    public function test_corretor_confirmado_nao_e_redirecionado_para_admin_por_url_intended_antiga(): void
+    {
+        $user = $this->corretorComAssinatura([
+            'email_verified_at' => null,
+        ]);
+
+        $this->actingAs($user)
+            ->withSession(['url.intended' => route('admin.dashboard')])
+            ->get($this->verificationUrl($user))
+            ->assertRedirect(route('perfil-publico.edit'));
+
+        $this->assertNotNull($user->fresh()->email_verified_at);
+    }
+
     public function test_reenvio_de_confirmacao_funciona_com_rate_limit_de_rota(): void
     {
         Notification::fake();
