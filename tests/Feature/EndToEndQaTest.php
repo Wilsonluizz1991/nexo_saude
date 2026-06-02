@@ -61,10 +61,23 @@ class EndToEndQaTest extends TestCase
             'card_expiry_month' => '12',
             'card_expiry_year' => '2030',
             'card_ccv' => '123',
+            'holder_postal_code' => '01310-200',
+            'holder_address_number' => '987',
             'accepted_terms' => '1',
         ])->assertRedirect(route('verification.notice'));
 
         Http::assertSentCount(2);
+        $subscriptionRequests = collect(Http::recorded())
+            ->map(fn (array $record) => $record[0])
+            ->filter(fn ($request) => str_ends_with($request->url(), '/subscriptions'))
+            ->values();
+
+        $this->assertCount(1, $subscriptionRequests);
+        $subscriptionPayload = $subscriptionRequests->first()->data();
+
+        $this->assertSame('QA Corretor', data_get($subscriptionPayload, 'creditCardHolderInfo.name'));
+        $this->assertSame('01310200', data_get($subscriptionPayload, 'creditCardHolderInfo.postalCode'));
+        $this->assertSame('987', data_get($subscriptionPayload, 'creditCardHolderInfo.addressNumber'));
 
         $user = User::where('email', 'qa-corretor@example.com')->firstOrFail();
         $this->assertNull($user->email_verified_at);

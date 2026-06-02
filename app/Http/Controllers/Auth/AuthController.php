@@ -98,12 +98,12 @@ class AuthController extends Controller
                     'card_expiry_year' => $request->card_expiry_year,
                     'card_ccv' => $request->card_ccv,
 
-                    'holder_name' => $user->name,
+                    'holder_name' => $request->card_holder_name,
                     'holder_email' => $user->email,
                     'holder_cpf_cnpj' => $cpfCnpj,
                     'holder_phone' => $telefone,
-                    'holder_postal_code' => '01001000',
-                    'holder_address_number' => '100',
+                    'holder_postal_code' => $request->holder_postal_code,
+                    'holder_address_number' => $request->holder_address_number,
                 ]);
 
                 if (!($subscriptionResponse['success'] ?? false)) {

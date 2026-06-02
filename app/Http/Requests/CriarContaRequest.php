@@ -34,6 +34,8 @@ class CriarContaRequest extends FormRequest
             'card_expiry_month' => ['required', 'string', 'size:2'],
             'card_expiry_year' => ['required', 'string', 'size:4'],
             'card_ccv' => ['required', 'string', 'min:3', 'max:4'],
+            'holder_postal_code' => ['required', 'string', 'max:20'],
+            'holder_address_number' => ['required', 'string', 'max:20'],
 
             'card_brand' => ['nullable', 'string', 'max:30'],
             'card_last_four' => ['nullable', 'string', 'max:4'],
@@ -52,6 +54,8 @@ class CriarContaRequest extends FormRequest
             'card_expiry_month.required' => 'Informe o mês de validade do cartão.',
             'card_expiry_year.required' => 'Informe o ano de validade do cartão.',
             'card_ccv.required' => 'Informe o CVV do cartão.',
+            'holder_postal_code.required' => 'Informe o CEP do titular do cartão.',
+            'holder_address_number.required' => 'Informe o número do endereço do titular do cartão.',
         ];
     }
 }

@@ -199,6 +199,8 @@ class ProductionValidationAuditTest extends TestCase
             'card_expiry_month' => '12',
             'card_expiry_year' => '2030',
             'card_ccv' => '123',
+            'holder_postal_code' => '01001-000',
+            'holder_address_number' => '100',
             'accepted_terms' => '1',
         ], $overrides);
     }

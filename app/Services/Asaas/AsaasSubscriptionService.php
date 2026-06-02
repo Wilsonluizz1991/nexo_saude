@@ -50,7 +50,7 @@ class AsaasSubscriptionService
                         'name' => $data['holder_name'],
                         'email' => $data['holder_email'],
                         'cpfCnpj' => preg_replace('/\D/', '', $data['holder_cpf_cnpj']),
-                        'postalCode' => $data['holder_postal_code'] ?? '01001000',
+                        'postalCode' => preg_replace('/\D/', '', $data['holder_postal_code'] ?? '01001000'),
                         'addressNumber' => $data['holder_address_number'] ?? '100',
                         'phone' => preg_replace('/\D/', '', $data['holder_phone']),
                     ],

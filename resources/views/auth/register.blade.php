@@ -330,6 +330,40 @@
 
                                 <small class="nexo-field-feedback" id="card_ccv_feedback"></small>
                             </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    CEP do titular do cartão
+                                </label>
+
+                                <input
+                                    name="holder_postal_code"
+                                    id="holder_postal_code"
+                                    class="form-control"
+                                    placeholder="00000-000"
+                                    value="{{ old('holder_postal_code') }}"
+                                    inputmode="numeric"
+                                    autocomplete="postal-code"
+                                    maxlength="9"
+                                    required
+                                >
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">
+                                    Número do endereço
+                                </label>
+
+                                <input
+                                    name="holder_address_number"
+                                    class="form-control"
+                                    placeholder="Ex.: 123"
+                                    value="{{ old('holder_address_number') }}"
+                                    autocomplete="address-line2"
+                                    maxlength="20"
+                                    required
+                                >
+                            </div>
                         </div>
 
                         <div class="nexo-payment-security">
@@ -1093,6 +1127,7 @@
             const telefoneInput = document.getElementById('telefone');
             const telefoneFeedback = document.getElementById('telefone_feedback');
             const billingCpfCnpjInput = document.getElementById('billing_cpf_cnpj');
+            const holderPostalCodeInput = document.getElementById('holder_postal_code');
             const cardNumberInput = document.getElementById('card_number');
             const cardNumberFeedback = document.getElementById('card_number_feedback');
             const cardExpiryMonthInput = document.getElementById('card_expiry_month');
@@ -1539,6 +1574,14 @@
                 });
             };
 
+            const applyPostalCodeMask = function (input) {
+                input.value = onlyNumbers(input.value)
+                    .slice(0, 8)
+                    .replace(/^(\d{0,5})(\d{0,3}).*/, function (_, first, second) {
+                        return second ? first + '-' + second : first;
+                    });
+            };
+
             const applyCardNumberMask = function (input) {
                 let numbers = onlyNumbers(input.value);
                 let brand = detectCardBrand(numbers);
@@ -1616,6 +1659,20 @@
                 billingCpfCnpjInput.addEventListener('paste', function () {
                     setTimeout(function () {
                         applyCpfCnpjMask(billingCpfCnpjInput);
+                    }, 0);
+                });
+            }
+
+            if (holderPostalCodeInput) {
+                applyPostalCodeMask(holderPostalCodeInput);
+
+                holderPostalCodeInput.addEventListener('input', function () {
+                    applyPostalCodeMask(holderPostalCodeInput);
+                });
+
+                holderPostalCodeInput.addEventListener('paste', function () {
+                    setTimeout(function () {
+                        applyPostalCodeMask(holderPostalCodeInput);
                     }, 0);
                 });
             }
