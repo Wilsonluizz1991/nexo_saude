@@ -21,20 +21,31 @@ class AuthEmailAndPasswordTest extends TestCase
     public function test_cadastro_cria_usuario_nao_verificado_e_envia_email_de_confirmacao(): void
     {
         Notification::fake();
-        Http::fake([
-            '*/customers' => Http::response(['id' => 'cus_auth_123'], 200),
-            '*/subscriptions' => Http::response([
-                'id' => 'sub_auth_123',
-                'customer' => 'cus_auth_123',
-                'value' => 49.90,
-                'nextDueDate' => now()->addDays(30)->toDateString(),
-                'creditCard' => [
-                    'creditCardBrand' => 'VISA',
-                    'creditCardNumber' => '1111',
-                    'creditCardToken' => 'card-token-auth',
-                ],
-            ], 200),
-        ]);
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            if (str_contains($request->url(), '/customers') && $request->method() === 'GET') {
+                return Http::response(['data' => [], 'totalCount' => 0], 200);
+            }
+
+            if (str_ends_with($request->url(), '/customers') && $request->method() === 'POST') {
+                return Http::response(['id' => 'cus_auth_123'], 200);
+            }
+
+            if (str_ends_with($request->url(), '/subscriptions')) {
+                return Http::response([
+                    'id' => 'sub_auth_123',
+                    'customer' => 'cus_auth_123',
+                    'value' => 49.90,
+                    'nextDueDate' => now()->addDays(30)->toDateString(),
+                    'creditCard' => [
+                        'creditCardBrand' => 'VISA',
+                        'creditCardNumber' => '1111',
+                        'creditCardToken' => 'card-token-auth',
+                    ],
+                ], 200);
+            }
+
+            return Http::response([], 404);
+        });
 
         $this->post(route('register.store'), $this->dadosCadastro([
             'email' => 'novo-corretor@example.com',
@@ -49,17 +60,32 @@ class AuthEmailAndPasswordTest extends TestCase
     public function test_cadastro_exibe_mensagem_amigavel_quando_asaas_recusa_cartao(): void
     {
         Notification::fake();
-        Http::fake([
-            '*/customers' => Http::response(['id' => 'cus_auth_recused'], 200),
-            '*/subscriptions' => Http::response([
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            if (str_contains($request->url(), '/customers') && $request->method() === 'GET') {
+                return Http::response(['data' => [], 'totalCount' => 0], 200);
+            }
+
+            if (str_ends_with($request->url(), '/customers') && $request->method() === 'POST') {
+                return Http::response(['id' => 'cus_auth_recused'], 200);
+            }
+
+            if (str_ends_with($request->url(), '/customers/cus_auth_recused') && $request->method() === 'DELETE') {
+                return Http::response(['deleted' => true], 200);
+            }
+
+            if (str_ends_with($request->url(), '/subscriptions')) {
+                return Http::response([
                 'errors' => [
                     [
                         'code' => 'invalid_creditCard',
                         'description' => 'Transação não autorizada. Verifique os dados do cartão de crédito e tente novamente.',
                     ],
                 ],
-            ], 400),
-        ]);
+                ], 400);
+            }
+
+            return Http::response([], 404);
+        });
 
         $this->post(route('register.store'), $this->dadosCadastro([
             'email' => 'cartao-recusado@example.com',
@@ -72,7 +98,59 @@ class AuthEmailAndPasswordTest extends TestCase
             'email' => 'cartao-recusado@example.com',
         ]);
 
+        Http::assertSent(function (\Illuminate\Http\Client\Request $request) {
+            return $request->method() === 'DELETE'
+                && str_ends_with($request->url(), '/customers/cus_auth_recused');
+        });
+
         Notification::assertNothingSent();
+    }
+
+    public function test_cadastro_reutiliza_cliente_asaas_existente_por_cpf_cnpj(): void
+    {
+        Notification::fake();
+
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            if (str_contains($request->url(), '/customers') && $request->method() === 'GET') {
+                return Http::response([
+                    'totalCount' => 1,
+                    'data' => [
+                        [
+                            'id' => 'cus_auth_existente',
+                            'name' => 'Novo Corretor',
+                            'email' => 'cliente-existente@example.com',
+                            'cpfCnpj' => '12345678909',
+                            'deleted' => false,
+                        ],
+                    ],
+                ], 200);
+            }
+
+            if (str_ends_with($request->url(), '/subscriptions')) {
+                return Http::response([
+                    'id' => 'sub_auth_existente',
+                    'customer' => 'cus_auth_existente',
+                    'value' => 49.90,
+                    'nextDueDate' => now()->addDays(30)->toDateString(),
+                    'creditCard' => [
+                        'creditCardBrand' => 'VISA',
+                        'creditCardNumber' => '1111',
+                        'creditCardToken' => 'card-token-auth',
+                    ],
+                ], 200);
+            }
+
+            return Http::response([], 404);
+        });
+
+        $this->post(route('register.store'), $this->dadosCadastro([
+            'email' => 'cliente-existente@example.com',
+        ]))->assertRedirect(route('verification.notice'));
+
+        $user = User::where('email', 'cliente-existente@example.com')->firstOrFail();
+
+        $this->assertSame('cus_auth_existente', $user->asaas_customer_id);
+
     }
 
     public function test_usuario_nao_verificado_nao_acessa_dashboard(): void

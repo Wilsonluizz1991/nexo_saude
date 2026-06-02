@@ -31,23 +31,34 @@ class EndToEndQaTest extends TestCase
     {
         Notification::fake();
 
-        Http::fake([
-            '*/customers' => Http::response([
-                'id' => 'cus_qa_123',
-                'name' => 'QA Corretor',
-            ], 200),
-            '*/subscriptions' => Http::response([
-                'id' => 'sub_qa_123',
-                'customer' => 'cus_qa_123',
-                'value' => 49.90,
-                'nextDueDate' => now()->addDays(30)->toDateString(),
-                'creditCard' => [
-                    'creditCardBrand' => 'VISA',
-                    'creditCardNumber' => '1111',
-                    'creditCardToken' => 'card-token-qa',
-                ],
-            ], 200),
-        ]);
+        Http::fake(function (\Illuminate\Http\Client\Request $request) {
+            if (str_contains($request->url(), '/customers') && $request->method() === 'GET') {
+                return Http::response(['data' => [], 'totalCount' => 0], 200);
+            }
+
+            if (str_ends_with($request->url(), '/customers') && $request->method() === 'POST') {
+                return Http::response([
+                    'id' => 'cus_qa_123',
+                    'name' => 'QA Corretor',
+                ], 200);
+            }
+
+            if (str_ends_with($request->url(), '/subscriptions')) {
+                return Http::response([
+                    'id' => 'sub_qa_123',
+                    'customer' => 'cus_qa_123',
+                    'value' => 49.90,
+                    'nextDueDate' => now()->addDays(30)->toDateString(),
+                    'creditCard' => [
+                        'creditCardBrand' => 'VISA',
+                        'creditCardNumber' => '1111',
+                        'creditCardToken' => 'card-token-qa',
+                    ],
+                ], 200);
+            }
+
+            return Http::response([], 404);
+        });
 
         $this->withServerVariables(['REMOTE_ADDR' => '203.0.113.10'])
             ->post(route('register.store'), [
@@ -67,7 +78,7 @@ class EndToEndQaTest extends TestCase
             'accepted_terms' => '1',
         ])->assertRedirect(route('verification.notice'));
 
-        Http::assertSentCount(2);
+        Http::assertSentCount(3);
         $subscriptionRequests = collect(Http::recorded())
             ->map(fn (array $record) => $record[0])
             ->filter(fn ($request) => str_ends_with($request->url(), '/subscriptions'))

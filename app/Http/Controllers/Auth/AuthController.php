@@ -59,14 +59,24 @@ class AuthController extends Controller
                     'next_billing_at' => now()->addDays(30),
                 ]);
 
-                $customerResponse = $asaasCustomerService->create([
-                    'name' => $user->name,
-                    'email' => $user->email,
-                    'cpfCnpj' => $cpfCnpj,
-                    'mobilePhone' => $telefone,
-                ]);
+                $customerCriadoNaTentativa = false;
+                $customerResponse = $asaasCustomerService->findByCpfCnpj($cpfCnpj, $user->email);
+                $asaasCustomer = $customerResponse['data'] ?? null;
 
-                if (!($customerResponse['success'] ?? false)) {
+                if (! ($asaasCustomer['id'] ?? null)) {
+                    $customerResponse = $asaasCustomerService->create([
+                        'name' => $user->name,
+                        'email' => $user->email,
+                        'cpfCnpj' => $cpfCnpj,
+                        'phone' => $telefone,
+                        'mobilePhone' => $telefone,
+                    ]);
+
+                    $customerCriadoNaTentativa = (bool) ($customerResponse['success'] ?? false);
+                    $asaasCustomer = $customerResponse['data'] ?? null;
+                }
+
+                if (!($customerResponse['success'] ?? false) && ! ($asaasCustomer['id'] ?? null)) {
                     $mensagemErroPublica = $this->mensagemErroGateway(
                         $customerResponse,
                         'Não foi possível validar seus dados cadastrais no momento. Revise as informações e tente novamente.'
@@ -75,7 +85,6 @@ class AuthController extends Controller
                     throw new \RuntimeException('Não foi possível criar o cliente no Asaas.');
                 }
 
-                $asaasCustomer = $customerResponse['data'];
                 $asaasCustomerId = $asaasCustomer['id'] ?? null;
 
                 if (!$asaasCustomerId) {
@@ -108,6 +117,10 @@ class AuthController extends Controller
                 ]);
 
                 if (!($subscriptionResponse['success'] ?? false)) {
+                    if ($customerCriadoNaTentativa && $asaasCustomerId) {
+                        $asaasCustomerService->delete($asaasCustomerId);
+                    }
+
                     $mensagemErroPublica = $this->mensagemErroAssinatura($subscriptionResponse);
 
                     throw new \RuntimeException('Não foi possível criar a assinatura no Asaas.');
