@@ -229,9 +229,7 @@
                             @elseif($avatarPath)
                                 <img class="nexo-avatar" src="{{ asset('storage/' . $avatarPath) }}" alt="Avatar do usuário">
                             @else
-                                <span class="nexo-avatar-placeholder">
-                                    {{ $iniciais ?: 'U' }}
-                                </span>
+                                <img class="nexo-avatar nexo-avatar-logo" src="{{ asset('assets/nexo-logo-topo.png') }}" alt="Logo Nexo Saude">
                             @endif
 
                             <span class="nexo-user-text">
@@ -309,6 +307,13 @@
             object-position: center 18%;
             border: 2px solid rgba(255, 255, 255, 0.92);
             box-shadow: 0 10px 24px rgba(0, 0, 0, 0.18);
+        }
+
+        .nexo-avatar-logo {
+            padding: 9px;
+            object-fit: contain;
+            object-position: center center;
+            background: #0B2448;
         }
 
         .nexo-avatar-placeholder {

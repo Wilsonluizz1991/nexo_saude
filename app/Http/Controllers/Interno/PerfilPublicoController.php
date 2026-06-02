@@ -41,6 +41,22 @@ class PerfilPublicoController extends Controller
 
         $data = $request->validated();
 
+        if ($request->boolean('remover_foto')) {
+            if ($perfil->foto_path && Storage::disk('public')->exists($perfil->foto_path)) {
+                Storage::disk('public')->delete($perfil->foto_path);
+            }
+
+            if ($user->avatar_path && $user->avatar_path !== $perfil->foto_path && Storage::disk('public')->exists($user->avatar_path)) {
+                Storage::disk('public')->delete($user->avatar_path);
+            }
+
+            $data['foto_path'] = null;
+
+            $user->forceFill([
+                'avatar_path' => null,
+            ])->save();
+        }
+
         if ($request->hasFile('foto')) {
             if ($perfil->foto_path && Storage::disk('public')->exists($perfil->foto_path)) {
                 Storage::disk('public')->delete($perfil->foto_path);
@@ -66,6 +82,7 @@ class PerfilPublicoController extends Controller
             ->all();
 
         unset($data['foto']);
+        unset($data['remover_foto']);
 
         $user->corretorPerfil()->updateOrCreate(
             ['user_id' => $user->id],

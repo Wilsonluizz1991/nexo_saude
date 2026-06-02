@@ -9,6 +9,7 @@ class AtualizarPerfilPublicoRequest extends FormRequest
     {
         return [
             'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
+            'remover_foto' => ['nullable', 'boolean'],
             'nome_publico' => ['required', 'string', 'max:255'],
             'bio' => ['nullable', 'string', 'max:700'],
             'especialidades' => ['nullable', 'string', 'max:255'],

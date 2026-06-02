@@ -3,7 +3,11 @@
     <form method="post" enctype="multipart/form-data" action="{{ route('configuracoes.perfil.update') }}" class="row g-3">
         @csrf
         <div class="col-md-4">
-            <img class="nexo-avatar-preview" src="{{ $user->avatar_path ? asset('storage/'.$user->avatar_path) : 'https://i.pravatar.cc/160?img=12' }}" alt="Preview da foto">
+            <img
+                class="nexo-avatar-preview {{ $user->avatar_path ? '' : 'nexo-avatar-preview-logo' }}"
+                src="{{ $user->avatar_path ? asset('storage/'.$user->avatar_path) : asset('assets/nexo-logo-topo.png') }}"
+                alt="{{ $user->avatar_path ? 'Preview da foto' : 'Logo Nexo Saúde' }}"
+            >
             <x-file-input name="foto" accept="image/*" class="mt-3" />
             <label class="form-check mt-2"><input name="remover_foto" value="1" type="checkbox" class="form-check-input"> Remover foto</label>
         </div>
@@ -20,4 +24,12 @@
             <div class="col-12 d-flex gap-2"><button class="btn btn-primary">Salvar perfil</button><a class="btn btn-outline-primary" href="{{ route('publico.corretor', $user->corretorPerfil->slug) }}">Visualizar perfil público</a></div>
         </div>
     </form>
+
+    <style>
+        .nexo-avatar-preview-logo {
+            padding: 18px;
+            object-fit: contain;
+            background: #0B2448;
+        }
+    </style>
 </x-configuracoes.layout>

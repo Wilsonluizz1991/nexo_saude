@@ -301,6 +301,60 @@ class EndToEndQaTest extends TestCase
             ->assertSee('Lead QA E2E');
     }
 
+    public function test_corretor_sem_foto_visualiza_placeholder_da_nexo_sem_foto_falsa(): void
+    {
+        $corretor = User::where('email', 'carlos@nexosaude.local')->firstOrFail();
+        $corretor->forceFill(['avatar_path' => null])->save();
+        $corretor->corretorPerfil->forceFill(['foto_path' => null])->save();
+
+        $this->actingAs($corretor)
+            ->get(route('configuracoes.perfil'))
+            ->assertOk()
+            ->assertSee('assets/nexo-logo-topo.png', false)
+            ->assertDontSee('pravatar', false);
+
+        $this->actingAs($corretor)
+            ->get(route('perfil-publico.edit'))
+            ->assertOk()
+            ->assertSee('assets/nexo-logo-topo.png', false)
+            ->assertSee('Remover foto')
+            ->assertDontSee('pravatar', false);
+
+        $this->get(route('publico.corretor', $corretor->corretorPerfil->slug))
+            ->assertOk()
+            ->assertSee('assets/nexo-logo-topo.png', false)
+            ->assertDontSee('pravatar', false);
+    }
+
+    public function test_corretor_consegue_remover_foto_do_perfil_publico(): void
+    {
+        Storage::fake('public');
+
+        $corretor = User::where('email', 'carlos@nexosaude.local')->firstOrFail();
+        $perfil = $corretor->corretorPerfil;
+
+        Storage::disk('public')->put('corretores/foto-antiga.jpg', 'foto');
+        Storage::disk('public')->put('corretores/avatar-antigo.jpg', 'avatar');
+
+        $perfil->forceFill(['foto_path' => 'corretores/foto-antiga.jpg'])->save();
+        $corretor->forceFill(['avatar_path' => 'corretores/avatar-antigo.jpg'])->save();
+
+        $this->actingAs($corretor)
+            ->post(route('perfil-publico.update'), [
+                'remover_foto' => '1',
+                'nome_publico' => $perfil->nome_publico,
+                'bio' => $perfil->bio,
+                'especialidades' => implode(', ', $perfil->especialidades ?? []),
+                'cidade_regiao' => $perfil->cidade_regiao,
+            ])
+            ->assertRedirect();
+
+        $this->assertNull($corretor->fresh()->avatar_path);
+        $this->assertNull($perfil->fresh()->foto_path);
+        Storage::disk('public')->assertMissing('corretores/foto-antiga.jpg');
+        Storage::disk('public')->assertMissing('corretores/avatar-antigo.jpg');
+    }
+
     public function test_admin_login_dashboard_ajax_crud_auditoria_e_seguranca(): void
     {
         $admin = User::factory()->create([

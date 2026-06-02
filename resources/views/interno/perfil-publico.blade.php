@@ -24,17 +24,19 @@
                         <div class="col-md-6">
                             <label class="form-label">Foto</label>
 
-                            @if($perfil->foto_path)
-                                <div class="mb-3">
-                                    <img
-                                        class="nexo-public-profile-photo-preview"
-                                        src="{{ asset('storage/'.$perfil->foto_path) }}"
-                                        alt="Foto atual do corretor"
-                                    >
-                                </div>
-                            @endif
+                            <div class="mb-3">
+                                <img
+                                    class="nexo-public-profile-photo-preview {{ $perfil->foto_path ? '' : 'nexo-public-profile-photo-preview-logo' }}"
+                                    src="{{ $perfil->foto_path ? asset('storage/'.$perfil->foto_path) : asset('assets/nexo-logo-topo.png') }}"
+                                    alt="{{ $perfil->foto_path ? 'Foto atual do corretor' : 'Logo Nexo Saúde' }}"
+                                >
+                            </div>
 
-                            <input name="foto" type="file" class="form-control" accept="image/*">
+                            <x-file-input name="foto" accept="image/*" />
+                            <label class="form-check mt-2">
+                                <input name="remover_foto" value="1" type="checkbox" class="form-check-input">
+                                Remover foto
+                            </label>
                             <small class="text-muted d-block mt-2">Use uma foto vertical ou quadrada. O sistema prioriza o rosto no enquadramento.</small>
                         </div>
 
@@ -83,6 +85,13 @@
             border-radius: 24px;
             border: 1px solid #DDE8F5;
             box-shadow: 0 12px 28px rgba(15, 58, 104, 0.12);
+        }
+
+        .nexo-public-profile-photo-preview-logo {
+            padding: 18px;
+            object-fit: contain;
+            object-position: center center;
+            background: #0B2448;
         }
     </style>
 </x-layouts.app>
