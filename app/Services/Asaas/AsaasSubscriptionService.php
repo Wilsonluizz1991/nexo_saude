@@ -206,6 +206,15 @@ class AsaasSubscriptionService
         $expiryMonth = str_pad($this->digits($data['card_expiry_month'] ?? ''), 2, '0', STR_PAD_LEFT);
         $expiryYear = $this->normalizeExpiryYear($data['card_expiry_year'] ?? '');
 
+        Log::info('Payload cartão Asaas', [
+    'holder_name' => trim((string) ($data['card_holder_name'] ?? '')),
+    'card_digits' => strlen($this->digits($data['card_number'] ?? '')),
+    'expiry_month' => $expiryMonth,
+    'expiry_year' => $expiryYear,
+    'ccv_digits' => strlen($this->digits($data['card_ccv'] ?? '')),
+    'cpf_digits' => strlen($this->digits($data['holder_cpf_cnpj'] ?? '')),
+]);
+
         return [
             'creditCard' => [
                 'holderName' => trim((string) ($data['card_holder_name'] ?? '')),
