@@ -46,6 +46,35 @@ class AuthEmailAndPasswordTest extends TestCase
         Notification::assertSentTo($user, VerifyEmailNotification::class);
     }
 
+    public function test_cadastro_exibe_mensagem_amigavel_quando_asaas_recusa_cartao(): void
+    {
+        Notification::fake();
+        Http::fake([
+            '*/customers' => Http::response(['id' => 'cus_auth_recused'], 200),
+            '*/subscriptions' => Http::response([
+                'errors' => [
+                    [
+                        'code' => 'invalid_creditCard',
+                        'description' => 'Transação não autorizada. Verifique os dados do cartão de crédito e tente novamente.',
+                    ],
+                ],
+            ], 400),
+        ]);
+
+        $this->post(route('register.store'), $this->dadosCadastro([
+            'email' => 'cartao-recusado@example.com',
+        ]))
+            ->assertSessionHasErrors([
+                'billing' => 'O cartão informado foi recusado pela operadora. Verifique número, validade, CVV, nome impresso e se o cartão está habilitado para compras online.',
+            ]);
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'cartao-recusado@example.com',
+        ]);
+
+        Notification::assertNothingSent();
+    }
+
     public function test_usuario_nao_verificado_nao_acessa_dashboard(): void
     {
         $user = $this->corretorComAssinatura([

@@ -31,12 +31,15 @@ class AuthController extends Controller
         AsaasSubscriptionService $asaasSubscriptionService,
         RegistrarAssinaturaService $registrarAssinaturaService
     ) {
+        $mensagemErroPublica = 'Não foi possível criar sua conta e ativar o período gratuito. Verifique os dados informados e tente novamente.';
+
         try {
             $user = DB::transaction(function () use (
                 $request,
                 $asaasCustomerService,
                 $asaasSubscriptionService,
-                $registrarAssinaturaService
+                $registrarAssinaturaService,
+                &$mensagemErroPublica
             ) {
                 $telefone = preg_replace('/\D/', '', $request->telefone);
                 $cpfCnpj = $request->validated('billing_cpf_cnpj');
@@ -64,6 +67,11 @@ class AuthController extends Controller
                 ]);
 
                 if (!($customerResponse['success'] ?? false)) {
+                    $mensagemErroPublica = $this->mensagemErroGateway(
+                        $customerResponse,
+                        'Não foi possível validar seus dados cadastrais no momento. Revise as informações e tente novamente.'
+                    );
+
                     throw new \RuntimeException('Não foi possível criar o cliente no Asaas.');
                 }
 
@@ -99,6 +107,8 @@ class AuthController extends Controller
                 ]);
 
                 if (!($subscriptionResponse['success'] ?? false)) {
+                    $mensagemErroPublica = $this->mensagemErroAssinatura($subscriptionResponse);
+
                     throw new \RuntimeException('Não foi possível criar a assinatura no Asaas.');
                 }
 
@@ -156,7 +166,7 @@ class AuthController extends Controller
                     'card_ccv',
                 ]))
                 ->withErrors([
-                    'billing' => 'Não foi possível criar sua conta e ativar o período gratuito. Verifique os dados informados e tente novamente.',
+                    'billing' => $mensagemErroPublica,
                 ]);
         }
     }
@@ -219,5 +229,30 @@ class AuthController extends Controller
     private function usuarioAdministrador(?User $user): bool
     {
         return (bool) ($user?->is_admin || $user?->perfil === 'admin');
+    }
+
+    private function mensagemErroAssinatura(array $gatewayResponse): string
+    {
+        $codigo = data_get($gatewayResponse, 'response.errors.0.code');
+
+        if ($codigo === 'invalid_creditCard') {
+            return 'O cartão informado foi recusado pela operadora. Verifique número, validade, CVV, nome impresso e se o cartão está habilitado para compras online.';
+        }
+
+        return $this->mensagemErroGateway(
+            $gatewayResponse,
+            'Não foi possível validar o cartão no momento. Revise os dados de pagamento e tente novamente.'
+        );
+    }
+
+    private function mensagemErroGateway(array $gatewayResponse, string $fallback): string
+    {
+        $descricao = trim((string) data_get($gatewayResponse, 'response.errors.0.description'));
+
+        if ($descricao !== '') {
+            return $descricao;
+        }
+
+        return $fallback;
     }
 }
