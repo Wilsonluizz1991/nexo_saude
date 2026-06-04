@@ -6,17 +6,17 @@
 
         $documentosSemAlternativaOk = $documentosObrigatorios
             ->filter(fn ($documento) => empty($documento->grupo_alternativo))
-            ->every(fn ($documento) => in_array($documento->status, ['aprovado', 'dispensado'], true));
+            ->every(fn ($documento) => in_array($documento->status, ['aprovado', 'aprovado_ia', 'dispensado'], true));
 
         $gruposAlternativosOk = $documentosObrigatorios
             ->filter(fn ($documento) => ! empty($documento->grupo_alternativo))
             ->groupBy(fn ($documento) => $documento->vida_proposta_id.'|'.$documento->grupo_alternativo)
-            ->every(fn ($grupo) => $grupo->contains(fn ($documento) => in_array($documento->status, ['aprovado', 'dispensado'], true)));
+            ->every(fn ($grupo) => $grupo->contains(fn ($documento) => in_array($documento->status, ['aprovado', 'aprovado_ia', 'dispensado'], true)));
 
         $documentosOk = $documentos->isNotEmpty() && $documentosSemAlternativaOk && $gruposAlternativosOk;
 
         $todosDocumentosAprovados = $documentos->isNotEmpty()
-            && $documentos->every(fn ($documento) => $documento->status === 'aprovado');
+            && $documentos->every(fn ($documento) => in_array($documento->status, ['aprovado', 'aprovado_ia'], true));
 
         $statusLegivel = [
             'aguardando_envio' => 'Aguardando envio',
@@ -408,7 +408,7 @@
                 return;
             }
 
-            const statusAprovado = ['aprovado', 'dispensado'];
+            const statusAprovado = ['aprovado', 'aprovado_ia', 'dispensado'];
             const statusIgnorados = ['visualizar', 'enviado', 'enviar', 'substituir', 'baixar', 'abrir'];
 
             const normalizarTexto = (texto) => {

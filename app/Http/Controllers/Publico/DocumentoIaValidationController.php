@@ -7,8 +7,11 @@ use App\Http\Requests\ValidarDocumentoIaRequest;
 use App\Models\DocumentoIaValidacao;
 use App\Models\DocumentoObrigatorioPreCadastro;
 use App\Models\PreCadastro;
+use App\Models\Vida;
 use App\Services\OpenAI\DocumentAiValidationService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 
 class DocumentoIaValidationController extends Controller
 {
@@ -28,7 +31,7 @@ class DocumentoIaValidationController extends Controller
         $documento->load('tipoDocumento', 'preCadastro.indicacao', 'preCadastro.vidas');
         $vida = $preCadastro->vidas->firstWhere('id', $documento->vida_proposta_id);
         $dados = $request->validated();
-        $fase = $dados['fase_validacao'];
+        $fase = $this->faseValidacaoEfetiva($documento, $dados);
         $file = $request->file('arquivo');
         $validacaoAnterior = $this->validacaoAnterior($preCadastro, $documento, $dados['ia_validacao_id'] ?? null);
         $path = $file?->store('documentos/ia-validacoes', 'local');
@@ -54,6 +57,7 @@ class DocumentoIaValidationController extends Controller
             ]
         ));
         $dispensas = $this->atualizarDispensasPorIdentidade($preCadastro, $documento, $validacao);
+        $validacoesCompartilhadas = $this->atualizarCartasPermanenciaCompartilhadas($preCadastro, $documento, $validacao);
 
         return response()->json([
             'id' => $validacao->id,
@@ -63,6 +67,7 @@ class DocumentoIaValidationController extends Controller
             'analise_parcial' => $validacao->analise_parcial,
             'titularidade_pendente' => $validacao->titularidade_pendente,
             'dispensas_documentais' => $dispensas,
+            'validacoes_compartilhadas' => $validacoesCompartilhadas,
             'allow_upload' => $validacao->status !== 'reenviar',
             'enabled' => (bool) config('services.openai.document_validation_enabled'),
         ]);
@@ -131,6 +136,22 @@ class DocumentoIaValidationController extends Controller
         ], fn ($value) => $value !== '');
     }
 
+    private function faseValidacaoEfetiva(DocumentoObrigatorioPreCadastro $documento, array $dados): string
+    {
+        if (($dados['fase_validacao'] ?? 'completa') !== 'documental') {
+            return $dados['fase_validacao'] ?? 'completa';
+        }
+
+        if ($this->tipoDocumentoNormalizado($documento->tipoDocumento?->nome) !== 'carta de permanencia') {
+            return 'documental';
+        }
+
+        $nome = trim((string) ($dados['nome_beneficiario_atual'] ?? ''));
+        $cpf = $this->normalizarDocumento($dados['cpf_beneficiario_atual'] ?? null);
+
+        return ($nome !== '' && $cpf) ? 'completa' : 'documental';
+    }
+
     private function camposPersistencia(array $resultado): array
     {
         return collect($resultado)
@@ -174,6 +195,7 @@ class DocumentoIaValidationController extends Controller
                 'validacao_titularidade_status',
                 'titularidade_pendente',
                 'dados_extraidos',
+                'beneficiarios_extraidos',
                 'dados_comparados',
             ])
             ->all();
@@ -248,5 +270,227 @@ class DocumentoIaValidationController extends Controller
             && in_array(mb_strtoupper((string) $validacao->tipo_documento_identificado), ['RG', 'CNH'], true)
             && filled($validacao->cpf_extraido)
             && $validacao->match_cpf === true;
+    }
+
+    private function atualizarCartasPermanenciaCompartilhadas(PreCadastro $preCadastro, DocumentoObrigatorioPreCadastro $documento, DocumentoIaValidacao $validacao): array
+    {
+        if ($this->tipoDocumentoNormalizado($documento->tipoDocumento?->nome) !== 'carta de permanencia') {
+            return [];
+        }
+
+        $beneficiariosExtraidos = collect($validacao->beneficiarios_extraidos ?? [])
+            ->filter(fn ($item) => is_array($item) && filled($item['nome'] ?? null))
+            ->values();
+
+        $this->limparValidacoesCompartilhadasDaCarta($preCadastro, $documento);
+
+        if ($beneficiariosExtraidos->isEmpty()) {
+            return [];
+        }
+
+        $preCadastro->loadMissing('vidas', 'documentosObrigatorios.tipoDocumento');
+        $vidaOrigem = $preCadastro->vidas->firstWhere('id', $documento->vida_proposta_id);
+        $matchOrigem = $vidaOrigem ? $this->beneficiarioEncontradoNaCarta($vidaOrigem, $beneficiariosExtraidos, $preCadastro->vidas) : null;
+
+        if (! $this->cartaPermanenciaAprovada($validacao) && ! $this->cartaPermanenciaConfirmadaPorBeneficiarioOrigem($validacao, $matchOrigem)) {
+            return [];
+        }
+
+        if ($validacao->status !== 'aprovado_para_envio') {
+            $validacao->forceFill([
+                'status' => 'aprovado_para_envio',
+                'mensagem_cliente' => 'Carta de Permanência aprovada pela IA.',
+                'mensagem_corretor' => trim(($validacao->mensagem_corretor ?: '').' Carta confirmada por nome e CPF do beneficiário no documento familiar.'),
+            ])->save();
+        }
+
+        $documento->update([
+            'status' => 'aprovado_ia',
+            'validado_por_documento_compartilhado' => false,
+            'documento_origem_id' => null,
+            'beneficiario_origem_id' => null,
+            'tipo_regra_validacao' => 'validacao_direta',
+            'motivo_validacao' => 'Carta de Permanência aprovada pela IA.',
+        ]);
+
+        return $preCadastro->documentosObrigatorios
+            ->filter(fn ($item) => (int) $item->id !== (int) $documento->id
+                && (int) $item->pre_cadastro_id === (int) $preCadastro->id
+                && $this->tipoDocumentoNormalizado($item->tipoDocumento?->nome) === 'carta de permanencia')
+            ->map(function (DocumentoObrigatorioPreCadastro $item) use ($preCadastro, $documento, $beneficiariosExtraidos) {
+                $vida = $preCadastro->vidas->firstWhere('id', $item->vida_proposta_id);
+                $match = $vida ? $this->beneficiarioEncontradoNaCarta($vida, $beneficiariosExtraidos, $preCadastro->vidas) : null;
+
+                if (! $match) {
+                    if ($item->status === 'aprovado_ia'
+                        && $item->tipo_regra_validacao === 'documento_compartilhado_grupo_familiar'
+                        && (int) $item->documento_origem_id === (int) $documento->id) {
+                        $item->update([
+                            'status' => 'pendente',
+                            'validado_por_documento_compartilhado' => false,
+                            'documento_origem_id' => null,
+                            'beneficiario_origem_id' => null,
+                            'tipo_regra_validacao' => null,
+                            'motivo_validacao' => 'Carta de Permanência pendente. Beneficiário não localizado no documento enviado.',
+                        ]);
+                    }
+
+                    return null;
+                }
+
+                $motivo = 'Carta de Permanência aprovada automaticamente. Beneficiário encontrado na carta de permanência familiar anexada ao titular.';
+                $item->update([
+                    'status' => 'aprovado_ia',
+                    'validado_por_documento_compartilhado' => true,
+                    'documento_origem_id' => $documento->id,
+                    'beneficiario_origem_id' => $documento->vida_proposta_id,
+                    'tipo_regra_validacao' => 'documento_compartilhado_grupo_familiar',
+                    'motivo_validacao' => $motivo,
+                    'observacoes' => null,
+                ]);
+
+                return [
+                    'documento_obrigatorio_id' => $item->id,
+                    'beneficiario_id' => $item->vida_proposta_id,
+                    'status' => 'aprovado_ia',
+                    'validado_por_documento_compartilhado' => true,
+                    'documento_origem_id' => $documento->id,
+                    'beneficiario_origem_id' => $documento->vida_proposta_id,
+                    'motivo' => $motivo,
+                    'criterio' => $match['criterio'],
+                ];
+            })
+            ->filter()
+            ->values()
+            ->all();
+    }
+
+    private function limparValidacoesCompartilhadasDaCarta(PreCadastro $preCadastro, DocumentoObrigatorioPreCadastro $documento): void
+    {
+        $preCadastro->documentosObrigatorios
+            ->filter(fn ($item) => $item->validado_por_documento_compartilhado
+                && $item->tipo_regra_validacao === 'documento_compartilhado_grupo_familiar'
+                && (int) $item->documento_origem_id === (int) $documento->id)
+            ->each(fn ($item) => $item->update([
+                'status' => 'pendente',
+                'validado_por_documento_compartilhado' => false,
+                'documento_origem_id' => null,
+                'beneficiario_origem_id' => null,
+                'tipo_regra_validacao' => null,
+                'motivo_validacao' => null,
+            ]));
+    }
+
+    private function cartaPermanenciaAprovada(DocumentoIaValidacao $validacao): bool
+    {
+        return $validacao->status === 'aprovado_para_envio'
+            && ($validacao->documento_corresponde_ao_tipo === true
+                || $this->tipoDocumentoNormalizado($validacao->tipo_documento_identificado) === 'carta de permanencia');
+    }
+
+    private function cartaPermanenciaConfirmadaPorBeneficiarioOrigem(DocumentoIaValidacao $validacao, ?array $matchOrigem): bool
+    {
+        if (! $matchOrigem) {
+            return false;
+        }
+
+        if ($validacao->documento_corresponde_ao_tipo === false) {
+            return false;
+        }
+
+        if ($validacao->legivel === false || $validacao->cortado === true || $validacao->desfocado === true || $validacao->escuro === true) {
+            return false;
+        }
+
+        if ($validacao->tipo_documento_identificado && $this->tipoDocumentoNormalizado($validacao->tipo_documento_identificado) !== 'carta de permanencia') {
+            return false;
+        }
+
+        return in_array($matchOrigem['criterio'] ?? null, ['nome_cpf', 'nome_data_nascimento', 'nome_alta_similaridade'], true);
+    }
+
+    private function beneficiarioEncontradoNaCarta(Vida $vida, Collection $beneficiariosExtraidos, Collection $vidasDoPreCadastro): ?array
+    {
+        $cpfVida = $this->normalizarDocumento($vida->cpf);
+        $nascimentoVida = $vida->data_nascimento?->format('Y-m-d');
+        $nomeVida = $this->normalizarNome($vida->nome);
+
+        foreach ($beneficiariosExtraidos as $extraido) {
+            $cpfExtraido = $this->normalizarDocumento($extraido['cpf'] ?? null);
+            $nascimentoExtraido = $this->normalizarData($extraido['data_nascimento'] ?? null);
+            $nomeExtraido = $this->normalizarNome($extraido['nome'] ?? null);
+            $similaridadeNome = $this->similaridadeNome($nomeVida, $nomeExtraido);
+
+            if ($cpfVida && $cpfExtraido && ! hash_equals($cpfVida, $cpfExtraido)) {
+                continue;
+            }
+
+            if ($nascimentoVida && $nascimentoExtraido && ! hash_equals($nascimentoVida, $nascimentoExtraido)) {
+                continue;
+            }
+
+            if ($cpfVida && $cpfExtraido && hash_equals($cpfVida, $cpfExtraido) && $similaridadeNome >= 70) {
+                return ['criterio' => 'nome_cpf', 'similaridade_nome' => $similaridadeNome];
+            }
+
+            if ($nascimentoVida && $nascimentoExtraido && hash_equals($nascimentoVida, $nascimentoExtraido) && $similaridadeNome >= 80) {
+                return ['criterio' => 'nome_data_nascimento', 'similaridade_nome' => $similaridadeNome];
+            }
+
+            if ($similaridadeNome >= 92 && ! $this->nomeAmbiguoNoPreCadastro($nomeExtraido, $vida, $vidasDoPreCadastro)) {
+                return ['criterio' => 'nome_alta_similaridade', 'similaridade_nome' => $similaridadeNome];
+            }
+        }
+
+        return null;
+    }
+
+    private function nomeAmbiguoNoPreCadastro(string $nomeExtraido, Vida $vidaEsperada, Collection $vidasDoPreCadastro): bool
+    {
+        return $vidasDoPreCadastro
+            ->filter(fn ($vida) => (int) $vida->id !== (int) $vidaEsperada->id
+                && $this->similaridadeNome($this->normalizarNome($vida->nome), $nomeExtraido) >= 92)
+            ->isNotEmpty();
+    }
+
+    private function normalizarDocumento(?string $valor): ?string
+    {
+        $normalizado = preg_replace('/\D/', '', (string) $valor);
+
+        return $normalizado !== '' ? $normalizado : null;
+    }
+
+    private function normalizarData(?string $valor): ?string
+    {
+        if (blank($valor)) {
+            return null;
+        }
+
+        try {
+            return \Carbon\Carbon::parse($valor)->format('Y-m-d');
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function normalizarNome(?string $valor): string
+    {
+        return trim(preg_replace('/\s+/', ' ', Str::ascii(mb_strtolower((string) $valor))));
+    }
+
+    private function similaridadeNome(string $esperado, string $extraido): int
+    {
+        if ($esperado === '' || $extraido === '') {
+            return 0;
+        }
+
+        similar_text($esperado, $extraido, $percentual);
+
+        return (int) round($percentual);
+    }
+
+    private function tipoDocumentoNormalizado(?string $tipoDocumento): string
+    {
+        return Str::ascii(mb_strtolower(trim((string) $tipoDocumento)));
     }
 }

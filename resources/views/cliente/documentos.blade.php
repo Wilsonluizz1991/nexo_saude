@@ -10,6 +10,7 @@
             'pendente' => 'Pendente',
             'enviado' => 'Enviado',
             'aprovado' => 'Aprovado',
+            'aprovado_ia' => 'Aprovado pela IA',
             'corrigir' => 'Corrigir',
             'recusado' => 'Recusado',
             'dispensado' => 'Dispensado',
@@ -242,7 +243,7 @@
                         <div class="row g-3">
                             @foreach($documentos->sortBy('ordem') as $documento)
                                 @php
-                                    $documentoLiberado = (! $modoCorrecao || in_array($documento->status, ['pendente', 'corrigir', 'recusado'], true)) && ! $documento->dispensado_por_ia;
+                                    $documentoLiberado = (! $modoCorrecao || in_array($documento->status, ['pendente', 'corrigir', 'recusado'], true)) && ! $documento->dispensado_por_ia && ! $documento->validado_por_documento_compartilhado;
                                     $documentoObrigatorioInput = $documentoLiberado && $documento->obrigatorio && (! $documento->envio || $modoCorrecao);
                                     $statusLabel = $statusDocumentos[$documento->status] ?? ucfirst(str_replace('_', ' ', $documento->status));
                                 @endphp
@@ -323,6 +324,12 @@
                                                     {{ $documento->motivo_dispensa ?: 'Envio separado de CPF não é necessário. O CPF já foi identificado no documento de identidade enviado.' }}
                                                 @endif
                                             </div>
+
+                                            @if($documento->validado_por_documento_compartilhado)
+                                                <div class="nexo-ia-feedback">
+                                                    {{ $documento->motivo_validacao ?: 'Carta de Permanência aprovada automaticamente. Beneficiário encontrado na carta de permanência familiar anexada ao titular.' }}
+                                                </div>
+                                            @endif
                                         </div>
                                     </div>
                                 </div>
@@ -1954,6 +1961,21 @@
                 });
             };
 
+            const normalizeDocumentType = (value) => (value || '')
+                .normalize('NFD')
+                .replace(/[\u0300-\u036f]/g, '')
+                .toLowerCase()
+                .trim();
+
+            const shouldUseCompleteValidation = (data) => {
+                if (data.complete) {
+                    return true;
+                }
+
+                return normalizeDocumentType(data.tipo_documento_esperado) === 'carta de permanencia'
+                    && Boolean(data.nome_beneficiario_atual && data.cpf_beneficiario_atual);
+            };
+
             const setCpfDispensaState = (documentoId, motivo, dispensado, identityInput = null) => {
                 const upload = document.querySelector(`.nexo-file-upload[data-documento-id="${documentoId}"]`);
 
@@ -2018,6 +2040,42 @@
                 });
             };
 
+            const setCartaCompartilhadaState = (validacao) => {
+                const upload = document.querySelector(`.nexo-file-upload[data-documento-id="${validacao.documento_obrigatorio_id}"]`);
+
+                if (!upload) return;
+
+                const fileInput = upload.querySelector('.nexo-file-input');
+                const label = upload.querySelector('.nexo-file-label');
+                const feedback = upload.querySelector('[data-ia-feedback]');
+                const validationId = upload.querySelector('[data-ia-validation-id]');
+                const status = upload.closest('.nexo-upload-box')?.querySelector('[data-document-status]');
+                const fileName = upload.querySelector('[data-file-name]');
+                const title = upload.querySelector('[data-file-title]');
+
+                if (fileInput) {
+                    fileInput.value = '';
+                    fileInput.disabled = true;
+                    fileInput.required = false;
+                }
+
+                if (validationId) validationId.value = '';
+                if (label) label.classList.add('is-disabled');
+                if (status) status.textContent = 'Aprovado pela IA';
+                if (title) title.textContent = 'Carta aprovada pela IA';
+                if (fileName) fileName.textContent = 'Atendido por carta familiar';
+
+                if (feedback) {
+                    feedback.hidden = false;
+                    feedback.className = 'nexo-ia-feedback is-success';
+                    feedback.textContent = validacao.motivo || 'Carta de Permanência aprovada automaticamente. Beneficiário encontrado na carta de permanência familiar anexada ao titular.';
+                }
+            };
+
+            const applyValidacoesCompartilhadas = (validacoes) => {
+                (validacoes || []).forEach(setCartaCompartilhadaState);
+            };
+
             const validateDocumentInput = async (input, phase, file = null) => {
                     const label = input.closest('.nexo-file-upload')?.querySelector('.nexo-file-label');
                     const title = label?.querySelector('[data-file-title]');
@@ -2079,6 +2137,7 @@
                         if (validationId) validationId.value = data.id || '';
                         if (upload) upload.dataset.titularidadePendente = data.titularidade_pendente ? 'true' : 'false';
                         applyDispensas(input, data.dispensas_documentais);
+                        applyValidacoesCompartilhadas(data.validacoes_compartilhadas);
 
                         if (data.status === 'reenviar') {
                             input.value = '';
@@ -2104,7 +2163,7 @@
             document.querySelectorAll('.nexo-file-input').forEach((input) => {
                 input.addEventListener('change', async () => {
                     const data = beneficiaryDataFor(input);
-                    await validateDocumentInput(input, data.complete ? 'completa' : 'documental', input.files?.[0] || null);
+                    await validateDocumentInput(input, shouldUseCompleteValidation(data) ? 'completa' : 'documental', input.files?.[0] || null);
                 });
             });
 

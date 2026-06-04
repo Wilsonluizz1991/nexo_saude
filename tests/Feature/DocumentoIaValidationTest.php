@@ -853,6 +853,258 @@ class DocumentoIaValidationTest extends TestCase
         ]);
     }
 
+    public function test_carta_permanencia_do_titular_valida_grupo_familiar_completo(): void
+    {
+        [$vidas, $documentos] = $this->cenarioCartaPermanenciaFamiliar();
+
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::response($this->openAiPayloadCarta([
+                $this->beneficiarioExtraido($vidas['pai']),
+                $this->beneficiarioExtraido($vidas['mae']),
+                $this->beneficiarioExtraido($vidas['filho']),
+            ])),
+        ]);
+
+        $this->postJson($this->urlParaDocumento($documentos['pai']), [
+            'arquivo' => UploadedFile::fake()->image('carta.jpg'),
+            ...$this->payloadAtualCarta($vidas['pai']),
+        ])->assertOk()
+            ->assertJsonPath('status', 'aprovado_para_envio')
+            ->assertJsonCount(2, 'validacoes_compartilhadas');
+
+        $this->assertDatabaseHas('documentos_obrigatorios_pre_cadastro', [
+            'id' => $documentos['pai']->id,
+            'status' => 'aprovado_ia',
+            'validado_por_documento_compartilhado' => false,
+            'tipo_regra_validacao' => 'validacao_direta',
+        ]);
+
+        foreach (['mae', 'filho'] as $chave) {
+            $this->assertDatabaseHas('documentos_obrigatorios_pre_cadastro', [
+                'id' => $documentos[$chave]->id,
+                'status' => 'aprovado_ia',
+                'validado_por_documento_compartilhado' => true,
+                'documento_origem_id' => $documentos['pai']->id,
+                'beneficiario_origem_id' => $vidas['pai']->id,
+                'tipo_regra_validacao' => 'documento_compartilhado_grupo_familiar',
+            ]);
+        }
+    }
+
+    public function test_carta_permanencia_compartilhada_mantem_pendente_quem_nao_aparece(): void
+    {
+        [$vidas, $documentos] = $this->cenarioCartaPermanenciaFamiliar();
+
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::response($this->openAiPayloadCarta([
+                $this->beneficiarioExtraido($vidas['pai']),
+                $this->beneficiarioExtraido($vidas['mae']),
+            ])),
+        ]);
+
+        $this->postJson($this->urlParaDocumento($documentos['pai']), [
+            'arquivo' => UploadedFile::fake()->image('carta.jpg'),
+            ...$this->payloadAtualCarta($vidas['pai']),
+        ])->assertOk()
+            ->assertJsonCount(1, 'validacoes_compartilhadas');
+
+        $this->assertSame('aprovado_ia', $documentos['pai']->fresh()->status);
+        $this->assertSame('aprovado_ia', $documentos['mae']->fresh()->status);
+        $this->assertSame('pendente', $documentos['filho']->fresh()->status);
+    }
+
+    public function test_carta_permanencia_com_nome_e_cpf_sem_data_usa_validacao_completa(): void
+    {
+        [$vidas, $documentos] = $this->cenarioCartaPermanenciaFamiliar();
+
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::response($this->openAiPayloadCarta([
+                $this->beneficiarioExtraido($vidas['pai']),
+                $this->beneficiarioExtraido($vidas['mae']),
+            ])),
+        ]);
+
+        $this->postJson($this->urlParaDocumento($documentos['pai']), [
+            'arquivo' => UploadedFile::fake()->image('carta.jpg'),
+            ...array_merge($this->payloadAtualCarta($vidas['pai']), [
+                'fase_validacao' => 'documental',
+                'data_nascimento_beneficiario_atual' => '',
+            ]),
+        ])->assertOk()
+            ->assertJsonPath('status', 'aprovado_para_envio')
+            ->assertJsonCount(1, 'validacoes_compartilhadas');
+
+        $this->assertDatabaseHas('documento_ia_validacoes', [
+            'documento_obrigatorio_pre_cadastro_id' => $documentos['pai']->id,
+            'fase_validacao' => 'completa',
+            'status' => 'aprovado_para_envio',
+        ]);
+    }
+
+    public function test_carta_permanencia_inconclusiva_aprova_quando_beneficiario_origem_aparece_com_nome_e_cpf(): void
+    {
+        [$vidas, $documentos] = $this->cenarioCartaPermanenciaFamiliar();
+
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::response($this->openAiPayloadCarta([
+                $this->beneficiarioExtraido($vidas['pai']),
+                $this->beneficiarioExtraido($vidas['mae']),
+            ], [
+                'status' => 'analise_inconclusiva',
+                'mensagem_cliente' => 'Não foi possível validar com segurança.',
+            ])),
+        ]);
+
+        $this->postJson($this->urlParaDocumento($documentos['pai']), [
+            'arquivo' => UploadedFile::fake()->image('carta.jpg'),
+            ...array_merge($this->payloadAtualCarta($vidas['pai']), [
+                'data_nascimento_beneficiario_atual' => '',
+            ]),
+        ])->assertOk()
+            ->assertJsonPath('status', 'aprovado_para_envio')
+            ->assertJsonCount(1, 'validacoes_compartilhadas');
+
+        $this->assertSame('aprovado_ia', $documentos['pai']->fresh()->status);
+        $this->assertSame('aprovado_ia', $documentos['mae']->fresh()->status);
+    }
+
+    public function test_carta_permanencia_nao_valida_dependente_com_cpf_divergente(): void
+    {
+        [$vidas, $documentos] = $this->cenarioCartaPermanenciaFamiliar();
+
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::response($this->openAiPayloadCarta([
+                $this->beneficiarioExtraido($vidas['pai']),
+                $this->beneficiarioExtraido($vidas['mae'], ['cpf' => '00000000000']),
+            ])),
+        ]);
+
+        $this->postJson($this->urlParaDocumento($documentos['pai']), [
+            'arquivo' => UploadedFile::fake()->image('carta.jpg'),
+            ...$this->payloadAtualCarta($vidas['pai']),
+        ])->assertOk();
+
+        $this->assertSame('aprovado_ia', $documentos['pai']->fresh()->status);
+        $this->assertSame('pendente', $documentos['mae']->fresh()->status);
+    }
+
+    public function test_carta_permanencia_nao_valida_dependente_com_data_nascimento_divergente(): void
+    {
+        [$vidas, $documentos] = $this->cenarioCartaPermanenciaFamiliar();
+
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::response($this->openAiPayloadCarta([
+                $this->beneficiarioExtraido($vidas['pai']),
+                $this->beneficiarioExtraido($vidas['mae'], ['data_nascimento' => '1980-01-01']),
+            ])),
+        ]);
+
+        $this->postJson($this->urlParaDocumento($documentos['pai']), [
+            'arquivo' => UploadedFile::fake()->image('carta.jpg'),
+            ...$this->payloadAtualCarta($vidas['pai']),
+        ])->assertOk();
+
+        $this->assertSame('aprovado_ia', $documentos['pai']->fresh()->status);
+        $this->assertSame('pendente', $documentos['mae']->fresh()->status);
+    }
+
+    public function test_carta_permanencia_enviada_por_dependente_valida_demais_membros(): void
+    {
+        [$vidas, $documentos] = $this->cenarioCartaPermanenciaFamiliar();
+
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::response($this->openAiPayloadCarta([
+                $this->beneficiarioExtraido($vidas['pai']),
+                $this->beneficiarioExtraido($vidas['mae']),
+                $this->beneficiarioExtraido($vidas['filho']),
+            ])),
+        ]);
+
+        $this->postJson($this->urlParaDocumento($documentos['mae']), [
+            'arquivo' => UploadedFile::fake()->image('carta.jpg'),
+            ...$this->payloadAtualCarta($vidas['mae']),
+        ])->assertOk()
+            ->assertJsonCount(2, 'validacoes_compartilhadas');
+
+        $this->assertSame('aprovado_ia', $documentos['mae']->fresh()->status);
+        $this->assertTrue($documentos['pai']->fresh()->validado_por_documento_compartilhado);
+        $this->assertTrue($documentos['filho']->fresh()->validado_por_documento_compartilhado);
+        $this->assertSame($documentos['mae']->id, $documentos['pai']->fresh()->documento_origem_id);
+    }
+
+    public function test_documento_que_nao_e_carta_nao_executa_regra_compartilhada(): void
+    {
+        [$vidas, $documentos] = $this->cenarioCartaPermanenciaFamiliar();
+        $tipoIdentidade = TipoDocumento::where('nome', 'Documento de identidade com foto')->firstOrFail();
+        $identidade = DocumentoObrigatorioPreCadastro::create([
+            'pre_cadastro_id' => $this->preCadastro->id,
+            'vida_proposta_id' => $vidas['pai']->id,
+            'tipo_documento_id' => $tipoIdentidade->id,
+            'titulo' => 'Documento de identidade com foto - Beneficiário 1',
+            'obrigatorio' => true,
+            'ordem' => 2,
+            'status' => 'pendente',
+        ]);
+
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::response($this->openAiPayload([
+                'status' => 'aprovado_para_envio',
+                'tipo_documento_esperado' => 'Documento de identidade com foto',
+                'tipo_documento_identificado' => 'CNH',
+                'documento_corresponde_ao_tipo' => true,
+                'possui_foto' => true,
+                'beneficiarios_extraidos' => [
+                    $this->beneficiarioExtraido($vidas['mae']),
+                    $this->beneficiarioExtraido($vidas['filho']),
+                ],
+            ])),
+        ]);
+
+        $this->postJson($this->urlParaDocumento($identidade), [
+            'arquivo' => UploadedFile::fake()->image('cnh.jpg'),
+            ...$this->payloadAtualCarta($vidas['pai'], 'Documento de identidade com foto'),
+        ])->assertOk()
+            ->assertJsonPath('validacoes_compartilhadas', []);
+
+        $this->assertSame('pendente', $documentos['mae']->fresh()->status);
+        $this->assertSame('pendente', $documentos['filho']->fresh()->status);
+    }
+
+    public function test_carta_nao_valida_documentos_de_outro_pre_cadastro(): void
+    {
+        [$vidas, $documentos] = $this->cenarioCartaPermanenciaFamiliar();
+        $preCadastroAtual = $this->preCadastro;
+        $documentoAtual = $this->documento;
+        $slugAtual = $this->slug;
+
+        [$vidasOutro, $documentosOutro] = $this->cenarioCartaPermanenciaFamiliar(autorizar: false);
+        $vidasOutro['mae']->forceFill([
+            'nome' => 'Ana Externa Outro Cadastro',
+            'cpf' => '99999999999',
+            'data_nascimento' => '1977-07-07',
+        ])->save();
+        $vidasOutro['mae']->refresh();
+        $this->preCadastro = $preCadastroAtual;
+        $this->documento = $documentoAtual;
+        $this->slug = $slugAtual;
+
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::response($this->openAiPayloadCarta([
+                $this->beneficiarioExtraido($vidas['pai']),
+                $this->beneficiarioExtraido($vidasOutro['mae']),
+            ])),
+        ]);
+
+        $this->postJson($this->urlParaDocumento($documentos['pai']), [
+            'arquivo' => UploadedFile::fake()->image('carta.jpg'),
+            ...$this->payloadAtualCarta($vidas['pai']),
+        ])->assertOk();
+
+        $this->assertSame('aprovado_ia', $documentos['pai']->fresh()->status);
+        $this->assertSame('pendente', $documentos['mae']->fresh()->status);
+        $this->assertSame('pendente', $documentosOutro['mae']->fresh()->status);
+    }
+
     private function cenarioDocumento(string $tipoDocumento, string $pessoa = 'PF', string $tipoProposta = 'individual'): array
     {
         $this->slug = 'CORRETORQA'.str()->random(6);
@@ -996,12 +1248,136 @@ class DocumentoIaValidationTest extends TestCase
         return $this->adicionarDocumentoCpf($vida);
     }
 
+    private function cenarioCartaPermanenciaFamiliar(bool $autorizar = true): array
+    {
+        $this->slug = 'CORRETORQA'.str()->random(6);
+        $user = User::factory()->create(['name' => 'Corretor Familiar QA']);
+        $user->corretorPerfil()->create([
+            'slug' => $this->slug,
+            'public_hash' => 'HASHFAM'.str()->random(10),
+            'nome_publico' => 'Corretor Familiar QA',
+        ]);
+
+        $indicacao = Indicacao::create([
+            'user_id' => $user->id,
+            'origem' => 'cadastro_interno',
+            'nome_cliente' => 'Familia QA',
+            'telefone' => '(11) 98888-0000',
+            'email' => 'familia@example.com',
+            'tipo_plano' => 'Familiar',
+            'quantidade_vidas' => 3,
+            'cidade' => 'Sao Paulo',
+            'estado' => 'SP',
+            'etapa' => 'pre_cadastros',
+            'status' => 'aguardando_envio',
+        ]);
+
+        $preCadastro = PreCadastro::create([
+            'indicacao_id' => $indicacao->id,
+            'token' => 'token-fam-'.str()->random(8),
+            'chave_acesso' => strtoupper(str()->random(4)).'-'.random_int(1000, 9999),
+            'chave_expira_em' => now()->addHour(),
+            'tipo_proposta' => 'familiar',
+            'pessoa' => 'PF',
+            'status' => 'aguardando_envio',
+        ]);
+
+        $vidas = [
+            'pai' => Vida::create([
+                'pre_cadastro_id' => $preCadastro->id,
+                'tipo' => 'titular',
+                'ordem' => 1,
+                'nome' => 'Joao Silva Familiar',
+                'cpf' => '11111111111',
+                'data_nascimento' => '1980-01-01',
+                'sexo' => 'masculino',
+            ]),
+            'mae' => Vida::create([
+                'pre_cadastro_id' => $preCadastro->id,
+                'tipo' => 'dependente',
+                'ordem' => 2,
+                'nome' => 'Maria Silva Familiar',
+                'cpf' => '22222222222',
+                'data_nascimento' => '1982-02-02',
+                'sexo' => 'feminino',
+                'parentesco' => 'conjuge',
+            ]),
+            'filho' => Vida::create([
+                'pre_cadastro_id' => $preCadastro->id,
+                'tipo' => 'dependente',
+                'ordem' => 3,
+                'nome' => 'Pedro Silva Familiar',
+                'cpf' => '33333333333',
+                'data_nascimento' => '2012-03-03',
+                'sexo' => 'masculino',
+                'parentesco' => 'filho',
+            ]),
+        ];
+
+        $tipo = TipoDocumento::where('nome', 'Carta de Permanência')->firstOrFail();
+        $documentos = [];
+
+        foreach ($vidas as $chave => $vida) {
+            $documentos[$chave] = DocumentoObrigatorioPreCadastro::create([
+                'pre_cadastro_id' => $preCadastro->id,
+                'vida_proposta_id' => $vida->id,
+                'tipo_documento_id' => $tipo->id,
+                'titulo' => 'Carta de Permanência - Beneficiário '.$vida->ordem,
+                'obrigatorio' => true,
+                'ordem' => 1,
+                'status' => 'pendente',
+            ]);
+        }
+
+        $this->preCadastro = $preCadastro->fresh('vidas', 'documentosObrigatorios.tipoDocumento', 'indicacao.user.corretorPerfil');
+        $this->documento = $documentos['pai'];
+
+        if ($autorizar) {
+            $this->autorizarPreCadastroAtual();
+        }
+
+        return [$vidas, $documentos];
+    }
+
+    private function beneficiarioExtraido(Vida $vida, array $overrides = []): array
+    {
+        return array_merge([
+            'nome' => $vida->nome,
+            'cpf' => $vida->cpf,
+            'data_nascimento' => $vida->data_nascimento?->format('Y-m-d'),
+            'operadora_anterior' => 'Operadora QA',
+            'plano_anterior' => 'Plano Familiar QA',
+        ], $overrides);
+    }
+
+    private function payloadAtualCarta(Vida $vida, string $tipoDocumento = 'Carta de Permanência'): array
+    {
+        return [
+            'fase_validacao' => 'completa',
+            'nome_beneficiario_atual' => $vida->nome,
+            'cpf_beneficiario_atual' => $vida->cpf,
+            'data_nascimento_beneficiario_atual' => $vida->data_nascimento?->format('Y-m-d'),
+            'sexo_beneficiario_atual' => $vida->sexo,
+            'tipo_beneficiario_atual' => $vida->tipo,
+            'tipo_documento_esperado' => $tipoDocumento,
+        ];
+    }
+
     private function url(): string
     {
         return route('cliente.pre-cadastro.documentos.validar-ia', [
             'slug' => $this->slug,
             'token' => $this->preCadastro->token,
             'documento' => $this->documento,
+        ]);
+    }
+
+    private function urlParaDocumento(DocumentoObrigatorioPreCadastro $documento): string
+    {
+        return route('cliente.pre-cadastro.documentos.validar-ia', [
+            'slug' => $this->slug,
+            'token' => $this->preCadastro->token,
+            'documento' => $documento,
         ]);
     }
 
@@ -1037,6 +1413,7 @@ class DocumentoIaValidationTest extends TestCase
             'confianca' => 88,
             'analise_parcial' => false,
             'titularidade_pendente' => false,
+            'beneficiarios_extraidos' => [],
             'motivos' => [],
             'mensagem_cliente' => 'Documento mantido para análise.',
             'mensagem_corretor' => 'Parecer de teste.',
@@ -1050,6 +1427,27 @@ class DocumentoIaValidationTest extends TestCase
                 ]],
             ]],
         ];
+    }
+
+    private function openAiPayloadCarta(array $beneficiariosExtraidos, array $overrides = []): array
+    {
+        return $this->openAiPayload(array_merge([
+            'status' => 'aprovado_para_envio',
+            'tipo_documento_esperado' => 'Carta de Permanência',
+            'tipo_documento_identificado' => 'Carta de Permanência',
+            'documento_corresponde_ao_tipo' => true,
+            'legivel' => true,
+            'nome_extraido' => $beneficiariosExtraidos[0]['nome'] ?? null,
+            'cpf_extraido' => $beneficiariosExtraidos[0]['cpf'] ?? null,
+            'data_nascimento_extraida' => $beneficiariosExtraidos[0]['data_nascimento'] ?? null,
+            'match_nome' => true,
+            'match_cpf' => true,
+            'match_data_nascimento' => true,
+            'criterio_titularidade_usado' => 'carta_permanencia_familiar',
+            'beneficiarios_extraidos' => $beneficiariosExtraidos,
+            'mensagem_cliente' => 'Carta de Permanência aprovada pela IA.',
+            'mensagem_corretor' => 'Carta de Permanência familiar identificada com beneficiários extraídos.',
+        ], $overrides));
     }
 
     private function fakePdfConverter(?int $totalPages = 1, int $generatedPages = 1, bool $fails = false): void

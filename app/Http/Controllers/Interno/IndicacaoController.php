@@ -318,6 +318,7 @@ class IndicacaoController extends Controller
             'pendente' => 'Pendente',
             'enviado' => 'Enviado',
             'aprovado' => 'Aprovado',
+            'aprovado_ia' => 'Aprovado pela IA',
             'corrigir' => 'Corrigir',
             'recusado' => 'Recusado',
             'dispensado' => 'Dispensado',
@@ -367,12 +368,12 @@ class IndicacaoController extends Controller
         $obrigatorios = $documentos->where('obrigatorio', true);
         $documentosSemAlternativaOk = $obrigatorios
             ->filter(fn ($documento) => empty($documento->grupo_alternativo))
-            ->every(fn ($documento) => in_array($documento->status, ['aprovado', 'dispensado'], true));
+            ->every(fn ($documento) => in_array($documento->status, ['aprovado', 'aprovado_ia', 'dispensado'], true));
 
         $gruposAlternativosOk = $obrigatorios
             ->filter(fn ($documento) => ! empty($documento->grupo_alternativo))
             ->groupBy(fn ($documento) => $documento->vida_proposta_id.'|'.$documento->grupo_alternativo)
-            ->every(fn ($grupo) => $grupo->contains(fn ($documento) => in_array($documento->status, ['aprovado', 'dispensado'], true)));
+            ->every(fn ($grupo) => $grupo->contains(fn ($documento) => in_array($documento->status, ['aprovado', 'aprovado_ia', 'dispensado'], true)));
 
         return $documentosSemAlternativaOk && $gruposAlternativosOk;
     }

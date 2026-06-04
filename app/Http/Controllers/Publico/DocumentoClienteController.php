@@ -113,11 +113,11 @@ class DocumentoClienteController extends Controller
                 continue;
             }
 
+            $validacaoIa = $this->validacaoIaPermitida($preCadastro, $documento, $validacoesIa[$documentoId] ?? null);
             $documento->update([
-                'status' => 'enviado',
+                'status' => $this->statusDocumentoAposUpload($documento, $validacaoIa),
                 'observacoes' => null,
             ]);
-            $validacaoIa = $this->validacaoIaPermitida($preCadastro, $documento, $validacoesIa[$documentoId] ?? null);
 
             $envio = $documento->envios()->create([
                 'pre_cadastro_id' => $preCadastro->id,
@@ -247,7 +247,7 @@ class DocumentoClienteController extends Controller
 
         $semAlternativaFaltando = $obrigatorios
             ->filter(fn ($documento) => empty($documento->grupo_alternativo))
-            ->contains(fn ($documento) => ! in_array($documento->status, ['enviado', 'aprovado', 'dispensado'], true)
+            ->contains(fn ($documento) => ! in_array($documento->status, ['enviado', 'aprovado', 'aprovado_ia', 'dispensado'], true)
                 && ! in_array($documento->id, $idsEnviados, true));
 
         if ($semAlternativaFaltando) {
@@ -257,7 +257,7 @@ class DocumentoClienteController extends Controller
         $grupoFaltando = $obrigatorios
             ->filter(fn ($documento) => ! empty($documento->grupo_alternativo))
             ->groupBy(fn ($documento) => $documento->vida_proposta_id.'|'.$documento->grupo_alternativo)
-            ->contains(fn ($grupo) => ! $grupo->contains(fn ($documento) => in_array($documento->status, ['enviado', 'aprovado', 'dispensado'], true)
+            ->contains(fn ($grupo) => ! $grupo->contains(fn ($documento) => in_array($documento->status, ['enviado', 'aprovado', 'aprovado_ia', 'dispensado'], true)
                 || in_array($documento->id, $idsEnviados, true)));
 
         return $grupoFaltando
@@ -291,6 +291,17 @@ class DocumentoClienteController extends Controller
             'analise_inconclusiva' => 'alerta',
             default => 'aguardando_analise',
         };
+    }
+
+    private function statusDocumentoAposUpload($documento, ?DocumentoIaValidacao $validacao): string
+    {
+        $tipoDocumento = \Illuminate\Support\Str::ascii(mb_strtolower((string) $documento->tipoDocumento?->nome));
+
+        if ($tipoDocumento === 'carta de permanencia' && $validacao?->status === 'aprovado_para_envio') {
+            return 'aprovado_ia';
+        }
+
+        return 'enviado';
     }
 
     private function documentosEditaveis(PreCadastro $preCadastro)

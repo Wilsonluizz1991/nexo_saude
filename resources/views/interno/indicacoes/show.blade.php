@@ -6,12 +6,12 @@
 
         $documentosSemAlternativaOk = $documentosObrigatorios
             ->filter(fn ($documento) => empty($documento->grupo_alternativo))
-            ->every(fn ($documento) => in_array($documento->status, ['aprovado', 'dispensado'], true));
+            ->every(fn ($documento) => in_array($documento->status, ['aprovado', 'aprovado_ia', 'dispensado'], true));
 
         $gruposAlternativosOk = $documentosObrigatorios
             ->filter(fn ($documento) => ! empty($documento->grupo_alternativo))
             ->groupBy(fn ($documento) => $documento->vida_proposta_id.'|'.$documento->grupo_alternativo)
-            ->every(fn ($grupo) => $grupo->contains(fn ($documento) => in_array($documento->status, ['aprovado', 'dispensado'], true)));
+            ->every(fn ($grupo) => $grupo->contains(fn ($documento) => in_array($documento->status, ['aprovado', 'aprovado_ia', 'dispensado'], true)));
 
         $documentosOk = $documentos->isNotEmpty() && $documentosSemAlternativaOk && $gruposAlternativosOk;
         $podeProposta = in_array($indicacao->etapa, ['lead', 'propostas'], true);

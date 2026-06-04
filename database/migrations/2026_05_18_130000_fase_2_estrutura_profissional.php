@@ -72,7 +72,7 @@ return new class extends Migration
             $table->string('titulo');
             $table->boolean('obrigatorio')->default(true);
             $table->unsignedInteger('ordem')->default(1);
-            $table->enum('status', ['pendente', 'enviado', 'aprovado', 'recusado', 'corrigir', 'dispensado'])->default('pendente')->index();
+            $table->enum('status', ['pendente', 'enviado', 'aprovado', 'aprovado_ia', 'recusado', 'corrigir', 'dispensado'])->default('pendente')->index();
             $table->string('grupo_alternativo')->nullable()->index();
             $table->text('observacoes')->nullable();
             $table->boolean('dispensado_por_ia')->default(false);

@@ -127,7 +127,7 @@ class DocumentAiValidationService
             'CPF: extraia e compare o CPF com cpf_beneficiario; CPF divergente e reenviar. '.
             'Comprovante de residencia: aceite agua, luz, gas, internet, telefone, fatura bancaria/cartao, IPTU, contrato ou declaracao de residencia; exija endereco visivel; compare nome do comprovante com nome_beneficiario, nome_titular, titular_pf_nome, responsavel_legal_nome ou nome_vinculado. Terceiro sem relacao e reenviar; sem nome ou sem confirmacao de vinculo e analise_inconclusiva. '.
             'Certidao de nascimento: compare nome e data do beneficiario. Certidao de casamento ou uniao estavel: confirme as partes com beneficiario, titular ou vinculado. '.
-            'Carta de permanencia: compare nome do beneficiario/titular e identifique operadora anterior. '.
+            'Carta de permanencia: compare nome do beneficiario/titular e identifique operadora anterior. Se a carta contiver um grupo familiar, extraia todos os beneficiarios citados no campo beneficiarios_extraidos, com nome, CPF e data de nascimento quando existirem. Essa extracao sera usada pelo backend para a regra documento_compartilhado_grupo_familiar somente dentro do mesmo pre-cadastro. CPF ou data divergentes nunca devem ser tratados como compatibilidade automatica. '.
             'Cartao CNPJ: extraia CNPJ e razao social; se cnpj_empresa for null ou razao_social_empresa_confiavel for false, nao aprove automaticamente por conferencia empresarial, use analise_inconclusiva quando o tipo estiver correto. '.
             'Contrato social: extraia razao social, CNPJ e socios; se nao houver CNPJ/razao social confiaveis no contexto, nao aprove automaticamente apenas por parecer contrato social. '.
             'Relacao de vidas: compare nomes extraidos com lista_beneficiarios. Documento do responsavel legal: valide como identidade com foto e compare com responsavel_legal_nome/cpf. '.
@@ -168,6 +168,7 @@ class DocumentAiValidationService
         $resultado['documento_possui_nome'] = $resultado['documento_possui_nome'] ?? ($resultado['nome_extraido'] ? true : null);
         $resultado['documento_possui_cpf'] = $resultado['documento_possui_cpf'] ?? ($resultado['cpf_extraido'] ? true : null);
         $resultado['documento_possui_cnpj'] = $resultado['documento_possui_cnpj'] ?? ($resultado['cnpj_extraido'] ? true : null);
+        $resultado['beneficiarios_extraidos'] = array_values(array_filter((array) ($resultado['beneficiarios_extraidos'] ?? []), fn ($item) => is_array($item)));
 
         return $resultado;
     }
@@ -385,6 +386,7 @@ class DocumentAiValidationService
             'paginas_analisadas' => null,
             'total_paginas_pdf' => null,
             'dados_extraidos' => null,
+            'beneficiarios_extraidos' => [],
             'dados_comparados' => null,
             'motivos' => $erro ? [$erro] : [],
             'mensagem_cliente' => $mensagem,
@@ -441,6 +443,21 @@ class DocumentAiValidationService
                 'confianca' => ['type' => 'integer', 'minimum' => 0, 'maximum' => 100],
                 'analise_parcial' => ['type' => 'boolean'],
                 'titularidade_pendente' => ['type' => 'boolean'],
+                'beneficiarios_extraidos' => [
+                    'type' => 'array',
+                    'items' => [
+                        'type' => 'object',
+                        'additionalProperties' => false,
+                        'properties' => [
+                            'nome' => $nullableString,
+                            'cpf' => $nullableString,
+                            'data_nascimento' => $nullableString,
+                            'operadora_anterior' => $nullableString,
+                            'plano_anterior' => $nullableString,
+                        ],
+                        'required' => ['nome', 'cpf', 'data_nascimento', 'operadora_anterior', 'plano_anterior'],
+                    ],
+                ],
                 'motivos' => ['type' => 'array', 'items' => ['type' => 'string']],
                 'mensagem_cliente' => ['type' => 'string'],
                 'mensagem_corretor' => ['type' => 'string'],
@@ -452,7 +469,7 @@ class DocumentAiValidationService
                 'cnpj_extraido', 'data_nascimento_extraida', 'nome_vinculado_extraido', 'razao_social_extraida', 'endereco_extraido',
                 'data_documento_extraida', 'match_nome', 'match_cpf', 'match_cnpj', 'match_data_nascimento', 'match_titular_responsavel',
                 'criterio_titularidade_usado',
-                'confianca', 'analise_parcial', 'titularidade_pendente', 'motivos', 'mensagem_cliente', 'mensagem_corretor',
+                'confianca', 'analise_parcial', 'titularidade_pendente', 'beneficiarios_extraidos', 'motivos', 'mensagem_cliente', 'mensagem_corretor',
             ],
         ];
     }
@@ -464,6 +481,7 @@ class DocumentAiValidationService
         $resultado['validacao_documental_status'] = in_array($faseValidacao, ['documental', 'completa'], true) ? $resultado['status'] : null;
         $resultado['validacao_titularidade_status'] = in_array($faseValidacao, ['titularidade', 'completa'], true) ? $resultado['status'] : null;
         $resultado['dados_extraidos'] = $this->dadosExtraidos($resultado);
+        $resultado['beneficiarios_extraidos'] = $resultado['beneficiarios_extraidos'] ?? [];
         $resultado['dados_comparados'] = [
             'nome_beneficiario' => $contexto['nome_beneficiario'] ?? null,
             'cpf_beneficiario' => $contexto['cpf_beneficiario'] ?? null,

@@ -3,6 +3,7 @@
         'pendente' => 'Pendente',
         'enviado' => 'Enviado',
         'aprovado' => 'Aprovado',
+        'aprovado_ia' => 'Aprovado pela IA',
         'corrigir' => 'Corrigir',
         'recusado' => 'Recusado',
         'dispensado' => 'Dispensado',
@@ -12,6 +13,7 @@
         'pendente' => 'nexo-document-status-pendente',
         'enviado' => 'nexo-document-status-enviado',
         'aprovado' => 'nexo-document-status-aprovado',
+        'aprovado_ia' => 'nexo-document-status-aprovado',
         'corrigir' => 'nexo-document-status-corrigir',
         'recusado' => 'nexo-document-status-recusado',
         'dispensado' => 'nexo-document-status-dispensado',
@@ -79,6 +81,15 @@
                             <i class="bi bi-stars"></i>
                             <span>
                                 IA: {{ $documento->motivo_dispensa ?: 'Documento dispensado automaticamente pela IA.' }}
+                            </span>
+                        </div>
+                    @endif
+
+                    @if($documento->validado_por_documento_compartilhado)
+                        <div class="nexo-document-ia">
+                            <i class="bi bi-stars"></i>
+                            <span>
+                                IA: {{ $documento->motivo_validacao ?: 'Carta de Permanência aprovada automaticamente. Beneficiário encontrado na carta de permanência familiar anexada ao titular.' }}
                             </span>
                         </div>
                     @endif
@@ -664,6 +675,7 @@
                 pendente: 'nexo-document-status-pendente',
                 enviado: 'nexo-document-status-enviado',
                 aprovado: 'nexo-document-status-aprovado',
+                aprovado_ia: 'nexo-document-status-aprovado',
                 corrigir: 'nexo-document-status-corrigir',
                 recusado: 'nexo-document-status-recusado',
                 dispensado: 'nexo-document-status-dispensado',
