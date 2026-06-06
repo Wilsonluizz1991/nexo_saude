@@ -96,7 +96,7 @@
                         $documentos = $documentosPorVida->get($vida->id, collect());
                     @endphp
 
-                    <section class="nexo-beneficiary-card" data-public-beneficiario data-beneficiario-tipo="{{ $vida->tipo }}">
+                    <section class="nexo-beneficiary-card" data-public-beneficiario data-beneficiario-id="{{ $vida->id }}" data-beneficiario-tipo="{{ $vida->tipo }}">
                         <div class="nexo-beneficiary-header">
                             <div class="nexo-beneficiary-title">
                                 <div class="nexo-beneficiary-avatar">
@@ -1953,11 +1953,41 @@
                 };
             };
 
+            const beneficiarySnapshot = () => {
+                const snapshot = {};
+
+                document.querySelectorAll('[data-public-beneficiario]').forEach((card) => {
+                    const id = card.dataset.beneficiarioId;
+
+                    if (!id) {
+                        return;
+                    }
+
+                    snapshot[id] = {
+                        nome: card.querySelector('input[name$="[nome]"]')?.value?.trim() || '',
+                        cpf: card.querySelector('input[name$="[cpf]"]')?.value?.trim() || '',
+                        data_nascimento: card.querySelector('input[name$="[data_nascimento]"]')?.value?.trim() || '',
+                        sexo: card.querySelector('[data-public-sexo]')?.value || '',
+                        tipo: card.dataset.beneficiarioTipo || '',
+                    };
+                });
+
+                return snapshot;
+            };
+
             const appendBeneficiaryData = (formData, data) => {
                 Object.entries(data).forEach(([key, value]) => {
                     if (key !== 'card' && key !== 'complete') {
                         formData.append(key, value || '');
                     }
+                });
+            };
+
+            const appendBeneficiarySnapshot = (formData) => {
+                Object.entries(beneficiarySnapshot()).forEach(([id, data]) => {
+                    Object.entries(data).forEach(([key, value]) => {
+                        formData.append(`vidas_atuais[${id}][${key}]`, value || '');
+                    });
                 });
             };
 
@@ -2117,6 +2147,7 @@
                         formData.append('ia_validacao_id', validationId.value);
                     }
                     appendBeneficiaryData(formData, beneficiaryDataFor(input));
+                    appendBeneficiarySnapshot(formData);
                     formData.append('_token', document.querySelector('input[name="_token"]')?.value || '');
 
                     try {

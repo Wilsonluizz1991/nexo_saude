@@ -25,6 +25,12 @@ class ValidarDocumentoIaRequest extends FormRequest
             'data_nascimento_beneficiario_atual' => ['nullable', 'date'],
             'sexo_beneficiario_atual' => ['nullable', 'string', 'max:30'],
             'tipo_beneficiario_atual' => ['nullable', 'string', 'max:60'],
+            'vidas_atuais' => ['nullable', 'array'],
+            'vidas_atuais.*.nome' => ['nullable', 'string', 'max:255'],
+            'vidas_atuais.*.cpf' => ['nullable', 'string', 'max:30'],
+            'vidas_atuais.*.data_nascimento' => ['nullable', 'date'],
+            'vidas_atuais.*.sexo' => ['nullable', 'string', 'max:30'],
+            'vidas_atuais.*.tipo' => ['nullable', 'string', 'max:60'],
         ];
     }
 }

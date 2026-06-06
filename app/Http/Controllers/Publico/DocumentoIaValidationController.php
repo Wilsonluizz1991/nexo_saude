@@ -36,7 +36,10 @@ class DocumentoIaValidationController extends Controller
         $validacaoAnterior = $this->validacaoAnterior($preCadastro, $documento, $dados['ia_validacao_id'] ?? null);
         $path = $file?->store('documentos/ia-validacoes', 'local');
 
-        $contexto = $this->contexto($preCadastro, $documento, $vida, $dados);
+        $vidasAtuais = $this->vidasComDadosAtuais($preCadastro, $documento, $dados);
+        $vidaAtual = $vidasAtuais->firstWhere('id', $documento->vida_proposta_id) ?? $vida;
+
+        $contexto = $this->contexto($preCadastro, $documento, $vidaAtual, $dados, $vidasAtuais);
         $resultado = $service->validate($documento, $file, $contexto, $fase, $validacaoAnterior?->toArray());
         $resultado['tipo_documento_esperado'] = $resultado['tipo_documento_esperado'] ?: $documento->tipoDocumento?->nome;
 
@@ -57,7 +60,7 @@ class DocumentoIaValidationController extends Controller
             ]
         ));
         $dispensas = $this->atualizarDispensasPorIdentidade($preCadastro, $documento, $validacao);
-        $validacoesCompartilhadas = $this->atualizarCartasPermanenciaCompartilhadas($preCadastro, $documento, $validacao);
+        $validacoesCompartilhadas = $this->atualizarCartasPermanenciaCompartilhadas($preCadastro, $documento, $validacao, $vidasAtuais);
 
         return response()->json([
             'id' => $validacao->id,
@@ -96,22 +99,23 @@ class DocumentoIaValidationController extends Controller
             && hash_equals(strtoupper($preCadastro->chave_acesso ?? ''), strtoupper((string) ($sessao['chave'] ?? '')));
     }
 
-    private function contexto(PreCadastro $preCadastro, DocumentoObrigatorioPreCadastro $documento, $vida, array $dados): array
+    private function contexto(PreCadastro $preCadastro, DocumentoObrigatorioPreCadastro $documento, $vida, array $dados, ?Collection $vidasAtuais = null): array
     {
-        $titular = $preCadastro->vidas->first(fn ($item) => in_array($item->tipo, ['titular', 'socio', 'responsavel_legal'], true));
-        $titularPf = $preCadastro->vidas->firstWhere('tipo', 'titular');
-        $responsavelLegal = $preCadastro->vidas->firstWhere('tipo', 'responsavel_legal');
+        $vidas = $vidasAtuais ?? $preCadastro->vidas;
+        $titular = $vidas->first(fn ($item) => in_array($item->tipo, ['titular', 'socio', 'responsavel_legal'], true));
+        $titularPf = $vidas->firstWhere('tipo', 'titular');
+        $responsavelLegal = $vidas->firstWhere('tipo', 'responsavel_legal');
         $vinculado = $vida?->vinculo_beneficiario_id
-            ? $preCadastro->vidas->firstWhere('id', $vida->vinculo_beneficiario_id)
+            ? $vidas->firstWhere('id', $vida->vinculo_beneficiario_id)
             : null;
 
         return array_filter([
             'tipo_documento_esperado' => $dados['tipo_documento_esperado'] ?? $documento->tipoDocumento?->nome,
-            'tipo_beneficiario' => $dados['tipo_beneficiario_atual'] ?? $vida?->tipo,
-            'nome_beneficiario' => $dados['nome_beneficiario_atual'] ?? $vida?->nome,
-            'cpf_beneficiario' => isset($dados['cpf_beneficiario_atual']) ? preg_replace('/\D/', '', $dados['cpf_beneficiario_atual']) : $vida?->cpf,
-            'data_nascimento_beneficiario' => $dados['data_nascimento_beneficiario_atual'] ?? $vida?->data_nascimento?->format('Y-m-d'),
-            'sexo_beneficiario' => $dados['sexo_beneficiario_atual'] ?? $vida?->sexo,
+            'tipo_beneficiario' => $vida?->tipo,
+            'nome_beneficiario' => $vida?->nome,
+            'cpf_beneficiario' => $vida?->cpf,
+            'data_nascimento_beneficiario' => $this->formatarDataVida($vida),
+            'sexo_beneficiario' => $vida?->sexo,
             'nome_vinculado' => $vinculado?->nome,
             'cpf_vinculado' => $vinculado?->cpf,
             'tipo_vinculado' => $vinculado?->tipo,
@@ -127,13 +131,73 @@ class DocumentoIaValidationController extends Controller
             'razao_social_empresa' => $preCadastro->pessoa === 'PJ' ? $preCadastro->indicacao?->nome_cliente : null,
             'razao_social_empresa_confiavel' => false,
             'cnpj_empresa' => null,
-            'lista_beneficiarios' => $preCadastro->vidas->map(fn ($item) => [
+            'lista_beneficiarios' => $vidas->map(fn ($item) => [
                 'nome' => $item->nome,
                 'cpf' => $item->cpf,
-                'data_nascimento' => $item->data_nascimento?->format('Y-m-d'),
+                'data_nascimento' => $this->formatarDataVida($item),
                 'tipo' => $item->tipo,
             ])->values()->all(),
         ], fn ($value) => $value !== '');
+    }
+
+    private function vidasComDadosAtuais(PreCadastro $preCadastro, DocumentoObrigatorioPreCadastro $documento, array $dados): Collection
+    {
+        $vidasAtuais = collect($dados['vidas_atuais'] ?? []);
+
+        return $preCadastro->vidas->map(function (Vida $vida) use ($vidasAtuais, $documento, $dados) {
+            $dadosVida = collect($vidasAtuais->get($vida->id) ?? $vidasAtuais->get((string) $vida->id) ?? []);
+            $clone = clone $vida;
+
+            if ((int) $vida->id === (int) $documento->vida_proposta_id) {
+                $dadosVida = $dadosVida->merge([
+                    'nome' => $dados['nome_beneficiario_atual'] ?? $dadosVida->get('nome'),
+                    'cpf' => $dados['cpf_beneficiario_atual'] ?? $dadosVida->get('cpf'),
+                    'data_nascimento' => $dados['data_nascimento_beneficiario_atual'] ?? $dadosVida->get('data_nascimento'),
+                    'sexo' => $dados['sexo_beneficiario_atual'] ?? $dadosVida->get('sexo'),
+                    'tipo' => $dados['tipo_beneficiario_atual'] ?? $dadosVida->get('tipo'),
+                ]);
+            }
+
+            if ($dadosVida->has('nome')) {
+                $clone->nome = $this->valorAtualOuBanco($dadosVida->get('nome'), $vida->nome);
+            }
+
+            if ($dadosVida->has('cpf')) {
+                $clone->cpf = $this->normalizarDocumento($dadosVida->get('cpf')) ?? $vida->cpf;
+            }
+
+            if ($dadosVida->has('data_nascimento')) {
+                $clone->data_nascimento = $this->normalizarData($dadosVida->get('data_nascimento')) ?? $vida->data_nascimento;
+            }
+
+            if ($dadosVida->has('sexo')) {
+                $clone->sexo = $this->valorAtualOuBanco($dadosVida->get('sexo'), $vida->sexo);
+            }
+
+            if ($dadosVida->has('tipo')) {
+                $clone->tipo = $this->valorAtualOuBanco($dadosVida->get('tipo'), $vida->tipo);
+            }
+
+            return $clone;
+        });
+    }
+
+    private function valorAtualOuBanco(mixed $atual, mixed $banco): mixed
+    {
+        $atual = is_string($atual) ? trim($atual) : $atual;
+
+        return blank($atual) ? $banco : $atual;
+    }
+
+    private function formatarDataVida($vida): ?string
+    {
+        $data = $vida?->data_nascimento;
+
+        if ($data instanceof \Carbon\CarbonInterface) {
+            return $data->format('Y-m-d');
+        }
+
+        return $this->normalizarData($data);
     }
 
     private function faseValidacaoEfetiva(DocumentoObrigatorioPreCadastro $documento, array $dados): string
@@ -272,7 +336,7 @@ class DocumentoIaValidationController extends Controller
             && $validacao->match_cpf === true;
     }
 
-    private function atualizarCartasPermanenciaCompartilhadas(PreCadastro $preCadastro, DocumentoObrigatorioPreCadastro $documento, DocumentoIaValidacao $validacao): array
+    private function atualizarCartasPermanenciaCompartilhadas(PreCadastro $preCadastro, DocumentoObrigatorioPreCadastro $documento, DocumentoIaValidacao $validacao, ?Collection $vidasAtuais = null): array
     {
         if ($this->tipoDocumentoNormalizado($documento->tipoDocumento?->nome) !== 'carta de permanencia') {
             return [];
@@ -289,8 +353,9 @@ class DocumentoIaValidationController extends Controller
         }
 
         $preCadastro->loadMissing('vidas', 'documentosObrigatorios.tipoDocumento');
-        $vidaOrigem = $preCadastro->vidas->firstWhere('id', $documento->vida_proposta_id);
-        $matchOrigem = $vidaOrigem ? $this->beneficiarioEncontradoNaCarta($vidaOrigem, $beneficiariosExtraidos, $preCadastro->vidas) : null;
+        $vidas = $vidasAtuais ?? $preCadastro->vidas;
+        $vidaOrigem = $vidas->firstWhere('id', $documento->vida_proposta_id);
+        $matchOrigem = $vidaOrigem ? $this->beneficiarioEncontradoNaCarta($vidaOrigem, $beneficiariosExtraidos, $vidas) : null;
 
         if (! $this->cartaPermanenciaAprovada($validacao) && ! $this->cartaPermanenciaConfirmadaPorBeneficiarioOrigem($validacao, $matchOrigem)) {
             return [];
@@ -317,9 +382,9 @@ class DocumentoIaValidationController extends Controller
             ->filter(fn ($item) => (int) $item->id !== (int) $documento->id
                 && (int) $item->pre_cadastro_id === (int) $preCadastro->id
                 && $this->tipoDocumentoNormalizado($item->tipoDocumento?->nome) === 'carta de permanencia')
-            ->map(function (DocumentoObrigatorioPreCadastro $item) use ($preCadastro, $documento, $beneficiariosExtraidos) {
-                $vida = $preCadastro->vidas->firstWhere('id', $item->vida_proposta_id);
-                $match = $vida ? $this->beneficiarioEncontradoNaCarta($vida, $beneficiariosExtraidos, $preCadastro->vidas) : null;
+            ->map(function (DocumentoObrigatorioPreCadastro $item) use ($vidas, $documento, $beneficiariosExtraidos) {
+                $vida = $vidas->firstWhere('id', $item->vida_proposta_id);
+                $match = $vida ? $this->beneficiarioEncontradoNaCarta($vida, $beneficiariosExtraidos, $vidas) : null;
 
                 if (! $match) {
                     if ($item->status === 'aprovado_ia'
@@ -412,7 +477,7 @@ class DocumentoIaValidationController extends Controller
     private function beneficiarioEncontradoNaCarta(Vida $vida, Collection $beneficiariosExtraidos, Collection $vidasDoPreCadastro): ?array
     {
         $cpfVida = $this->normalizarDocumento($vida->cpf);
-        $nascimentoVida = $vida->data_nascimento?->format('Y-m-d');
+        $nascimentoVida = $this->formatarDataVida($vida);
         $nomeVida = $this->normalizarNome($vida->nome);
 
         foreach ($beneficiariosExtraidos as $extraido) {

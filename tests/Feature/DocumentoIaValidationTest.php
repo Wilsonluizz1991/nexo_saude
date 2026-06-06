@@ -891,6 +891,55 @@ class DocumentoIaValidationTest extends TestCase
         }
     }
 
+    public function test_carta_permanencia_compara_dependentes_com_inputs_atuais_sem_salvar_vidas(): void
+    {
+        [$vidas, $documentos] = $this->cenarioCartaPermanenciaFamiliar();
+        $vidasAtuais = collect($vidas)->mapWithKeys(fn (Vida $vida) => [
+            $vida->id => [
+                'nome' => $vida->nome,
+                'cpf' => $vida->cpf,
+                'data_nascimento' => $vida->data_nascimento?->format('Y-m-d'),
+                'sexo' => $vida->sexo,
+                'tipo' => $vida->tipo,
+            ],
+        ])->all();
+        $beneficiariosExtraidos = [
+            $this->beneficiarioExtraido($vidas['pai']),
+            $this->beneficiarioExtraido($vidas['mae']),
+            $this->beneficiarioExtraido($vidas['filho']),
+        ];
+
+        foreach ($vidas as $vida) {
+            $vida->update([
+                'nome' => null,
+                'cpf' => null,
+                'data_nascimento' => null,
+                'sexo' => null,
+            ]);
+        }
+
+        Http::fake([
+            'https://api.openai.com/v1/responses' => Http::response($this->openAiPayloadCarta($beneficiariosExtraidos)),
+        ]);
+
+        $this->postJson($this->urlParaDocumento($documentos['pai']), [
+            'arquivo' => UploadedFile::fake()->image('carta.jpg'),
+            ...array_merge($this->payloadAtualCarta($vidas['pai']), [
+                'vidas_atuais' => $vidasAtuais,
+            ]),
+        ])->assertOk()
+            ->assertJsonPath('status', 'aprovado_para_envio')
+            ->assertJsonCount(2, 'validacoes_compartilhadas');
+
+        foreach (['mae', 'filho'] as $chave) {
+            $this->assertTrue($documentos[$chave]->fresh()->validado_por_documento_compartilhado);
+            $this->assertSame('aprovado_ia', $documentos[$chave]->fresh()->status);
+        }
+
+        $this->assertNull($vidas['mae']->fresh()->nome);
+        $this->assertNull($vidas['filho']->fresh()->cpf);
+    }
+
     public function test_carta_permanencia_compartilhada_mantem_pendente_quem_nao_aparece(): void
     {
         [$vidas, $documentos] = $this->cenarioCartaPermanenciaFamiliar();
