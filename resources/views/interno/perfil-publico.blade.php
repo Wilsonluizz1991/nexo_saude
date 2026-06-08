@@ -4,7 +4,7 @@
             <div class="col-lg-7">
                 <div class="nexo-card p-4">
                     <h1 class="h3 fw-bold">Perfil público do corretor</h1>
-                    <p class="muted">A página pública tem design único. Você só configura foto, nome, bio, especialidades e cidade/região.</p>
+                    <p class="muted">A página pública tem design único. Você configura foto, nome, bio, especialidades e cidade/região.</p>
 
                     @if(session('status'))
                         <div class="alert alert-success">
@@ -42,22 +42,22 @@
 
                         <div class="col-12">
                             <label class="form-label">Nome</label>
-                            <input name="nome_publico" class="form-control" value="{{ old('nome_publico', $perfil->nome_publico) }}">
+                            <input name="nome_publico" class="form-control" value="{{ old('nome_publico', $perfil->nome_publico) }}" required>
                         </div>
 
                         <div class="col-12">
                             <label class="form-label">Bio</label>
-                            <textarea name="bio" class="form-control">{{ old('bio', $perfil->bio) }}</textarea>
+                            <textarea name="bio" class="form-control" required>{{ old('bio', $perfil->bio) }}</textarea>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Especialidades</label>
-                            <input name="especialidades" class="form-control" value="{{ old('especialidades', implode(', ', $perfil->especialidades ?? [])) }}">
+                            <input name="especialidades" class="form-control" value="{{ old('especialidades', implode(', ', $perfil->especialidades ?? [])) }}" required>
                         </div>
 
                         <div class="col-md-6">
                             <label class="form-label">Cidade/região</label>
-                            <input name="cidade_regiao" class="form-control" value="{{ old('cidade_regiao', $perfil->cidade_regiao) }}">
+                            <input name="cidade_regiao" class="form-control" value="{{ old('cidade_regiao', $perfil->cidade_regiao) }}" required>
                         </div>
 
                         <div class="col-12">

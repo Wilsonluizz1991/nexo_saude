@@ -52,7 +52,6 @@ class ServicoPerfilUsuario
             'cidade_regiao' => trim(($dados['cidade'] ?? '').'/'.($dados['estado'] ?? ''), '/'),
             'cidade' => $dados['cidade'] ?? null,
             'estado' => strtoupper($dados['estado'] ?? ''),
-            'anos_experiencia' => $dados['anos_experiencia'] ?? 0,
             'foto_path' => $dados['foto_path'] ?? $user->corretorPerfil?->foto_path,
             'publico_ativo' => true,
         ]);

@@ -30,13 +30,19 @@ class ConfiguracoesController extends Controller
             'foto' => ['nullable', 'image', 'mimes:jpg,jpeg,png,webp', 'max:4096'],
             'remover_foto' => ['nullable', 'boolean'],
             'name' => ['required', 'string', 'max:255'],
-            'telefone' => ['nullable', 'string', 'max:30'],
+            'telefone' => ['required', 'string', 'max:30'],
             'email' => ['required', 'email', Rule::unique('users', 'email')->ignore(auth()->id())],
-            'bio' => ['nullable', 'string', 'max:700'],
-            'especialidades' => ['nullable', 'string', 'max:255'],
-            'cidade' => ['nullable', 'string', 'max:120'],
-            'estado' => ['nullable', 'string', 'size:2'],
-            'anos_experiencia' => ['nullable', 'integer', 'min:0', 'max:80'],
+            'bio' => ['required', 'string', 'max:700'],
+            'especialidades' => ['required', 'string', 'max:255'],
+            'cidade' => ['required', 'string', 'max:120'],
+            'estado' => ['required', 'string', 'size:2'],
+        ], [
+            'telefone.required' => 'Informe seu telefone de contato.',
+            'bio.required' => 'Informe uma biografia para o seu perfil público.',
+            'especialidades.required' => 'Informe pelo menos uma especialidade.',
+            'cidade.required' => 'Informe sua cidade de atendimento.',
+            'estado.required' => 'Informe o estado de atendimento.',
+            'estado.size' => 'Informe o estado com 2 letras, como SP.',
         ]);
 
         $service->atualizar(auth()->user(), $dados, $request);
