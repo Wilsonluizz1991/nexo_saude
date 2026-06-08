@@ -215,6 +215,249 @@
             color: #ffffff;
             box-shadow: 0 14px 30px rgba(37, 99, 235, .26);
         }
+        .dash-date-range {
+            position: relative;
+            z-index: 90;
+            min-height: 64px;
+            width: 520px;
+            max-width: 100%;
+            display: grid;
+            grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+            align-items: center;
+            gap: 12px;
+            padding: 9px 12px;
+            border-radius: 22px;
+            background:
+                radial-gradient(circle at 10% 10%, rgba(37, 99, 235, .16), transparent 30%),
+                linear-gradient(135deg, rgba(255, 255, 255, .96), rgba(248, 251, 255, .92));
+            border: 1px solid rgba(203, 213, 225, .82);
+            box-shadow: 0 22px 58px rgba(15, 23, 42, .10), inset 0 1px 0 rgba(255, 255, 255, .96);
+            backdrop-filter: blur(18px);
+        }
+        .dash-date-range::after {
+            content: "";
+            position: absolute;
+            inset: 7px;
+            z-index: -1;
+            border-radius: 18px;
+            background: linear-gradient(90deg, rgba(37, 99, 235, .14), rgba(14, 165, 233, .05), rgba(124, 58, 237, .10));
+            opacity: .62;
+            filter: blur(18px);
+        }
+        .dash-date-icon {
+            display: inline-flex;
+            height: 42px;
+            width: 42px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 16px;
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 14px 28px rgba(37, 99, 235, .28);
+        }
+        .dash-date-field {
+            min-width: 0;
+            display: grid;
+            gap: 3px;
+            border-radius: 15px;
+            padding: 9px 11px;
+            background: rgba(255, 255, 255, .72);
+            border: 1px solid rgba(226, 232, 240, .78);
+            transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+        }
+        .dash-date-field:focus-within,
+        .dash-date-field.is-open {
+            border-color: rgba(37, 99, 235, .42);
+            background: rgba(255, 255, 255, .96);
+            box-shadow: 0 0 0 4px rgba(37, 99, 235, .10);
+        }
+        .dash-date-label {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            color: #64748b;
+            font-size: 9px;
+            font-weight: 950;
+            line-height: 1;
+            text-transform: uppercase;
+        }
+        .dash-date-label::before {
+            content: "";
+            height: 6px;
+            width: 6px;
+            border-radius: 999px;
+            background: linear-gradient(135deg, #60a5fa, #2563eb);
+            box-shadow: 0 0 0 4px rgba(96, 165, 250, .12);
+        }
+        .dash-date-input {
+            display: none;
+        }
+        .dash-date-trigger {
+            min-width: 0;
+            width: 100%;
+            border: 0;
+            background: transparent;
+            padding: 0;
+            color: #071631;
+            font-size: 14px;
+            font-weight: 950;
+            line-height: 1.15;
+            outline: none;
+            text-align: left;
+            cursor: pointer;
+        }
+        .dash-date-trigger i {
+            color: #2563eb;
+        }
+        .dash-date-separator {
+            display: inline-flex;
+            height: 30px;
+            width: 30px;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            color: #2563eb;
+            background: linear-gradient(180deg, #ffffff, #eff6ff);
+            border: 1px solid rgba(191, 219, 254, .80);
+            box-shadow: inset 0 1px 0 rgba(255,255,255,.9);
+        }
+        .dash-date-picker {
+            position: absolute;
+            top: calc(100% + 12px);
+            left: 50%;
+            z-index: 999;
+            display: none;
+            width: min(342px, calc(100vw - 28px));
+            transform: translateX(-50%);
+            overflow: hidden;
+            border-radius: 24px;
+            border: 1px solid rgba(191, 219, 254, .82);
+            background:
+                radial-gradient(circle at 18% 0%, rgba(37, 99, 235, .16), transparent 34%),
+                linear-gradient(180deg, rgba(255,255,255,.98), rgba(248,251,255,.98));
+            box-shadow: 0 28px 72px rgba(15, 23, 42, .22), inset 0 1px 0 rgba(255,255,255,.96);
+            backdrop-filter: blur(18px);
+        }
+        .dash-date-picker.is-open {
+            display: block;
+            animation: dashDateIn .16s ease-out;
+        }
+        .dash-date-picker-header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            padding: 16px 16px 12px;
+            background: linear-gradient(135deg, #071631, #123d7c);
+            color: #ffffff;
+        }
+        .dash-date-picker-title {
+            display: grid;
+            gap: 2px;
+        }
+        .dash-date-picker-title span:first-child {
+            font-size: 10px;
+            font-weight: 950;
+            text-transform: uppercase;
+            color: rgba(191, 219, 254, .88);
+        }
+        .dash-date-picker-title strong {
+            font-size: 16px;
+            font-weight: 950;
+            text-transform: capitalize;
+        }
+        .dash-date-picker-nav {
+            display: inline-flex;
+            height: 36px;
+            width: 36px;
+            align-items: center;
+            justify-content: center;
+            border: 1px solid rgba(255,255,255,.18);
+            border-radius: 13px;
+            background: rgba(255,255,255,.10);
+            color: #ffffff;
+            transition: transform .18s ease, background .18s ease;
+        }
+        .dash-date-picker-nav:hover:not(:disabled) {
+            transform: translateY(-1px);
+            background: rgba(255,255,255,.18);
+        }
+        .dash-date-picker-nav:disabled {
+            cursor: not-allowed;
+            opacity: .38;
+        }
+        .dash-date-picker-body {
+            padding: 14px 16px 16px;
+        }
+        .dash-date-weekdays,
+        .dash-date-days {
+            display: grid;
+            grid-template-columns: repeat(7, minmax(0, 1fr));
+            gap: 6px;
+        }
+        .dash-date-weekdays {
+            margin-bottom: 8px;
+            color: #64748b;
+            font-size: 10px;
+            font-weight: 950;
+            text-align: center;
+            text-transform: uppercase;
+        }
+        .dash-date-day,
+        .dash-date-empty {
+            height: 36px;
+            border-radius: 13px;
+        }
+        .dash-date-day {
+            border: 1px solid transparent;
+            background: transparent;
+            color: #0f172a;
+            font-size: 12px;
+            font-weight: 900;
+            transition: transform .14s ease, background .14s ease, color .14s ease, border-color .14s ease, box-shadow .14s ease;
+        }
+        .dash-date-day:hover:not(:disabled) {
+            transform: translateY(-1px);
+            border-color: rgba(37, 99, 235, .22);
+            background: #eff6ff;
+            color: #1d4ed8;
+        }
+        .dash-date-day.is-today {
+            border-color: rgba(37, 99, 235, .28);
+            background: #f8fbff;
+            color: #1d4ed8;
+        }
+        .dash-date-day.is-selected {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: #ffffff;
+            box-shadow: 0 12px 24px rgba(37, 99, 235, .28);
+        }
+        .dash-date-day:disabled {
+            cursor: not-allowed;
+            color: #cbd5e1;
+        }
+        .dash-date-picker-footer {
+            display: flex;
+            justify-content: space-between;
+            gap: 10px;
+            padding-top: 12px;
+        }
+        .dash-date-footer-btn {
+            border: 0;
+            border-radius: 999px;
+            background: #eff6ff;
+            color: #1d4ed8;
+            padding: 8px 12px;
+            font-size: 11px;
+            font-weight: 950;
+        }
+        .dash-date-footer-btn:hover {
+            background: #dbeafe;
+        }
+        @keyframes dashDateIn {
+            from { opacity: 0; transform: translate(-50%, -6px) scale(.98); }
+            to { opacity: 1; transform: translate(-50%, 0) scale(1); }
+        }
         @keyframes dashPulse {
             0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(96,165,250,.40); }
             50% { transform: scale(1.04); box-shadow: 0 0 0 12px rgba(96,165,250,0); }
@@ -222,6 +465,17 @@
         @media (max-width: 1279px) { .dash-main { padding: 18px; } }
         @media (max-width: 767px) {
             .dash-main { padding: 14px; }
+            .dash-date-range {
+                width: 100%;
+                grid-template-columns: auto 1fr;
+                gap: 10px;
+            }
+            .dash-date-range .dash-date-separator {
+                display: none;
+            }
+            .dash-date-field {
+                padding: 8px 10px;
+            }
             .dash-funnel-step,
             .dash-funnel-step:first-child { clip-path: none; }
         }
@@ -240,19 +494,28 @@
                 </div>
 
                 <div class="flex flex-wrap items-center gap-[12px]">
-                    <form method="get" action="{{ route('dashboard') }}" class="dash-panel flex min-h-[50px] w-[420px] max-w-full items-center gap-[10px] rounded-[18px] px-[12px] text-[12px] font-bold text-slate-900" data-dashboard-period-form>
-                        <span class="flex h-[32px] w-[32px] shrink-0 items-center justify-center rounded-[11px] bg-blue-50 text-blue-700">
-                            <i data-lucide="calendar-days" class="h-[17px] w-[17px]"></i>
+                    <form method="get" action="{{ route('dashboard') }}" class="dash-date-range" data-dashboard-period-form>
+                        <span class="dash-date-icon">
+                            <i data-lucide="calendar-days" class="h-[19px] w-[19px]"></i>
                         </span>
-                        <label class="grid min-w-0 flex-1 gap-[2px]">
-                            <span class="text-[9px] font-black uppercase text-slate-400">Início</span>
-                            <input type="date" name="inicio" value="{{ $periodoFiltro['inicio'] }}" min="{{ $periodoFiltro['min'] }}" max="{{ $periodoFiltro['max'] }}" class="min-w-0 border-0 bg-transparent p-0 text-[12px] font-black text-slate-900 outline-none" aria-label="Data inicial do dashboard" data-dashboard-period-input>
+                        <label class="dash-date-field" data-dashboard-date-field="inicio">
+                            <span class="dash-date-label">Início</span>
+                            <input type="hidden" name="inicio" value="{{ $periodoFiltro['inicio'] }}" min="{{ $periodoFiltro['min'] }}" max="{{ $periodoFiltro['max'] }}" class="dash-date-input" aria-label="Data inicial do dashboard" data-dashboard-period-input>
+                            <button type="button" class="dash-date-trigger" data-dashboard-date-trigger>
+                                <span data-dashboard-date-text>{{ \Carbon\Carbon::parse($periodoFiltro['inicio'])->format('d/m/Y') }}</span>
+                            </button>
                         </label>
-                        <span class="text-slate-300">-</span>
-                        <label class="grid min-w-0 flex-1 gap-[2px]">
-                            <span class="text-[9px] font-black uppercase text-slate-400">Fim</span>
-                            <input type="date" name="fim" value="{{ $periodoFiltro['fim'] }}" min="{{ $periodoFiltro['min'] }}" max="{{ $periodoFiltro['max'] }}" class="min-w-0 border-0 bg-transparent p-0 text-[12px] font-black text-slate-900 outline-none" aria-label="Data final do dashboard" data-dashboard-period-input>
+                        <span class="dash-date-separator" aria-hidden="true">
+                            <i data-lucide="arrow-right" class="h-[14px] w-[14px]"></i>
+                        </span>
+                        <label class="dash-date-field" data-dashboard-date-field="fim">
+                            <span class="dash-date-label">Fim</span>
+                            <input type="hidden" name="fim" value="{{ $periodoFiltro['fim'] }}" min="{{ $periodoFiltro['min'] }}" max="{{ $periodoFiltro['max'] }}" class="dash-date-input" aria-label="Data final do dashboard" data-dashboard-period-input>
+                            <button type="button" class="dash-date-trigger" data-dashboard-date-trigger>
+                                <span data-dashboard-date-text>{{ \Carbon\Carbon::parse($periodoFiltro['fim'])->format('d/m/Y') }}</span>
+                            </button>
                         </label>
+                        <div class="dash-date-picker" data-dashboard-date-picker></div>
                     </form>
 
                     <a href="{{ route('alertas.index') }}" class="dash-panel relative flex h-[46px] w-[46px] items-center justify-center text-slate-900 no-underline">
@@ -529,24 +792,243 @@
             window.setInterval(updateDashboardGreeting, 60 * 1000);
 
             const periodForm = document.querySelector('[data-dashboard-period-form]');
-            const periodInputs = document.querySelectorAll('[data-dashboard-period-input]');
+            const periodPicker = document.querySelector('[data-dashboard-date-picker]');
+            const periodFields = document.querySelectorAll('[data-dashboard-date-field]');
 
-            periodInputs.forEach((input) => {
-                input.addEventListener('change', () => {
+            if (periodForm && periodPicker && periodFields.length) {
+                const monthFormatter = new Intl.DateTimeFormat('pt-BR', { month: 'long', year: 'numeric' });
+                const weekdays = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+                let activeField = null;
+                let visibleDate = null;
+
+                const parseDate = (value) => {
+                    if (!value) {
+                        return null;
+                    }
+
+                    const [year, month, day] = value.split('-').map(Number);
+                    const date = new Date(year, month - 1, day);
+
+                    if (
+                        date.getFullYear() !== year ||
+                        date.getMonth() !== month - 1 ||
+                        date.getDate() !== day
+                    ) {
+                        return null;
+                    }
+
+                    return date;
+                };
+
+                const toIsoDate = (date) => {
+                    const pad = (value) => String(value).padStart(2, '0');
+                    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+                };
+
+                const toBrDate = (date) => {
+                    const pad = (value) => String(value).padStart(2, '0');
+                    return `${pad(date.getDate())}/${pad(date.getMonth() + 1)}/${date.getFullYear()}`;
+                };
+
+                const sameDay = (first, second) => (
+                    first &&
+                    second &&
+                    first.getFullYear() === second.getFullYear() &&
+                    first.getMonth() === second.getMonth() &&
+                    first.getDate() === second.getDate()
+                );
+
+                const normalizeDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate());
+
+                const closePicker = () => {
+                    periodPicker.classList.remove('is-open');
+                    periodFields.forEach((field) => field.classList.remove('is-open'));
+                    activeField = null;
+                };
+
+                const syncDisplay = (field) => {
+                    const input = field.querySelector('[data-dashboard-period-input]');
+                    const text = field.querySelector('[data-dashboard-date-text]');
+                    const date = parseDate(input.value);
+
+                    if (date && text) {
+                        text.textContent = toBrDate(date);
+                    }
+                };
+
+                const renderPicker = () => {
+                    if (!activeField || !visibleDate) {
+                        return;
+                    }
+
+                    const input = activeField.querySelector('[data-dashboard-period-input]');
+                    const selectedDate = parseDate(input.value);
+                    const minDate = parseDate(input.getAttribute('min'));
+                    const maxDate = parseDate(input.getAttribute('max'));
+                    const today = normalizeDay(new Date());
+                    const year = visibleDate.getFullYear();
+                    const month = visibleDate.getMonth();
+                    const firstDay = new Date(year, month, 1);
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    const previousMonth = new Date(year, month - 1, 1);
+                    const nextMonth = new Date(year, month + 1, 1);
+                    const previousBlocked = minDate && new Date(year, month, 0) < normalizeDay(minDate);
+                    const nextBlocked = maxDate && nextMonth > normalizeDay(maxDate);
+
+                    periodPicker.innerHTML = `
+                        <div class="dash-date-picker-header">
+                            <button type="button" class="dash-date-picker-nav" data-dashboard-calendar-prev ${previousBlocked ? 'disabled' : ''} aria-label="Mês anterior">
+                                <i data-lucide="chevron-left" class="h-[16px] w-[16px]"></i>
+                            </button>
+                            <span class="dash-date-picker-title">
+                                <span>${input.name === 'inicio' ? 'Selecionar início' : 'Selecionar fim'}</span>
+                                <strong>${monthFormatter.format(visibleDate)}</strong>
+                            </span>
+                            <button type="button" class="dash-date-picker-nav" data-dashboard-calendar-next ${nextBlocked ? 'disabled' : ''} aria-label="Próximo mês">
+                                <i data-lucide="chevron-right" class="h-[16px] w-[16px]"></i>
+                            </button>
+                        </div>
+                        <div class="dash-date-picker-body">
+                            <div class="dash-date-weekdays">${weekdays.map((day) => `<span>${day}</span>`).join('')}</div>
+                            <div class="dash-date-days"></div>
+                            <div class="dash-date-picker-footer">
+                                <button type="button" class="dash-date-footer-btn" data-dashboard-calendar-month>Este mês</button>
+                                <button type="button" class="dash-date-footer-btn" data-dashboard-calendar-today>Hoje</button>
+                            </div>
+                        </div>
+                    `;
+
+                    const daysWrapper = periodPicker.querySelector('.dash-date-days');
+
+                    for (let index = 0; index < firstDay.getDay(); index += 1) {
+                        const empty = document.createElement('span');
+                        empty.className = 'dash-date-empty';
+                        daysWrapper.appendChild(empty);
+                    }
+
+                    for (let day = 1; day <= daysInMonth; day += 1) {
+                        const date = new Date(year, month, day);
+                        const normalized = normalizeDay(date);
+                        const button = document.createElement('button');
+                        button.type = 'button';
+                        button.className = 'dash-date-day';
+                        button.textContent = String(day);
+                        button.dataset.date = toIsoDate(date);
+
+                        if (sameDay(normalized, today)) {
+                            button.classList.add('is-today');
+                        }
+
+                        if (sameDay(normalized, selectedDate)) {
+                            button.classList.add('is-selected');
+                        }
+
+                        if ((minDate && normalized < normalizeDay(minDate)) || (maxDate && normalized > normalizeDay(maxDate))) {
+                            button.disabled = true;
+                        }
+
+                        daysWrapper.appendChild(button);
+                    }
+
+                    if (window.lucide) {
+                        window.lucide.createIcons();
+                    }
+                };
+
+                const submitPeriod = (changedInput) => {
                     const inicio = periodForm.querySelector('input[name="inicio"]');
                     const fim = periodForm.querySelector('input[name="fim"]');
 
                     if (inicio.value && fim.value && inicio.value > fim.value) {
-                        if (input.name === 'inicio') {
+                        if (changedInput.name === 'inicio') {
                             fim.value = inicio.value;
+                            syncDisplay(fim.closest('[data-dashboard-date-field]'));
                         } else {
                             inicio.value = fim.value;
+                            syncDisplay(inicio.closest('[data-dashboard-date-field]'));
                         }
                     }
 
+                    closePicker();
                     periodForm.requestSubmit();
+                };
+
+                periodFields.forEach((field) => {
+                    syncDisplay(field);
+
+                    field.querySelector('[data-dashboard-date-trigger]')?.addEventListener('click', () => {
+                        const input = field.querySelector('[data-dashboard-period-input]');
+                        activeField = field;
+                        visibleDate = parseDate(input.value) || parseDate(input.getAttribute('max')) || new Date();
+                        periodFields.forEach((item) => item.classList.toggle('is-open', item === field));
+                        periodPicker.classList.add('is-open');
+                        renderPicker();
+                    });
                 });
-            });
+
+                periodPicker.addEventListener('click', (event) => {
+                    const previous = event.target.closest('[data-dashboard-calendar-prev]');
+                    const next = event.target.closest('[data-dashboard-calendar-next]');
+                    const day = event.target.closest('.dash-date-day');
+                    const todayButton = event.target.closest('[data-dashboard-calendar-today]');
+                    const monthButton = event.target.closest('[data-dashboard-calendar-month]');
+
+                    if (!activeField || !visibleDate) {
+                        return;
+                    }
+
+                    const input = activeField.querySelector('[data-dashboard-period-input]');
+                    const maxDate = parseDate(input.getAttribute('max')) || new Date();
+                    const minDate = parseDate(input.getAttribute('min')) || maxDate;
+
+                    if (previous) {
+                        visibleDate = new Date(visibleDate.getFullYear(), visibleDate.getMonth() - 1, 1);
+                        renderPicker();
+                        return;
+                    }
+
+                    if (next) {
+                        visibleDate = new Date(visibleDate.getFullYear(), visibleDate.getMonth() + 1, 1);
+                        renderPicker();
+                        return;
+                    }
+
+                    if (todayButton) {
+                        const date = normalizeDay(maxDate);
+                        input.value = toIsoDate(date);
+                        syncDisplay(activeField);
+                        submitPeriod(input);
+                        return;
+                    }
+
+                    if (monthButton) {
+                        const currentMonthStart = new Date(maxDate.getFullYear(), maxDate.getMonth(), 1);
+                        const date = currentMonthStart < minDate ? normalizeDay(minDate) : currentMonthStart;
+                        input.value = toIsoDate(date);
+                        syncDisplay(activeField);
+                        submitPeriod(input);
+                        return;
+                    }
+
+                    if (day && !day.disabled) {
+                        input.value = day.dataset.date;
+                        syncDisplay(activeField);
+                        submitPeriod(input);
+                    }
+                });
+
+                document.addEventListener('click', (event) => {
+                    if (!periodForm.contains(event.target)) {
+                        closePicker();
+                    }
+                });
+
+                document.addEventListener('keydown', (event) => {
+                    if (event.key === 'Escape') {
+                        closePicker();
+                    }
+                });
+            }
 
             if (!window.ApexCharts) {
                 return;
