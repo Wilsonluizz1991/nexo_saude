@@ -23,7 +23,7 @@ class AppServiceProvider extends ServiceProvider
     {
         app()->setLocale('pt_BR');
 
-        View::composer('components.app-header', function ($view): void {
+        View::composer(['components.app-header', 'components.layout.sidebar'], function ($view): void {
             $user = auth()->user();
 
             $view->with('cabecalho', $user

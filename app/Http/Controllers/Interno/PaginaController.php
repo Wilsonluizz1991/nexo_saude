@@ -33,18 +33,13 @@ class PaginaController extends Controller
         return $this->simples('alertas');
     }
 
-    public function relatorios()
-    {
-        return $this->simples('relatorios');
-    }
-
     public function simples(string $pagina)
     {
-        $permitidas = ['agenda', 'propostas', 'pre-cadastros', 'implantacoes', 'clientes', 'carteira', 'tarefas', 'alertas', 'relatorios'];
+        $permitidas = ['agenda', 'propostas', 'pre-cadastros', 'implantacoes', 'clientes', 'carteira', 'tarefas', 'alertas'];
         abort_unless(in_array($pagina, $permitidas, true), 404);
 
         $userId = auth()->id();
-        $carregarCarteira = in_array($pagina, ['carteira', 'clientes', 'relatorios'], true);
+        $carregarCarteira = in_array($pagina, ['carteira', 'clientes'], true);
 
         $clientesTodos = $pagina === 'carteira'
             ? Cliente::where('user_id', $userId)
@@ -343,7 +338,7 @@ class PaginaController extends Controller
         $comparacao = [
             'percentual' => 0,
             'direcao' => 'neutro',
-            'texto' => 'Sem variaÃ§Ã£o',
+                'texto' => 'Sem variação',
         ];
 
         return [
@@ -371,8 +366,8 @@ class PaginaController extends Controller
             'analiseCarteira' => [
                 'tipo' => 'neutro',
                 'icone' => 'bi-bar-chart',
-                'titulo' => 'Seu resultado estÃ¡ estÃ¡vel em relaÃ§Ã£o ao mÃªs anterior.',
-                'descricao' => 'Defina sua meta mensal para acompanhar sua evoluÃ§Ã£o comercial.',
+                'titulo' => 'Seu resultado está estável em relação ao mês anterior.',
+                'descricao' => 'Defina sua meta mensal para acompanhar sua evolução comercial.',
             ],
             'clientesAtivosCarteira' => 0,
             'contratosAtivosCarteira' => 0,

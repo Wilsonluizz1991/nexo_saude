@@ -983,10 +983,15 @@
             color: #2F80ED;
             text-decoration: none;
             font-weight: 850;
+            border-radius: 999px;
+            padding: 6px 10px;
+            transition: background 0.18s ease, color 0.18s ease;
         }
 
         .nexo-register-footer a:hover {
-            text-decoration: underline;
+            color: #1B6DFF;
+            background: #EFF6FF;
+            text-decoration: none;
         }
 
         @media (max-width: 992px) {

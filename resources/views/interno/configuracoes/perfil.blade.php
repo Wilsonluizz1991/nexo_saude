@@ -21,7 +21,7 @@
             <div class="col-md-3"><label class="form-label">Cidade</label><input name="cidade" class="form-control" value="{{ $user->corretorPerfil->cidade }}"></div>
             <div class="col-md-3"><label class="form-label">Estado</label><input name="estado" maxlength="2" class="form-control" value="{{ $user->corretorPerfil->estado }}"></div>
             <div class="col-md-4"><label class="form-label">Anos de experiência</label><input name="anos_experiencia" type="number" class="form-control" value="{{ $user->corretorPerfil->anos_experiencia }}"></div>
-            <div class="col-12 d-flex gap-2"><button class="btn btn-primary">Salvar perfil</button><a class="btn btn-outline-primary" href="{{ route('publico.corretor', $user->corretorPerfil->slug) }}">Visualizar perfil público</a></div>
+            <div class="col-12 d-flex gap-2"><button class="btn btn-primary">Salvar perfil</button><a target="blank" class="btn btn-outline-primary" href="{{ route('publico.corretor', $user->corretorPerfil->slug) }}">Visualizar perfil público</a></div>
         </div>
     </form>
 

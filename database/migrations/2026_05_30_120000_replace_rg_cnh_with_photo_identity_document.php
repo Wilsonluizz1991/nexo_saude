@@ -51,11 +51,11 @@ return new class extends Migration
         $nomes = [
             'Titular PF - RG' => 'Titular PF - Documento de identidade com foto',
             'Cônjuge - RG' => 'Cônjuge - Documento de identidade com foto',
-            'CÃ´njuge - RG' => 'CÃ´njuge - Documento de identidade com foto',
+            'Cônjuge - RG' => 'Cônjuge - Documento de identidade com foto',
             'Sócio - RG' => 'Sócio - Documento de identidade com foto',
-            'SÃ³cio - RG' => 'SÃ³cio - Documento de identidade com foto',
+            'Sócio - RG' => 'Sócio - Documento de identidade com foto',
             'Responsável legal - RG' => 'Responsável legal - Documento de identidade com foto',
-            'ResponsÃ¡vel legal - RG' => 'ResponsÃ¡vel legal - Documento de identidade com foto',
+            'Responsável legal - RG' => 'Responsável legal - Documento de identidade com foto',
             'Colaborador - RG' => 'Colaborador - Documento de identidade com foto',
         ];
 

@@ -2,7 +2,7 @@
     <main class="nexo-review-page">
         <section class="nexo-review-card">
             <div class="nexo-review-brand">
-                <img src="{{ asset('assets/nexo-logo-claro.png') }}" alt="Nexo Saúde">
+                <img src="{{ asset('assets/nexo-logo-topo.png') }}" alt="Nexo Saúde">
             </div>
 
             @if(session('status'))

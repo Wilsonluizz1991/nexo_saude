@@ -47,11 +47,10 @@ class StoreIndicacaoPublicaRequest extends FormRequest
             })
             ->unique()
             ->take(3)
-            ->values()
-            ->all();
+            ->values();
 
         $this->merge([
-            'operadoras' => $operadorasNormalizadas,
+            'operadoras' => is_array($operadorasNormalizadas) ? array_values($operadorasNormalizadas) : $operadorasNormalizadas->toArray(),
         ]);
     }
 

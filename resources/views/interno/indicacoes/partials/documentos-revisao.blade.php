@@ -113,7 +113,7 @@
                                 </span>
                             </div>
                         @endif
-                    @else
+                    @elseif(! in_array($documento->status, ['aprovado', 'aprovado_ia', 'dispensado'], true) && ! $documento->dispensado_por_ia && ! $documento->validado_por_documento_compartilhado)
                         <div class="nexo-document-muted">
                             <i class="bi bi-hourglass-split"></i>
                             Aguardando envio do cliente.
@@ -306,7 +306,7 @@
 
         .nexo-document-link:hover {
             color: #1B6DFF;
-            text-decoration: underline;
+            text-decoration: none;
         }
 
         .nexo-document-muted {
@@ -737,8 +737,10 @@
                 const statusBadge = row?.querySelector('[data-document-status]');
                 const formData = new FormData(form);
                 const requestedStatus = form.dataset.statusValue;
+                const originalButtonText = confirmButton.textContent;
 
                 confirmButton.disabled = true;
+                confirmButton.textContent = 'Atualizando...';
 
                 try {
                     const response = await fetch(form.action, {
@@ -765,6 +767,13 @@
                         statusBadge.classList.add(statusClassMap[requestedStatus] || 'nexo-document-status-pendente');
                     }
 
+                    document.dispatchEvent(new CustomEvent('nexo:documento-revisado', {
+                        detail: {
+                            documentoId: row?.dataset.documentRow || null,
+                            status: requestedStatus,
+                        },
+                    }));
+
                     showToast(data.message || 'Documento atualizado.');
 
                     modal.hide();
@@ -772,6 +781,7 @@
                     showToast(error.message || 'Não foi possível atualizar o documento.', 'error');
                 } finally {
                     confirmButton.disabled = false;
+                    confirmButton.textContent = originalButtonText;
                     pendingForm = null;
                 }
             });

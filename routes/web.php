@@ -159,8 +159,6 @@ Route::middleware(['auth', 'usuario.ativo', 'email.confirmado', 'assinatura.ativ
     Route::get('/alertas/{alerta}/abrir', [PaginaController::class, 'abrirAlerta'])->name('alertas.abrir');
     Route::post('/alertas/{alerta}/resolver', [PaginaController::class, 'resolverAlerta'])->name('alertas.resolver');
 
-    Route::get('/relatorios', [PaginaController::class, 'relatorios'])->name('relatorios.index');
-
     Route::post('/carteira/meta-mensal', [PaginaController::class, 'salvarMetaMensal'])->name('carteira.meta-mensal.store');
 
     Route::get('/clientes/{cliente}', [ClienteController::class, 'show'])->name('clientes.show');
@@ -172,4 +170,3 @@ Route::middleware(['auth', 'usuario.ativo', 'email.confirmado', 'assinatura.ativ
         ->whereIn('pagina', ['propostas', 'pre-cadastros', 'implantacoes', 'clientes', 'carteira'])
         ->name('paginas.simples');
 });
-

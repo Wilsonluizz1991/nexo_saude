@@ -4,7 +4,6 @@
             $titulo = [
                 'pre-cadastros' => 'Pré-cadastros',
                 'implantacoes' => 'Implantações',
-                'relatorios' => 'Relatórios',
                 'agenda' => 'Agenda',
                 'clientes' => 'Clientes',
                 'carteira' => 'Carteira',
@@ -16,7 +15,6 @@
             $subtitulo = [
                 'pre-cadastros' => 'Acompanhe os formulários enviados, pendentes e em análise documental.',
                 'implantacoes' => 'Gerencie contratos em análise, pendências na operadora e vigências.',
-                'relatorios' => 'Resumo operacional da sua carteira, tarefas, alertas e clientes.',
                 'agenda' => 'Compromissos e retornos previstos para hoje.',
                 'clientes' => 'Clientes ativos e registros já convertidos.',
                 'carteira' => 'Acompanhe sua carteira ativa, vendas do mês, comissão e evolução comercial.',
@@ -28,7 +26,6 @@
             $iconePagina = [
                 'pre-cadastros' => 'bi-clipboard2-check',
                 'implantacoes' => 'bi-rocket-takeoff',
-                'relatorios' => 'bi-bar-chart',
                 'agenda' => 'bi-calendar3',
                 'clientes' => 'bi-person-lines-fill',
                 'carteira' => 'bi-briefcase',
@@ -36,22 +33,104 @@
                 'alertas' => 'bi-bell',
                 'propostas' => 'bi-file-earmark-text',
             ][$pagina] ?? 'bi-grid';
+
+            $totalIndicacoes = isset($indicacoes)
+                ? (method_exists($indicacoes, 'total') ? $indicacoes->total() : $indicacoes->count())
+                : 0;
+
+            $totalClientes = isset($clientes)
+                ? (method_exists($clientes, 'total') ? $clientes->total() : $clientes->count())
+                : 0;
+
+            $totalTarefas = isset($tarefas)
+                ? (method_exists($tarefas, 'total') ? $tarefas->total() : $tarefas->count())
+                : 0;
+
+            $totalAlertas = isset($alertas)
+                ? (method_exists($alertas, 'total') ? $alertas->total() : $alertas->count())
+                : 0;
+
+            $totalTarefasHoje = isset($tarefasHoje)
+                ? (method_exists($tarefasHoje, 'total') ? $tarefasHoje->total() : $tarefasHoje->count())
+                : 0;
+
+            $heroMetricas = match ($pagina) {
+                'clientes' => [
+                    ['icone' => 'bi-person-lines-fill', 'valor' => $totalClientes, 'label' => 'Clientes'],
+                    ['icone' => 'bi-check-circle', 'valor' => isset($clientes) ? $clientes->where('status', 'ativo')->count() : 0, 'label' => 'Ativos'],
+                    ['icone' => 'bi-telephone', 'valor' => isset($clientes) ? $clientes->filter(fn($cliente) => filled($cliente->telefone))->count() : 0, 'label' => 'Com telefone'],
+                    ['icone' => 'bi-shield-check', 'valor' => isset($clientesAtivosCarteira) ? $clientesAtivosCarteira : $totalClientes, 'label' => 'Na carteira'],
+                ],
+                'alertas' => [
+                    ['icone' => 'bi-bell', 'valor' => $totalAlertas, 'label' => 'Alertas'],
+                    ['icone' => 'bi-exclamation-triangle', 'valor' => isset($alertas) ? $alertas->where('lido', false)->count() : 0, 'label' => 'Pendentes'],
+                    ['icone' => 'bi-check2-circle', 'valor' => isset($alertas) ? $alertas->where('lido', true)->count() : 0, 'label' => 'Resolvidos'],
+                    ['icone' => 'bi-activity', 'valor' => 'Agora', 'label' => 'Status'],
+                ],
+                'tarefas' => [
+                    ['icone' => 'bi-check2-square', 'valor' => $totalTarefas, 'label' => 'Tarefas'],
+                    ['icone' => 'bi-hourglass-split', 'valor' => isset($tarefas) ? $tarefas->where('status', 'pendente')->count() : 0, 'label' => 'Pendentes'],
+                    ['icone' => 'bi-check-circle', 'valor' => isset($tarefas) ? $tarefas->where('status', 'concluida')->count() : 0, 'label' => 'Concluídas'],
+                    ['icone' => 'bi-calendar3', 'valor' => $totalTarefasHoje, 'label' => 'Hoje'],
+                ],
+                'agenda' => [
+                    ['icone' => 'bi-calendar3', 'valor' => $totalTarefasHoje, 'label' => 'Hoje'],
+                    ['icone' => 'bi-clock', 'valor' => isset($tarefasHoje) ? $tarefasHoje->where('status', 'pendente')->count() : 0, 'label' => 'Pendentes'],
+                    ['icone' => 'bi-check2-circle', 'valor' => isset($tarefasHoje) ? $tarefasHoje->where('status', 'concluida')->count() : 0, 'label' => 'Concluídos'],
+                    ['icone' => 'bi-lightning-charge', 'valor' => 'Dia', 'label' => 'Operação'],
+                ],
+                'carteira' => [
+                    ['icone' => 'bi-cash-coin', 'valor' => isset($comissaoMesAtual) ? 'R$ '.number_format((float) $comissaoMesAtual, 2, ',', '.') : 'R$ 0,00', 'label' => 'Comissão'],
+                    [
+                        'icone' => 'bi-graph-up-arrow',
+                        'valor' => isset($percentualMetaMesAtual) ? number_format((float) $percentualMetaMesAtual, 1, ',', '.').'%' : '0%',
+                        'label' => isset($metaMesAtual) && (float) $metaMesAtual > 0
+                            ? ((isset($comissaoMesAtual) && (float) $comissaoMesAtual >= (float) $metaMesAtual)
+                                ? 'Meta batida'
+                                : 'Faltam R$ '.number_format(max(0, (float) $metaMesAtual - (float) ($comissaoMesAtual ?? 0)), 2, ',', '.'))
+                            : 'Meta',
+                    ],
+                    ['icone' => 'bi-file-earmark-check', 'valor' => isset($contratosFechadosMesAtual) ? $contratosFechadosMesAtual : 0, 'label' => 'Contratos'],
+                    ['icone' => 'bi-people', 'valor' => isset($vidasVendidasMesAtual) ? $vidasVendidasMesAtual : 0, 'label' => 'Vidas'],
+                ],
+                default => [
+                    ['icone' => 'bi-file-earmark-text', 'valor' => $totalIndicacoes, 'label' => 'Registros'],
+                    ['icone' => 'bi-shield-check', 'valor' => isset($indicacoes) ? $indicacoes->sum('quantidade_vidas') : 0, 'label' => 'Vidas'],
+                    ['icone' => 'bi-clock-history', 'valor' => isset($indicacoes) ? $indicacoes->where('status', 'documentacao_em_analise')->count() : 0, 'label' => 'Em análise'],
+                    ['icone' => 'bi-check-circle', 'valor' => isset($indicacoes) ? $indicacoes->whereIn('status', ['documentacao_aprovada', 'contrato_vigente'])->count() : 0, 'label' => 'Avançados'],
+                ],
+            };
         @endphp
 
-        <div class="nexo-page-header mb-4">
-            <div>
-                <span class="nexo-page-label">
-                    <i class="bi {{ $iconePagina }}"></i>
-                    Operação
-                </span>
+        <div class="nexo-page-hero mb-4">
+            <div class="nexo-page-hero-content">
+                <div>
+                    <span class="nexo-page-label">
+                        <i class="bi {{ $iconePagina }}"></i>
+                        {{ $pagina === 'carteira' ? 'Inteligência comercial' : 'Operação' }}
+                    </span>
 
-                <h1>
-                    {{ $titulo }}
-                </h1>
+                    <h1>
+                        {{ $titulo }}
+                    </h1>
 
-                <p>
-                    {{ $subtitulo }}
-                </p>
+                    <p>
+                        {{ $subtitulo }}
+                    </p>
+                </div>
+
+                <div class="nexo-page-hero-metrics">
+                    @foreach($heroMetricas as $metrica)
+                        <div class="nexo-page-hero-metric">
+                            <i class="bi {{ $metrica['icone'] }}"></i>
+
+                            <div>
+                                <strong>{{ $metrica['valor'] }}</strong>
+                                <span>{{ $metrica['label'] }}</span>
+                            </div>
+                        </div>
+                    @endforeach
+                </div>
             </div>
         </div>
 
@@ -262,29 +341,6 @@
                         ],
                     ];
                 @endphp
-
-                <section class="nexo-carteira-hero">
-                    <div>
-                        <span class="nexo-carteira-eyebrow">
-                            <i class="bi bi-graph-up-arrow"></i>
-                            Inteligência comercial
-                        </span>
-
-                        <h2>Carteira estratégica</h2>
-
-                        <p>
-                            Acompanhe resultado mensal, evolução da meta, comissão acumulada, conversão e força real da sua carteira.
-                        </p>
-                    </div>
-
-                    <div class="nexo-carteira-hero-result {{ $metaBatida ? 'is-success' : '' }}">
-                        <span>{{ $metaBatida ? 'Meta batida' : 'Progresso da meta' }}</span>
-                        <strong>{{ number_format((float) $percentualMetaMesAtual, 1, ',', '.') }}%</strong>
-                        <small>
-                            {{ $metaBatida ? 'Excelente mês comercial.' : ($metaDefinida ? 'Faltam '.$moeda($faltanteMeta).' para bater a meta.' : 'Defina uma meta para acompanhar.') }}
-                        </small>
-                    </div>
-                </section>
 
                 <section class="nexo-carteira-dashboard">
                     <div class="nexo-carteira-main-metric">
@@ -740,21 +796,53 @@
 
     <style>
         .nexo-page-table th:last-child {
-    text-align: center !important;
-}
+            text-align: center !important;
+        }
 
-.nexo-page-table td:last-child {
-    text-align: center !important;
-}
+        .nexo-page-table td:last-child {
+            text-align: center !important;
+        }
 
-.nexo-page-table td:last-child > .d-inline-flex {
-    justify-content: center !important;
-}
-        .nexo-page-header {
-            display: flex;
+        .nexo-page-table td:last-child > .d-inline-flex {
+            justify-content: center !important;
+        }
+
+        .nexo-page-hero {
+            position: relative;
+            border-radius: 28px;
+            background:
+                radial-gradient(circle at 78% 12%, rgba(47, 128, 237, 0.38) 0, rgba(47, 128, 237, 0) 34%),
+                radial-gradient(circle at 18% 100%, rgba(91, 167, 255, 0.2) 0, rgba(91, 167, 255, 0) 32%),
+                linear-gradient(135deg, #061C3F 0%, #071A38 48%, #021026 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 26px 60px rgba(2, 16, 38, 0.18);
+            overflow: hidden;
+        }
+
+        .nexo-page-hero::before {
+            content: "";
+            position: absolute;
+            width: 520px;
+            height: 520px;
+            right: -180px;
+            top: -250px;
+            border-radius: 999px;
+            border: 1px solid rgba(91, 167, 255, 0.18);
+            box-shadow:
+                0 0 0 34px rgba(91, 167, 255, 0.035),
+                0 0 0 72px rgba(91, 167, 255, 0.025),
+                0 0 0 118px rgba(91, 167, 255, 0.018);
+        }
+
+        .nexo-page-hero-content {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: minmax(240px, 1fr) auto;
             align-items: center;
-            justify-content: space-between;
-            gap: 24px;
+            gap: 28px;
+            min-height: 174px;
+            padding: 34px;
         }
 
         .nexo-page-label {
@@ -762,27 +850,77 @@
             align-items: center;
             gap: 8px;
             border-radius: 999px;
-            background: #EAF3FF;
-            color: #2F80ED;
+            background: rgba(47, 128, 237, 0.16);
+            color: #BBD8FF;
             font-size: 0.78rem;
             font-weight: 900;
-            padding: 6px 11px;
-            margin-bottom: 10px;
+            padding: 7px 12px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(187, 216, 255, 0.14);
         }
 
-        .nexo-page-header h1 {
-            color: #061C3F;
-            font-size: 2.25rem;
+        .nexo-page-hero h1 {
+            color: #FFFFFF;
+            font-size: 2.35rem;
             line-height: 1;
-            font-weight: 900;
-            letter-spacing: -0.045em;
-            margin: 0 0 8px;
+            font-weight: 950;
+            letter-spacing: -0.055em;
+            margin: 0 0 10px;
         }
 
-        .nexo-page-header p {
-            color: #64748B;
+        .nexo-page-hero p {
+            color: rgba(255, 255, 255, 0.76);
             margin: 0;
             font-size: 1rem;
+        }
+
+        .nexo-page-hero-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, max-content);
+            align-items: center;
+            gap: 0;
+        }
+
+        .nexo-page-hero-metric {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 128px;
+            padding: 8px 22px;
+            border-right: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .nexo-page-hero-metric:first-child {
+            padding-left: 0;
+        }
+
+        .nexo-page-hero-metric:last-child {
+            border-right: 0;
+            padding-right: 0;
+        }
+
+        .nexo-page-hero-metric i {
+            color: #72B6FF;
+            font-size: 1.35rem;
+        }
+
+        .nexo-page-hero-metric strong {
+            display: block;
+            color: #FFFFFF;
+            font-size: 1.45rem;
+            line-height: 1;
+            font-weight: 950;
+            letter-spacing: -0.045em;
+            margin-bottom: 4px;
+            white-space: nowrap;
+        }
+
+        .nexo-page-hero-metric span {
+            display: block;
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 0.78rem;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
         .nexo-floating-toast {
@@ -1594,6 +1732,22 @@
             }
         }
 
+        @media (max-width: 1320px) {
+            .nexo-page-hero-content {
+                grid-template-columns: 1fr;
+                align-items: flex-start;
+            }
+
+            .nexo-page-hero-metrics {
+                width: 100%;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .nexo-page-hero-metric {
+                min-width: 0;
+            }
+        }
+
         @media (max-width: 1200px) {
             .nexo-summary-grid {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -1617,9 +1771,24 @@
         }
 
         @media (max-width: 768px) {
-            .nexo-page-header {
-                flex-direction: column;
-                align-items: flex-start;
+            .nexo-page-hero-content {
+                padding: 26px;
+            }
+
+            .nexo-page-hero h1 {
+                font-size: 2rem;
+            }
+
+            .nexo-page-hero-metrics {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 14px;
+            }
+
+            .nexo-page-hero-metric {
+                padding: 14px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 16px;
+                background: rgba(255, 255, 255, 0.06);
             }
 
             .nexo-summary-grid {
@@ -1658,6 +1827,12 @@
                 left: 16px;
                 width: auto;
                 border-radius: 20px;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nexo-page-hero-metrics {
+                grid-template-columns: 1fr;
             }
         }
     </style>

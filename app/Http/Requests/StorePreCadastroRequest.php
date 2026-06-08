@@ -22,7 +22,7 @@ class StorePreCadastroRequest extends FormRequest
 
             $this->merge([
                 'pessoa' => 'PF',
-                'vidas' => $vidas->all(),
+                'vidas' => is_array($vidas) ? array_values($vidas) : $vidas->toArray(),
             ]);
         }
     }

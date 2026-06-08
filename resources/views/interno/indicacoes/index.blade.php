@@ -29,65 +29,61 @@
     @endphp
 
     <main class="nexo-main">
-        <div class="nexo-leads-header mb-4">
-            <div>
-                <span class="nexo-page-label">Operação</span>
-
-                <h1>Leads</h1>
-
-                <p>Acompanhe apenas os registros que ainda estão na primeira etapa do funil.</p>
-            </div>
-        </div>
-
-        <div class="nexo-leads-summary-grid mb-4">
-            <div class="nexo-leads-summary-card">
-                <div class="nexo-leads-summary-icon">
-                    <i class="bi bi-people"></i>
-                </div>
-
+        <div class="nexo-leads-hero mb-4">
+            <div class="nexo-leads-hero-content">
                 <div>
-                    <span>Total de Leads</span>
-                    <strong>{{ $indicacoes->total() }}</strong>
-                </div>
-            </div>
+                    <span class="nexo-page-label">
+                        <i class="bi bi-lightning-charge"></i>
+                        Operação
+                    </span>
 
-            <div class="nexo-leads-summary-card">
-                <div class="nexo-leads-summary-icon">
-                    <i class="bi bi-telephone"></i>
-                </div>
+                    <h1>Leads</h1>
 
-                <div>
-                    <span>Novas</span>
-                    <strong>
-                        {{ $indicacoes->where('status', 'nova')->count() }}
-                    </strong>
-                </div>
-            </div>
-
-            <div class="nexo-leads-summary-card">
-                <div class="nexo-leads-summary-icon">
-                    <i class="bi bi-envelope"></i>
+                    <p>Acompanhe apenas os registros que ainda estão na primeira etapa do funil.</p>
                 </div>
 
-                <div>
-                    <span>Com e-mail</span>
-                    <strong>
-                        {{ $indicacoes->filter(fn($indicacao) => filled($indicacao->email))->count() }}
-                    </strong>
-                </div>
-            </div>
+                <div class="nexo-leads-hero-metrics">
+                    <div class="nexo-leads-hero-metric">
+                        <i class="bi bi-people"></i>
 
-            <div class="nexo-leads-summary-card">
-                <div class="nexo-leads-summary-icon">
-                    <i class="bi bi-heart-pulse"></i>
+                        <div>
+                            <strong>{{ $indicacoes->total() }}</strong>
+                            <span>Total</span>
+                        </div>
+                    </div>
+
+                    <div class="nexo-leads-hero-metric">
+                        <i class="bi bi-telephone"></i>
+
+                        <div>
+                            <strong>{{ $indicacoes->where('status', 'nova')->count() }}</strong>
+                            <span>Novas</span>
+                        </div>
+                    </div>
+
+                    <div class="nexo-leads-hero-metric">
+                        <i class="bi bi-envelope"></i>
+
+                        <div>
+                            <strong>{{ $indicacoes->filter(fn($indicacao) => filled($indicacao->email))->count() }}</strong>
+                            <span>Com e-mail</span>
+                        </div>
+                    </div>
+
+                    <div class="nexo-leads-hero-metric">
+                        <i class="bi bi-heart-pulse"></i>
+
+                        <div>
+                            <strong>{{ $indicacoes->sum('quantidade_vidas') }}</strong>
+                            <span>Vidas</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div>
-                    <span>Vidas informadas</span>
-                    <strong>
-                        {{ $indicacoes->sum('quantidade_vidas') }}
-                    </strong>
-                </div>
+                <a href="{{ route('indicacoes.create') }}" class="nexo-leads-new-btn">
+                    <i class="bi bi-plus-lg"></i>
+                    Nova Lead
+                </a>
             </div>
         </div>
 
@@ -159,10 +155,6 @@
                                                 </a>
                                             @endif
                                         </div>
-
-                                        <span>
-                                            {{ $indicacao->email }}
-                                        </span>
                                     </div>
                                 </td>
 
@@ -208,131 +200,170 @@
         .nexo-leads-table th:nth-child(3),
         .nexo-leads-table th:nth-child(4),
         .nexo-leads-table th:nth-child(5),
+        .nexo-leads-table th:nth-child(6),
         .nexo-leads-table td:nth-child(3),
         .nexo-leads-table td:nth-child(4),
-        .nexo-leads-table td:nth-child(5) {
+        .nexo-leads-table td:nth-child(5),
+        .nexo-leads-table td:nth-child(6) {
             text-align: center;
         }
 
         .nexo-leads-table td:nth-child(3),
         .nexo-leads-table td:nth-child(4),
-        .nexo-leads-table td:nth-child(5) {
+        .nexo-leads-table td:nth-child(5),
+        .nexo-leads-table td:nth-child(6) {
             vertical-align: middle;
         }
 
-        .nexo-leads-header {
-            display: flex;
+        .nexo-leads-table th:nth-child(6),
+        .nexo-leads-table td:nth-child(6) {
+            width: 148px;
+            min-width: 148px;
+        }
+
+        .nexo-leads-table th:nth-child(2),
+        .nexo-leads-table td:nth-child(2) {
+            width: 220px;
+            min-width: 220px;
+        }
+
+        .nexo-leads-hero {
+            position: relative;
+            border-radius: 28px;
+            background:
+                radial-gradient(circle at 78% 12%, rgba(47, 128, 237, 0.38) 0, rgba(47, 128, 237, 0) 34%),
+                radial-gradient(circle at 18% 100%, rgba(91, 167, 255, 0.2) 0, rgba(91, 167, 255, 0) 32%),
+                linear-gradient(135deg, #061C3F 0%, #071A38 48%, #021026 100%);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 26px 60px rgba(2, 16, 38, 0.18);
+            overflow: hidden;
+        }
+
+        .nexo-leads-hero::before {
+            content: "";
+            position: absolute;
+            width: 520px;
+            height: 520px;
+            right: -180px;
+            top: -250px;
+            border-radius: 999px;
+            border: 1px solid rgba(91, 167, 255, 0.18);
+            box-shadow:
+                0 0 0 34px rgba(91, 167, 255, 0.035),
+                0 0 0 72px rgba(91, 167, 255, 0.025),
+                0 0 0 118px rgba(91, 167, 255, 0.018);
+        }
+
+        .nexo-leads-hero-content {
+            position: relative;
+            z-index: 2;
+            display: grid;
+            grid-template-columns: minmax(240px, 1fr) auto auto;
             align-items: center;
-            justify-content: space-between;
-            gap: 24px;
+            gap: 28px;
+            min-height: 174px;
+            padding: 34px;
         }
 
         .nexo-page-label {
             display: inline-flex;
             align-items: center;
+            gap: 8px;
             border-radius: 999px;
-            background: #EAF3FF;
-            color: #2F80ED;
+            background: rgba(47, 128, 237, 0.16);
+            color: #BBD8FF;
             font-size: 0.78rem;
             font-weight: 900;
-            padding: 6px 11px;
-            margin-bottom: 10px;
+            padding: 7px 12px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(187, 216, 255, 0.14);
         }
 
-        .nexo-leads-header h1 {
-            color: #061C3F;
-            font-size: 2.25rem;
+        .nexo-leads-hero h1 {
+            color: #FFFFFF;
+            font-size: 2.35rem;
             line-height: 1;
-            font-weight: 900;
-            letter-spacing: -0.045em;
-            margin: 0 0 8px;
+            font-weight: 950;
+            letter-spacing: -0.055em;
+            margin: 0 0 10px;
         }
 
-        .nexo-leads-header p {
-            color: #64748B;
+        .nexo-leads-hero p {
+            color: rgba(255, 255, 255, 0.76);
             margin: 0;
             font-size: 1rem;
+        }
+
+        .nexo-leads-hero-metrics {
+            display: grid;
+            grid-template-columns: repeat(4, max-content);
+            align-items: center;
+            gap: 0;
+        }
+
+        .nexo-leads-hero-metric {
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            min-width: 128px;
+            padding: 8px 22px;
+            border-right: 1px solid rgba(255, 255, 255, 0.16);
+        }
+
+        .nexo-leads-hero-metric:first-child {
+            padding-left: 0;
+        }
+
+        .nexo-leads-hero-metric:last-child {
+            border-right: 0;
+            padding-right: 0;
+        }
+
+        .nexo-leads-hero-metric i {
+            color: #72B6FF;
+            font-size: 1.35rem;
+        }
+
+        .nexo-leads-hero-metric strong {
+            display: block;
+            color: #FFFFFF;
+            font-size: 1.45rem;
+            line-height: 1;
+            font-weight: 950;
+            letter-spacing: -0.045em;
+            margin-bottom: 4px;
+        }
+
+        .nexo-leads-hero-metric span {
+            display: block;
+            color: rgba(255, 255, 255, 0.72);
+            font-size: 0.78rem;
+            font-weight: 700;
+            white-space: nowrap;
         }
 
         .nexo-leads-new-btn {
             display: inline-flex;
             align-items: center;
+            justify-content: center;
             gap: 10px;
             min-height: 50px;
             padding: 0 22px;
-            border-radius: 16px;
+            border-radius: 14px;
             background: linear-gradient(135deg, #2F80ED 0%, #1B6DFF 100%);
             color: #FFFFFF;
             font-weight: 900;
-            text-decoration: none;
-            box-shadow: 0 18px 36px rgba(47, 128, 237, 0.22);
+            white-space: nowrap;
+            text-decoration: none !important;
+            box-shadow: 0 18px 36px rgba(47, 128, 237, 0.28);
             transition: 0.2s ease;
         }
 
-        .nexo-leads-new-btn:hover {
+        .nexo-leads-new-btn:hover,
+        .nexo-leads-new-btn:focus {
             transform: translateY(-2px);
             color: #FFFFFF;
-        }
-
-        .nexo-leads-summary-grid {
-            display: grid;
-            grid-template-columns: repeat(4, minmax(0, 1fr));
-            gap: 18px;
-        }
-
-        .nexo-leads-summary-card {
-            position: relative;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            min-height: 112px;
-            padding: 22px;
-            border-radius: 24px;
-            background: #FFFFFF;
-            border: 1px solid #E4EBF5;
-            box-shadow: 0 18px 40px rgba(15, 23, 42, 0.05);
-            overflow: hidden;
-        }
-
-        .nexo-leads-summary-card::after {
-            content: "";
-            position: absolute;
-            width: 74px;
-            height: 74px;
-            right: -20px;
-            top: -20px;
-            border-radius: 999px;
-            background: rgba(47, 128, 237, 0.08);
-        }
-
-        .nexo-leads-summary-icon {
-            width: 54px;
-            height: 54px;
-            border-radius: 18px;
-            background: linear-gradient(135deg, #EAF3FF 0%, #DCEEFF 100%);
-            color: #2F80ED;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 1.35rem;
-            flex-shrink: 0;
-        }
-
-        .nexo-leads-summary-card span {
-            display: block;
-            color: #64748B;
-            font-size: 0.9rem;
-            font-weight: 800;
-            margin-bottom: 4px;
-        }
-
-        .nexo-leads-summary-card strong {
-            display: block;
-            color: #061C3F;
-            font-size: 2rem;
-            line-height: 1;
-            font-weight: 950;
-            letter-spacing: -0.05em;
+            text-decoration: none !important;
         }
 
         .nexo-leads-panel {
@@ -419,9 +450,12 @@
         }
 
         .nexo-lead-contact strong {
-            display: block;
+            display: inline-flex;
+            align-items: center;
+            gap: 10px;
             color: #061C3F;
-            margin-bottom: 2px;
+            margin-bottom: 0;
+            white-space: nowrap;
         }
 
         .nexo-lead-contact span {
@@ -496,6 +530,7 @@
             display: inline-flex;
             align-items: center;
             justify-content: center;
+            min-width: 112px;
             min-height: 38px;
             padding: 0 16px;
             border-radius: 12px;
@@ -504,6 +539,8 @@
             color: #2F80ED;
             font-size: 0.86rem;
             font-weight: 900;
+            line-height: 1;
+            white-space: nowrap;
             text-decoration: none;
             transition: 0.2s ease;
         }
@@ -514,25 +551,55 @@
             color: #FFFFFF;
         }
 
-        @media (max-width: 1200px) {
-            .nexo-leads-summary-grid {
-                grid-template-columns: repeat(2, minmax(0, 1fr));
+        @media (max-width: 1320px) {
+            .nexo-leads-hero-content {
+                grid-template-columns: 1fr;
+                align-items: flex-start;
+            }
+
+            .nexo-leads-hero-metrics {
+                width: 100%;
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .nexo-leads-hero-metric {
+                min-width: 0;
+            }
+
+            .nexo-leads-new-btn {
+                width: max-content;
             }
         }
 
         @media (max-width: 768px) {
-            .nexo-leads-header {
-                flex-direction: column;
-                align-items: flex-start;
+            .nexo-leads-hero-content {
+                padding: 26px;
             }
 
-            .nexo-leads-summary-grid {
-                grid-template-columns: 1fr;
+            .nexo-leads-hero h1 {
+                font-size: 2rem;
+            }
+
+            .nexo-leads-hero-metrics {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+                gap: 14px;
+            }
+
+            .nexo-leads-hero-metric {
+                padding: 14px;
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                border-radius: 16px;
+                background: rgba(255, 255, 255, 0.06);
             }
 
             .nexo-leads-new-btn {
                 width: 100%;
-                justify-content: center;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .nexo-leads-hero-metrics {
+                grid-template-columns: 1fr;
             }
         }
     </style>

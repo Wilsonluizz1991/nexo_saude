@@ -409,68 +409,11 @@
             }
 
             const statusAprovado = ['aprovado', 'aprovado_ia', 'dispensado'];
-            const statusIgnorados = ['visualizar', 'enviado', 'enviar', 'substituir', 'baixar', 'abrir'];
-
-            const normalizarTexto = (texto) => {
-                return (texto || '')
-                    .toString()
-                    .trim()
-                    .toLowerCase()
-                    .normalize('NFD')
-                    .replace(/[\u0300-\u036f]/g, '')
-                    .replace(/\s+/g, ' ');
-            };
 
             const extrairStatusDosDocumentos = () => {
-                const statusPorDataAttr = Array.from(reviewPanel.querySelectorAll('[data-documento-status]'))
-                    .map((elemento) => normalizarTexto(elemento.dataset.documentoStatus))
+                return Array.from(reviewPanel.querySelectorAll('[data-document-status]'))
+                    .map((elemento) => elemento.dataset.documentStatusValue || '')
                     .filter(Boolean);
-
-                if (statusPorDataAttr.length) {
-                    return statusPorDataAttr;
-                }
-
-                const candidatos = Array.from(reviewPanel.querySelectorAll(
-                    '.nexo-document-status, .document-status, .badge, [class*="status"], [class*="documento"]'
-                ));
-
-                const textos = candidatos
-                    .map((elemento) => normalizarTexto(elemento.textContent))
-                    .filter((texto) => texto.length > 0)
-                    .filter((texto) => !statusIgnorados.includes(texto))
-                    .filter((texto) => {
-                        return [
-                            'pendente',
-                            'corrigir',
-                            'recusado',
-                            'aprovado',
-                            'dispensado',
-                            'documentacao aprovada',
-                            'documento aprovado',
-                            'aprovada',
-                        ].some((status) => texto.includes(status));
-                    })
-                    .map((texto) => {
-                        if (texto.includes('dispensado')) {
-                            return 'dispensado';
-                        }
-
-                        if (texto.includes('aprovado') || texto.includes('aprovada')) {
-                            return 'aprovado';
-                        }
-
-                        if (texto.includes('recusado')) {
-                            return 'recusado';
-                        }
-
-                        if (texto.includes('corrigir')) {
-                            return 'corrigir';
-                        }
-
-                        return 'pendente';
-                    });
-
-                return textos;
             };
 
             const atualizarEstadoImplantacao = () => {
@@ -506,13 +449,18 @@
                 }
             };
 
+            let atualizacaoAgendada = false;
+
             const agendarAtualizacao = () => {
+                if (atualizacaoAgendada) {
+                    return;
+                }
+
+                atualizacaoAgendada = true;
+
                 window.requestAnimationFrame(() => {
                     atualizarEstadoImplantacao();
-
-                    setTimeout(atualizarEstadoImplantacao, 150);
-                    setTimeout(atualizarEstadoImplantacao, 400);
-                    setTimeout(atualizarEstadoImplantacao, 900);
+                    atualizacaoAgendada = false;
                 });
             };
 
@@ -524,65 +472,15 @@
 
             observer.observe(reviewPanel, {
                 subtree: true,
-                childList: true,
                 attributes: true,
-                characterData: true,
                 attributeFilter: [
-                    'class',
-                    'data-documento-status',
-                    'disabled',
-                    'aria-disabled',
+                    'data-document-status-value',
                 ],
             });
 
-            reviewPanel.addEventListener('click', (event) => {
-                const alvo = event.target.closest('button, a, input[type="submit"]');
-
-                if (!alvo) {
-                    return;
-                }
-
+            document.addEventListener('nexo:documento-revisado', () => {
                 agendarAtualizacao();
             });
-
-            reviewPanel.addEventListener('submit', () => {
-                agendarAtualizacao();
-            }, true);
-
-            if (!window.__nexoPreCadastroFetchMonitorado) {
-                window.__nexoPreCadastroFetchMonitorado = true;
-
-                const fetchOriginal = window.fetch;
-
-                if (typeof fetchOriginal === 'function') {
-                    window.fetch = async (...args) => {
-                        const resposta = await fetchOriginal(...args);
-
-                        agendarAtualizacao();
-
-                        return resposta;
-                    };
-                }
-
-                const openOriginal = XMLHttpRequest.prototype.open;
-                const sendOriginal = XMLHttpRequest.prototype.send;
-
-                XMLHttpRequest.prototype.open = function (...args) {
-                    this.__nexoPreCadastroRequest = true;
-
-                    return openOriginal.apply(this, args);
-                };
-
-                XMLHttpRequest.prototype.send = function (...args) {
-                    if (this.__nexoPreCadastroRequest) {
-                        this.addEventListener('loadend', () => {
-                            agendarAtualizacao();
-                        });
-                    }
-
-                    return sendOriginal.apply(this, args);
-                };
-            }
         });
     </script>
 

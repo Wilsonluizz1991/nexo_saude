@@ -14,7 +14,18 @@
 </head>
 <body>
 @auth
-    <x-app-header />
+    <div class="nexo-auth-shell" data-auth-shell>
+        <x-layout.sidebar />
+
+        <div class="nexo-auth-main">
+            <div class="nexo-mobile-topbar">
+                <button type="button" class="nexo-mobile-menu-button" data-sidebar-open aria-label="Abrir menu">
+                    <i data-lucide="menu" class="h-5 w-5" aria-hidden="true"></i>
+                </button>
+                <a href="{{ (auth()->user()?->is_admin || auth()->user()?->perfil === 'admin') ? route('admin.dashboard') : route('dashboard') }}" class="nexo-mobile-logo" aria-label="Nexo Saúde">
+                    <img src="{{ asset('assets/nexo-logo-texto-preto.png') }}" alt="Nexo Saúde">
+                </a>
+            </div>
 @endauth
 
 @if(session('status') || $errors->any())
@@ -37,6 +48,11 @@
 @endif
 
 {{ $slot }}
+
+@auth
+        </div>
+    </div>
+@endauth
 
 <x-responsive-overrides />
 

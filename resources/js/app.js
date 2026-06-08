@@ -1,4 +1,90 @@
+import ApexCharts from 'apexcharts';
+import { createIcons, icons } from 'lucide';
+
+window.ApexCharts = ApexCharts;
+window.lucide = { createIcons: () => createIcons({ icons }) };
+
 document.addEventListener('DOMContentLoaded', () => {
+    if (window.lucide) {
+        window.lucide.createIcons();
+    }
+
+    const sidebarOpenButtons = document.querySelectorAll('[data-sidebar-open]');
+    const sidebarCloseTargets = document.querySelectorAll('[data-sidebar-close]');
+    const closeSidebar = () => document.body.classList.remove('nexo-sidebar-open');
+    const openSidebar = () => document.body.classList.add('nexo-sidebar-open');
+
+    sidebarOpenButtons.forEach((button) => button.addEventListener('click', openSidebar));
+    sidebarCloseTargets.forEach((target) => target.addEventListener('click', closeSidebar));
+
+    window.addEventListener('keydown', (event) => {
+        if (event.key === 'Escape') {
+            closeSidebar();
+        }
+    });
+
+    const globalSearchForm = document.querySelector('[data-global-search-form]');
+
+    if (globalSearchForm) {
+        const input = globalSearchForm.querySelector('[data-global-search-input]');
+        const searchUrl = globalSearchForm.getAttribute('action');
+        let timeout = null;
+        let lastSubmittedValue = input ? input.value.trim() : '';
+
+        const isSearchPage = () => window.location.pathname.replace(/\/$/, '') === new URL(searchUrl, window.location.origin).pathname.replace(/\/$/, '');
+
+        const redirectToSearch = (value) => {
+            const normalizedValue = value.trim();
+
+            if (normalizedValue === lastSubmittedValue && isSearchPage()) {
+                return;
+            }
+
+            lastSubmittedValue = normalizedValue;
+
+            if (normalizedValue.length === 0) {
+                window.location.href = searchUrl;
+                return;
+            }
+
+            const url = new URL(searchUrl, window.location.origin);
+            url.searchParams.set('q', normalizedValue);
+            window.location.href = url.toString();
+        };
+
+        if (input && searchUrl) {
+            input.addEventListener('input', () => {
+                const value = input.value.trim();
+                window.clearTimeout(timeout);
+
+                timeout = window.setTimeout(() => {
+                    if (value.length >= 3) {
+                        redirectToSearch(value);
+                        return;
+                    }
+
+                    if (value.length === 0 && isSearchPage()) {
+                        redirectToSearch('');
+                    }
+                }, 500);
+            });
+
+            globalSearchForm.addEventListener('submit', (event) => {
+                const value = input.value.trim();
+
+                if (value.length >= 3) {
+                    return;
+                }
+
+                event.preventDefault();
+
+                if (value.length === 0) {
+                    redirectToSearch('');
+                }
+            });
+        }
+    }
+
     const normalizarTextoPlano = (value) => String(value || '').toLowerCase();
     const isIndividual = (value) => normalizarTextoPlano(value).includes('individual');
 

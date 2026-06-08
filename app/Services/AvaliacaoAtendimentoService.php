@@ -9,8 +9,8 @@ use Illuminate\Support\Str;
 
 class AvaliacaoAtendimentoService
 {
-    public const MEDIA_MINIMA_PREMIUM = 4.9;
-    public const QUANTIDADE_MINIMA_PREMIUM = 1;
+    public const MEDIA_MINIMA_PREMIUM = 4.8;
+    public const QUANTIDADE_MINIMA_PREMIUM = 10;
 
     public function obterOuCriar(Cliente $cliente, ?Indicacao $indicacao = null): AvaliacaoAtendimento
     {

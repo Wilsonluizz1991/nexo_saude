@@ -1,1 +1,542 @@
+@import "tailwindcss";
 @import './nexo.css';
+
+.nexo-auth-shell {
+    min-height: 100vh;
+    background: #f7f9fc;
+    color: #071631;
+    font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.nexo-auth-main {
+    min-height: 100vh;
+    margin-left: 204px;
+}
+
+.nexo-mobile-topbar {
+    display: none;
+}
+
+.nexo-sidebar {
+    position: fixed;
+    inset: 0 auto 0 0;
+    z-index: 1040;
+    display: flex;
+    width: 204px;
+    height: 100vh;
+    flex-direction: column;
+    overflow: hidden;
+    background: radial-gradient(circle at 26% 0%, rgba(35, 97, 255, .34), transparent 25%), linear-gradient(180deg, #071b46 0%, #061531 54%, #061127 100%);
+    color: #fff;
+    padding: 23px 15px 18px;
+}
+
+.nexo-sidebar-top {
+    flex: 0 0 auto;
+}
+
+    .nexo-sidebar-logo {
+        display: block;
+        width: 100%;
+        text-decoration: none;
+    }
+
+    .nexo-sidebar-logo img {
+        width: 132px;
+        height: auto;
+        object-fit: contain;
+    }
+
+.nexo-sidebar-top p {
+    margin: 20px 0 14px;
+    color: rgba(219, 234, 254, .9);
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 18px;
+}
+
+.nexo-sidebar-search {
+    position: relative;
+    margin-bottom: 14px;
+}
+
+.nexo-sidebar-search input {
+    width: 100%;
+    height: 35px;
+    border: 1px solid rgba(147, 197, 253, .16);
+    border-radius: 9px;
+    background: rgba(255, 255, 255, .07);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    outline: none;
+    padding: 0 11px 0 33px;
+    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+
+.nexo-sidebar-search input::placeholder {
+    color: rgba(219, 234, 254, .64);
+}
+
+.nexo-sidebar-search input:focus {
+    border-color: rgba(96, 165, 250, .72);
+    background: rgba(255, 255, 255, .1);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .22);
+}
+
+.nexo-sidebar-search-icon {
+    position: absolute;
+    left: 11px;
+    top: 50%;
+    width: 14px;
+    height: 14px;
+    transform: translateY(-50%);
+    color: rgba(219, 234, 254, .76);
+    pointer-events: none;
+}
+
+.nexo-sidebar-nav {
+    display: flex;
+    min-height: 0;
+    flex: 1 1 auto;
+    flex-direction: column;
+    gap: 5px;
+    overflow-y: auto;
+    padding-right: 2px;
+}
+
+.nexo-sidebar-nav::-webkit-scrollbar {
+    width: 4px;
+}
+
+.nexo-sidebar-nav::-webkit-scrollbar-thumb {
+    border-radius: 999px;
+    background: rgba(147, 197, 253, .35);
+}
+
+.nexo-sidebar-link {
+    display: flex;
+    min-height: 37px;
+    align-items: center;
+    gap: 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: rgba(255, 255, 255, .9);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1;
+    padding: 0 11px;
+    text-align: left;
+    text-decoration: none;
+    transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+
+.nexo-sidebar-link:hover {
+    background: rgba(255, 255, 255, .08);
+    color: #fff;
+}
+
+.nexo-sidebar-link.is-active {
+    background: #2563eb;
+    color: #fff;
+    box-shadow: 0 10px 20px rgba(37, 99, 235, .28);
+}
+
+.nexo-sidebar-link-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+}
+
+.nexo-sidebar-link-label {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nexo-sidebar-badge {
+    margin-left: auto;
+    display: inline-flex;
+    min-width: 22px;
+    height: 22px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 999px;
+    background: #f43f5e;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 0 6px;
+}
+
+.nexo-sidebar-separator {
+    height: 1px;
+    flex: 0 0 auto;
+    background: rgba(255, 255, 255, .07);
+    margin: 9px 0;
+}
+
+.nexo-sidebar-footer {
+    flex: 0 0 auto;
+    padding-top: 13px;
+}
+
+.nexo-sidebar-user {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 13px;
+    background: rgba(255, 255, 255, .045);
+    padding: 9px;
+}
+
+.nexo-sidebar-avatar {
+    display: flex;
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    border-radius: 999px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 900;
+}
+
+.nexo-sidebar-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.nexo-sidebar-user p {
+    margin: 0;
+    overflow: hidden;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 15px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nexo-sidebar-user span {
+    display: block;
+    overflow: hidden;
+    color: rgba(219, 234, 254, .72);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 14px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nexo-sidebar-user button {
+    display: inline-flex;
+    width: 26px;
+    height: 26px;
+    align-items: center;
+    justify-content: center;
+    border: 0;
+    border-radius: 7px;
+    background: rgba(255, 255, 255, .07);
+    color: rgba(219, 234, 254, .82);
+}
+
+.nexo-sidebar-referral {
+    margin-top: 15px;
+    border-radius: 14px;
+    background: rgba(29, 78, 216, .2);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, .05);
+    padding: 14px;
+}
+
+.nexo-sidebar-referral img {
+    width: 25px;
+    height: 25px;
+    object-fit: contain;
+}
+
+.nexo-sidebar-referral strong {
+    display: block;
+    margin-top: 10px;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 800;
+    line-height: 16px;
+}
+
+.nexo-sidebar-referral span {
+    display: block;
+    margin-top: 6px;
+    color: rgba(219, 234, 254, .85);
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 15px;
+}
+
+.nexo-sidebar-referral a {
+    display: flex;
+    height: 28px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 14px;
+    border-radius: 5px;
+    background: #2563eb;
+    color: #fff;
+    font-size: 11px;
+    font-weight: 800;
+    text-decoration: none;
+}
+
+.nexo-sidebar-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 1035;
+    display: none;
+    background: rgba(2, 6, 23, .48);
+}
+
+body.nexo-sidebar-open {
+    overflow: hidden;
+}
+
+.nexo-auth-main a:not(.nexo-sidebar-link):not(.nexo-sidebar-logo):not(.nexo-mobile-logo):not(.nexo-logo):not(.nexo-public-profile-link),
+.nexo-auth-main .btn {
+    text-decoration: none !important;
+}
+
+.nexo-action-btn,
+.nexo-open-btn,
+.nexo-secondary-btn,
+.nexo-btn-primary,
+.nexo-leads-new-btn,
+.admin-action-btn,
+.nexo-download-btn,
+.nexo-subscription-primary-action,
+.nexo-review-whatsapp-btn,
+.nexo-settings-link,
+.nexo-page-table a,
+.pagination a,
+.page-link {
+    text-decoration: none !important;
+}
+
+.nexo-action-btn,
+.nexo-open-btn,
+.nexo-secondary-btn,
+.nexo-page-table a:not(.nexo-whatsapp-link),
+.btn.btn-outline-primary {
+    display: inline-flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 999px;
+    border: 1px solid #cfe0f6;
+    background: linear-gradient(180deg, #ffffff 0%, #f4f8ff 100%);
+    color: #1d4ed8;
+    font-weight: 900;
+    line-height: 1.1;
+    padding: 0 16px;
+    box-shadow: 0 10px 24px rgba(37, 99, 235, .06);
+    transition: transform .18s ease, box-shadow .18s ease, background .18s ease, border-color .18s ease, color .18s ease;
+}
+
+.nexo-action-btn:hover,
+.nexo-open-btn:hover,
+.nexo-secondary-btn:hover,
+.nexo-page-table a:not(.nexo-whatsapp-link):hover,
+.btn.btn-outline-primary:hover {
+    transform: translateY(-1px);
+    border-color: #93c5fd;
+    background: linear-gradient(180deg, #2563eb 0%, #1d4ed8 100%);
+    color: #ffffff;
+    box-shadow: 0 16px 34px rgba(37, 99, 235, .22);
+}
+
+.nexo-action-btn:focus-visible,
+.nexo-open-btn:focus-visible,
+.nexo-secondary-btn:focus-visible,
+.nexo-btn-primary:focus-visible,
+.nexo-leads-new-btn:focus-visible,
+.admin-action-btn:focus-visible,
+.nexo-page-table a:focus-visible,
+.btn:focus-visible,
+.page-link:focus-visible {
+    outline: 3px solid rgba(96, 165, 250, .35);
+    outline-offset: 3px;
+    box-shadow: 0 0 0 0 transparent;
+}
+
+.btn.btn-primary,
+.nexo-btn-primary,
+.nexo-leads-new-btn,
+.admin-action-btn.is-primary {
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(135deg, #2f80ff 0%, #155dfc 100%);
+    color: #ffffff;
+    font-weight: 950;
+    box-shadow: 0 16px 34px rgba(37, 99, 235, .28);
+    transition: transform .18s ease, box-shadow .18s ease, filter .18s ease;
+}
+
+.btn.btn-primary:hover,
+.nexo-btn-primary:hover,
+.nexo-leads-new-btn:hover,
+.admin-action-btn.is-primary:hover {
+    transform: translateY(-1px);
+    color: #ffffff;
+    filter: saturate(1.06);
+    box-shadow: 0 20px 42px rgba(37, 99, 235, .34);
+}
+
+.page-link {
+    border: 1px solid #d8e6f8;
+    color: #1d4ed8;
+    font-weight: 900;
+    border-radius: 12px !important;
+    margin: 0 3px;
+    box-shadow: 0 8px 18px rgba(37, 99, 235, .05);
+}
+
+.page-link:hover {
+    background: #eff6ff;
+    border-color: #93c5fd;
+    color: #1d4ed8;
+}
+
+.page-item.active .page-link {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border-color: transparent;
+    color: #ffffff;
+    box-shadow: 0 12px 26px rgba(37, 99, 235, .24);
+}
+
+.nexo-panel-footer,
+.dropdown-item {
+    text-decoration: none !important;
+}
+
+.nexo-panel-footer {
+    display: flex;
+    min-height: 38px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    font-size: 12px;
+    font-weight: 950;
+    transition: background .18s ease, color .18s ease, transform .18s ease;
+}
+
+.nexo-panel-footer:hover {
+    transform: translateY(-1px);
+    background: #dbeafe;
+    color: #1d4ed8;
+}
+
+.dropdown-item {
+    border-radius: 12px;
+    font-weight: 800;
+    transition: background .18s ease, color .18s ease;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+@media (max-height: 820px) and (min-width: 1024px) {
+    .nexo-sidebar {
+        padding-top: 18px;
+        padding-bottom: 12px;
+    }
+
+    .nexo-sidebar-logo img {
+        width: 118px;
+    }
+
+    .nexo-sidebar-top p {
+        margin: 14px 0 10px;
+    }
+
+    .nexo-sidebar-link {
+        min-height: 34px;
+    }
+
+    .nexo-sidebar-referral {
+        display: none;
+    }
+}
+
+@media (max-width: 1023px) {
+    .nexo-auth-main {
+        margin-left: 0;
+        padding-top: 64px;
+    }
+
+    .nexo-mobile-topbar {
+        position: fixed;
+        inset: 0 0 auto 0;
+        z-index: 1030;
+        display: flex;
+        height: 64px;
+        align-items: center;
+        gap: 14px;
+        border-bottom: 1px solid rgba(226, 232, 240, .9);
+        background: rgba(247, 249, 252, .92);
+        backdrop-filter: blur(14px);
+        padding: 0 16px;
+    }
+
+    .nexo-mobile-menu-button {
+        display: inline-flex;
+        width: 42px;
+        height: 42px;
+        align-items: center;
+        justify-content: center;
+        border: 1px solid #dbe5f3;
+        border-radius: 12px;
+        background: #fff;
+        color: #071631;
+        box-shadow: 0 6px 16px rgba(15, 23, 42, .06);
+    }
+
+    .nexo-mobile-logo img {
+        width: 118px;
+        height: auto;
+    }
+
+    .nexo-mobile-logo {
+        text-decoration: none !important;
+    }
+
+    .nexo-sidebar {
+        width: 252px;
+        transform: translateX(-105%);
+        transition: transform .22s ease;
+    }
+
+    body.nexo-sidebar-open .nexo-sidebar {
+        transform: translateX(0);
+    }
+
+    body.nexo-sidebar-open .nexo-sidebar-backdrop {
+        display: block;
+    }
+}
+
+@media (max-width: 420px) {
+    .nexo-sidebar {
+        width: min(292px, 86vw);
+    }
+}
